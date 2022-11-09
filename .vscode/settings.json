@@ -1,0 +1,11 @@
+{
+    "python.defaultInterpreterPath": "D:/dev/anaconda3/envs/torch_cpu/python.exe"
+    /* "python.autoComplete.extraPaths": [
+        "D:/dev/anaconda3/envs/d2l/Lib/site-packages",
+        "D:/dev/anaconda3/envs/d2l/Scripts"
+    ],
+    "python.analysis.extraPaths": [
+        "D:/dev/anaconda3/envs/d2l/Lib/site-packages",
+        "D:/dev/anaconda3/envs/d2l/Scripts"
+    ] */
+}
