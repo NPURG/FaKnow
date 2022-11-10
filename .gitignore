@@ -263,12 +263,13 @@ cython_debug/
 #.idea/
 
 ### VisualStudioCode ###
+.vscode
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
+.vscode/*.code-snippets
 
 # Local History for Visual Studio Code
 .history/
@@ -280,5 +281,10 @@ cython_debug/
 # Ignore all local history of files
 .history
 .ionide
+
+# Self Defined
+test
+test/
+*test*
 
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm+all,visualstudiocode,jupyternotebooks

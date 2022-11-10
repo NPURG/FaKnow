@@ -1,12 +1,16 @@
+import os
 from time import time
+import datetime
+from tqdm import tqdm
+from tqdm.contrib import tenumerate
 
 import torch
 from torch.nn.modules.loss import _Loss
 from torch.optim.optimizer import Optimizer
-
-from evaluator.evaluator import Evaluator
-from model.model import Model
 from torch.utils.data.dataloader import DataLoader
+
+from template.evaluate.evaluator import Evaluator
+from template.model.model import Model
 
 
 class Trainer:
@@ -38,6 +42,14 @@ class Trainer:
         """training for one epoch"""
         self.model.train()
         dataloader = DataLoader(data, batch_size, shuffle=True)
+        # todo tqdm与print冲突
+        # data_iter = tenumerate(
+        #     dataloader,
+        #     total=len(dataloader),
+        #     ncols=100,
+        #     desc=f'Training',
+        #     leave=False
+        # )
         for batch_id, (X, y) in enumerate(dataloader):
             # forward
             output = self.model(X)
@@ -53,18 +65,48 @@ class Trainer:
         """validation after training for one epoch"""
         return self.evaluate(data, batch_size)
 
-    def fit(self, train_data: torch.utils.data.Dataset,
-            validate_data: torch.utils.data.Dataset, batch_size: int,
-            epochs: int):
+    def fit(self, train_data: torch.utils.data.Dataset, batch_size: int,
+            epochs: int, validate_data=None,
+            validate_size=None, saved=False, save_path=None):
         """training"""
         # todo 使用validation size
+        # whether split validation set
+        validation = True
+        if validate_data is None:
+            if validate_size is not None:
+                validate_size = int(validate_size * len(train_data))
+                train_size = len(train_data) - validate_size
+                train_data, validate_data = torch.utils.data.random_split(
+                    train_data, [train_size, validate_size])
+            else:
+                validation = False
+
+        # tqdm.write('----start training-----')
+        print(f'training data size={len(train_data)}')
+        if validation:
+            print(f'validation data size={validate_size}')
+
+        # training for epochs
         print('----start training-----')
         for epoch in range(epochs):
             training_start_time = time()
             training_loss = self._train_epoch(train_data, batch_size)
             training_end_time = time()
-            validate_result = self._validate_epoch(validate_data, batch_size)
             print(f'epoch={epoch}, '
-                  f'training_time={training_end_time - training_start_time}s, '
-                  f'training loss={training_loss}')
-            print(f'validation result: {validate_result}')
+                  f'time={training_end_time - training_start_time}s, '
+                  f'train loss={training_loss}')
+            if validation:
+                validate_result = self._validate_epoch(validate_data,
+                                                       batch_size)
+                print(f'validation result: {validate_result}')
+            # tqdm.write(f'epoch={epoch}, '
+            #            f'time={training_end_time - training_start_time}s, '
+            #            f'train loss={training_loss}')
+            # tqdm.write(f'validation result: {validate_result}')
+
+        # save the model
+        if saved:
+            if save_path is None:
+                save_path = os.path.join(os.getcwd(), "save",
+                                         f"{self.model.__class__.__name__}-{datetime.datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pth")
+            torch.save(self.model.state_dict(), save_path)
