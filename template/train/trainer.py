@@ -3,6 +3,7 @@ from time import time
 import datetime
 from tqdm import tqdm
 from tqdm.contrib import tenumerate
+from typing import Optional
 
 import torch
 from torch.nn.modules.loss import _Loss
@@ -10,11 +11,28 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data.dataloader import DataLoader
 
 from template.evaluate.evaluator import Evaluator
-from template.model.model import Model
+from template.model.model import AbstractModel
+import sys
+
+
+class AbstractTrainer:
+    def __init__(self, model: AbstractModel, evaluator: Evaluator, criterion: _Loss,
+                 optimizer: Optimizer):
+        raise NotImplementedError(f'method {sys._getframe().f_code.co_name} should be implemented')
+
+    @torch.no_grad()
+    def evaluate(self, data: torch.utils.data.Dataset, batch_size: int):
+        """evaluate after training"""
+        raise NotImplementedError(f'method {sys._getframe().f_code.co_name} should be implemented')
+
+    def fit(self, train_data: torch.utils.data.Dataset, batch_size: int,
+            epochs: int, validate_data=None,
+            validate_size=None, saved=False, save_path=None):
+        raise NotImplementedError(f'method {sys._getframe().f_code.co_name} should be implemented')
 
 
 class Trainer:
-    def __init__(self, model: Model, evaluator: Evaluator, criterion: _Loss,
+    def __init__(self, model: AbstractModel, evaluator: Evaluator, criterion: _Loss,
                  optimizer: Optimizer):
         self.model = model
         self.criterion = criterion  # todo 放入trainer or model
@@ -67,7 +85,7 @@ class Trainer:
 
     def fit(self, train_data: torch.utils.data.Dataset, batch_size: int,
             epochs: int, validate_data=None,
-            validate_size=None, saved=False, save_path=None):
+            validate_size: Optional[float] = None, saved=False, save_path: Optional[str] = None):
         """training"""
         # todo 使用validation size
         # whether split validation set

@@ -1,8 +1,9 @@
 import torch
 from sklearn.metrics import precision_score, recall_score, f1_score
+from typing import Callable
 
 
-def get_metric_func(name: str):
+def get_metric_func(name: str) -> Callable:
     name = name.lower()
     if name == 'accuracy':
         return calculate_accuracy
