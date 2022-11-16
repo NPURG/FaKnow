@@ -1,10 +1,10 @@
 import torch.nn as nn
 
 
-class Model(nn.Module):
+class AbstractModel(nn.Module):
     """abstract class for all models"""
     def __init__(self):
-        super(Model, self).__init__()
+        super(AbstractModel, self).__init__()
 
     def calculate_loss(self):
         raise NotImplementedError
