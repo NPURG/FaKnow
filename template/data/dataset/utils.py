@@ -1,6 +1,6 @@
 import os
 from torchvision.datasets.folder import find_classes, is_image_file
-from typing import Optional, Callable, Dict, List, Tuple, Any, Union, Set
+from typing import Optional, Callable, Dict, List, Tuple, Union, Set
 
 
 def default_walker(class_dir: str, class_name: str, class_index: int, instances: List[Tuple],
