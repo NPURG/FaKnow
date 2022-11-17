@@ -3,36 +3,34 @@ from time import time
 import datetime
 from tqdm import tqdm
 from tqdm.contrib import tenumerate
-from typing import Optional
+from typing import Optional, Callable
 
 import torch
-from torch.nn.modules.loss import _Loss
 from torch.optim.optimizer import Optimizer
 from torch.utils.data.dataloader import DataLoader
 
 from template.evaluate.evaluator import Evaluator
 from template.model.model import AbstractModel
-import sys
 
 
 class AbstractTrainer:
-    def __init__(self, model: AbstractModel, evaluator: Evaluator, criterion: _Loss,
+    def __init__(self, model: AbstractModel, evaluator: Evaluator, criterion: Callable,
                  optimizer: Optimizer):
-        raise NotImplementedError(f'method {sys._getframe().f_code.co_name} should be implemented')
+        raise NotImplementedError
 
     @torch.no_grad()
     def evaluate(self, data: torch.utils.data.Dataset, batch_size: int):
         """evaluate after training"""
-        raise NotImplementedError(f'method {sys._getframe().f_code.co_name} should be implemented')
+        raise NotImplementedError
 
     def fit(self, train_data: torch.utils.data.Dataset, batch_size: int,
             epochs: int, validate_data=None,
             validate_size=None, saved=False, save_path=None):
-        raise NotImplementedError(f'method {sys._getframe().f_code.co_name} should be implemented')
+        raise NotImplementedError
 
 
 class Trainer:
-    def __init__(self, model: AbstractModel, evaluator: Evaluator, criterion: _Loss,
+    def __init__(self, model: AbstractModel, evaluator: Evaluator, criterion: Callable,
                  optimizer: Optimizer):
         self.model = model
         self.criterion = criterion  # todo 放入trainer or model
@@ -47,11 +45,11 @@ class Trainer:
         # todo
         # 不分批次，采用concat直接把每批的output与y组合在一起，再分别传入
         outputs = []
-        Y = []
+        labels = []
         for X, y in dataloader:
             outputs.append(self.model(X))
-            Y.append(y)
-        return self.evaluator.evaluate(torch.concat(outputs), torch.concat(Y))
+            labels.append(y)
+        return self.evaluator.evaluate(torch.concat(outputs), torch.concat(labels))
 
         # 或者事先分好批次，把每个batch的output与y作为一个tuple，多个批次的tuple共同组成一个list
         # self.evaluator.evaluate([(self.model(X), y) for X, y in dataloader])
@@ -87,17 +85,15 @@ class Trainer:
             epochs: int, validate_data=None,
             validate_size: Optional[float] = None, saved=False, save_path: Optional[str] = None):
         """training"""
-        # todo 使用validation size
         # whether split validation set
         validation = True
-        if validate_data is None:
-            if validate_size is not None:
-                validate_size = int(validate_size * len(train_data))
-                train_size = len(train_data) - validate_size
-                train_data, validate_data = torch.utils.data.random_split(
-                    train_data, [train_size, validate_size])
-            else:
-                validation = False
+        if validate_data is None and validate_size is None:
+            validation = False
+        else:
+            validate_size = int(validate_size * len(train_data))
+            train_size = len(train_data) - validate_size
+            train_data, validate_data = torch.utils.data.random_split(
+                train_data, [train_size, validate_size])
 
         # tqdm.write('----start training-----')
         print(f'training data size={len(train_data)}')
