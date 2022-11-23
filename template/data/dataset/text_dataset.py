@@ -11,7 +11,7 @@ class TensorTextDataset(torch.utils.data.Dataset):
                  labels: Optional[torch.Tensor] = None,
                  samples: Optional[List[Tuple[torch.Tensor,
                                               torch.Tensor]]] = None,
-                 other_data: Optional[Dict[str, Any]] = None):
+                 other_data: Optional[Dict[str, torch.Tensor]] = None):
         if samples is not None:
             texts = [sample[0] for sample in samples]
             labels = [sample[-1] for sample in samples]
@@ -29,9 +29,8 @@ class TensorTextDataset(torch.utils.data.Dataset):
         label = self.labels[index]
         if self.other_data is None:
             return text, label
-
-        other_params = {k: v[index] for k, v in self.other_data.items()}
-        return text, other_params, label
+        other_data = {k: v[index] for k, v in self.other_data.items()}
+        return text, label, other_data
 
     def __len__(self) -> int:
         return len(self.labels)
@@ -42,7 +41,7 @@ class FolderTextDataset(torch.utils.data.Dataset):
         self,
         root: str,
         embedding: Optional[Callable[[str], Any]],
-        other_params: Optional[Dict[str, Any]] = None,
+        other_data: Optional[Dict[str, torch.Tensor]] = None,
         walk_class_dir: Optional[Callable[[str, str, int, List[Tuple], Set],
                                           None]] = default_walker):
         self.classes, self.class_to_idx = find_classes(root)
@@ -50,17 +49,20 @@ class FolderTextDataset(torch.utils.data.Dataset):
                                     walk_class_dir)
 
         self.texts = [sample[0] for sample in self.samples]
-        self.labels = [sample[1] for sample in self.samples]
-        self.word_embedding = embedding
-        self.other_params = other_params
+        self.labels = [sample[-1] for sample in self.samples]
+        self.embedding = embedding
+        self.other_data = other_data
 
-    def __getitem__(self, index) -> Tuple[Any, Any]:
+    def __getitem__(self, index) -> Tuple:
         text = self.samples[index][0]
         label = self.samples[index][-1]
-        if self.word_embedding is not None:
-            text = self.word_embedding(text)
+        if self.embedding is not None:
+            text = self.embedding(text)
 
-        return text, label
+        if self.other_data is None:
+            return text, label
+        other_data = {k: v[index] for k, v in self.other_data.items()}
+        return text, label, other_data
 
     def __len__(self) -> int:
         return len(self.samples)
