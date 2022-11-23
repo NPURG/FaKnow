@@ -61,7 +61,7 @@ class TensorMultiModalDataset(TensorTextDataset):
         if len(item) == 2:
             # text, image, label
             return item[0], self.images[index], item[1]
-        # text, image, other_data, label
+        # text, image, label, other_data
         return item[0], self.images[index], item[1], item[2]
 
 
@@ -73,17 +73,22 @@ class FolderMultiModalDataset(FolderTextDataset):
         transform: Optional[Callable],
         image_loader: Callable[[str], Any] = default_loader,
         is_valid_file: Optional[Callable[[str], bool]] = None,
-        other_params: Optional[Dict[str, Any]] = None,
+        other_data: Optional[Dict[str, torch.Tensor]] = None,
         walk_class_dir: Optional[Callable[[str, str, int, List[Tuple], Set],
                                           None]] = walker_with_images):
-        super().__init__(root, embedding, other_params, walk_class_dir)
+        super().__init__(root, embedding, other_data, walk_class_dir)
         self.images = [sample[1] for sample in self.samples]
         self.transform = transform
         self.image_loader = image_loader
 
-    def __getitem__(self, index: int) -> Tuple[Any, Any, Any]:
-        text, label = super().__getitem__(index)
+    def __getitem__(self, index: int) -> Tuple:
+        item = super().__getitem__(index)
         image = self.image_loader(self.images[index])
-        if self.image_transform is not None:
-            image = self.image_transform(image)
-        return text, image, label
+        if self.transform is not None:
+            image = self.transform(image)
+
+        if len(item) == 2:
+            # text, image, label
+            return item[0], image, item[1]
+        # text, image, label, other_data
+        return item[0], image, item[1], item[2]
