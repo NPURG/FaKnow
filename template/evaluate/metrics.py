@@ -19,7 +19,7 @@ def get_metric_func(name: str) -> Callable:
 
 
 def calculate_accuracy(outputs: torch.Tensor, y: torch.Tensor):
-    return (torch.sum(outputs.argmax(dim=1) == y) / len(y)).item()
+    return (outputs.argmax(dim=1) == y).float.mean().item()
 
 
 def calculate_precision(outputs: torch.Tensor, y: torch.Tensor):
