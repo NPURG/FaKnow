@@ -1,10 +1,10 @@
-from typing import Dict, Callable, Optional, List
+from typing import Dict, Callable, Optional, List, Union
 import torch
 from template.evaluate.metrics import get_metric_func
 
 
 class Evaluator:
-    def __init__(self, metrics: List[Optional[str, Callable]]):
+    def __init__(self, metrics: List[Union[str, Callable]]):
         """generate metric functions for evaluator
         Args:
             metrics: the key should be metric name:str, value should be self defined metric function.
@@ -22,7 +22,7 @@ class Evaluator:
             elif type(metric) == Callable:
                 self.metrics[metric.__name__] = metric
             else:
-                raise RuntimeError(f'only str or callable are supported, but {type(metric)} are provided')
+                raise RuntimeError(f'only str or callable are supported as metrics, but {type(metric)} are provided')
 
     # def evaluate(self, data):
     #     result = {}
