@@ -3,6 +3,7 @@ from typing import Tuple, Any, Optional, Callable, Dict, List, Set
 import torch.utils.data
 import torchvision
 from torchvision.datasets.folder import default_loader
+
 from template.data.dataset.text_dataset import FolderTextDataset, TensorTextDataset
 from template.data.dataset.utils import walker_with_images
 
@@ -80,6 +81,7 @@ class FolderMultiModalDataset(FolderTextDataset):
         self.images = [sample[1] for sample in self.samples]
         self.transform = transform
         self.image_loader = image_loader
+        # self.__dict__.update(other_data)
 
     def __getitem__(self, index: int) -> Tuple:
         item = super().__getitem__(index)
