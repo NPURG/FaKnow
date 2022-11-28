@@ -1,8 +1,6 @@
+import datetime
 import os
 from time import time
-import datetime
-from tqdm import tqdm
-from tqdm.contrib import tenumerate
 from typing import Optional, Callable
 
 import torch
@@ -54,7 +52,7 @@ class Trainer:
         # 或者事先分好批次，把每个batch的output与y作为一个tuple，多个批次的tuple共同组成一个list
         # self.evaluator.evaluate([(self.model(X), y) for X, y in dataloader])
 
-    def _train_epoch(self, data, batch_size: int) -> torch.float:
+    def _train_epoch(self, data, batch_size: int, epoch: int) -> torch.float:
         """training for one epoch"""
         self.model.train()
         dataloader = DataLoader(data, batch_size, shuffle=True)
@@ -79,6 +77,7 @@ class Trainer:
 
     def _validate_epoch(self, data, batch_size: int):
         """validation after training for one epoch"""
+        # todo best score， validation loss， accuracy
         return self.evaluate(data, batch_size)
 
     def fit(self, train_data: torch.utils.data.Dataset, batch_size: int,
@@ -104,7 +103,7 @@ class Trainer:
         print('----start training-----')
         for epoch in range(epochs):
             training_start_time = time()
-            training_loss = self._train_epoch(train_data, batch_size)
+            training_loss = self._train_epoch(train_data, batch_size, epoch)
             training_end_time = time()
             print(f'epoch={epoch}, '
                   f'time={training_end_time - training_start_time}s, '
@@ -121,6 +120,10 @@ class Trainer:
         # save the model
         if saved:
             if save_path is None:
-                save_path = os.path.join(os.getcwd(), "save",
-                                         f"{self.model.__class__.__name__}-{datetime.datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pth")
+                save_dir = os.path.join(os.getcwd(), "save")
+                if not os.path.exists(save_dir):
+                    os.makedirs(save_dir)
+                file_name = f"{self.model.__class__.__name__}-{datetime.datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pth"
+                save_path = os.path.join(save_dir, file_name)
             torch.save(self.model.state_dict(), save_path)
+            print(f'model is saved in {save_path}')
