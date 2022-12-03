@@ -27,7 +27,7 @@ class AbstractTrainer:
         raise NotImplementedError
 
 
-class Trainer:
+class BaseTrainer:
     def __init__(self, model: AbstractModel, evaluator: Evaluator, criterion: Callable,
                  optimizer: Optimizer):
         self.model = model
@@ -39,18 +39,16 @@ class Trainer:
     def evaluate(self, data: torch.utils.data.Dataset, batch_size: int):
         """evaluate after training"""
         self.model.eval()
-        dataloader = DataLoader(data, batch_size, shuffle=True)
-        # todo
-        # 不分批次，采用concat直接把每批的output与y组合在一起，再分别传入
+        dataloader = DataLoader(data, batch_size, shuffle=False)
+        # todo 不分批次，采用concat直接把每批的output与y组合在一起，再分别传入
+        # 或者事先分好批次，把每个batch的output与y作为一个tuple，多个批次的tuple共同组成一个list
+        # self.evaluator.evaluate([(self.model(X), y) for X, y in dataloader])
         outputs = []
         labels = []
         for X, y in dataloader:
             outputs.append(self.model(X))
             labels.append(y)
         return self.evaluator.evaluate(torch.concat(outputs), torch.concat(labels))
-
-        # 或者事先分好批次，把每个batch的output与y作为一个tuple，多个批次的tuple共同组成一个list
-        # self.evaluator.evaluate([(self.model(X), y) for X, y in dataloader])
 
     def _train_epoch(self, data, batch_size: int, epoch: int) -> torch.float:
         """training for one epoch"""
@@ -77,7 +75,7 @@ class Trainer:
 
     def _validate_epoch(self, data, batch_size: int):
         """validation after training for one epoch"""
-        # todo best score， validation loss， accuracy
+        # todo 计算best score，作为最佳结果保存
         return self.evaluate(data, batch_size)
 
     def fit(self, train_data: torch.utils.data.Dataset, batch_size: int,
@@ -102,16 +100,16 @@ class Trainer:
         # training for epochs
         print('----start training-----')
         for epoch in range(epochs):
+            print(f'\n--epoch=[{epoch + 1}/{epochs}]--')
             training_start_time = time()
             training_loss = self._train_epoch(train_data, batch_size, epoch)
             training_end_time = time()
-            print(f'epoch={epoch}, '
-                  f'time={training_end_time - training_start_time}s, '
+            print(f'time={training_end_time - training_start_time}s, '
                   f'train loss={training_loss}')
             if validation:
                 validate_result = self._validate_epoch(validate_data,
                                                        batch_size)
-                print(f'validation result: {validate_result}')
+                print(f'      validation result: {validate_result}')
             # tqdm.write(f'epoch={epoch}, '
             #            f'time={training_end_time - training_start_time}s, '
             #            f'train loss={training_loss}')
@@ -126,4 +124,4 @@ class Trainer:
                 file_name = f"{self.model.__class__.__name__}-{datetime.datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pth"
                 save_path = os.path.join(save_dir, file_name)
             torch.save(self.model.state_dict(), save_path)
-            print(f'model is saved in {save_path}')
+            print(f'model is saved as {save_path}')
