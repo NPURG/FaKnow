@@ -38,14 +38,27 @@ class MultiModalDataset(torchvision.datasets.ImageFolder):
 
 
 class TensorMultiModalDataset(TensorTextDataset):
+    """
+    inherit from TensorTextDataset for multi-modal data
+    """
+
     def __init__(self,
                  texts: torch.Tensor = None,
                  images: torch.Tensor = None,
                  labels: torch.Tensor = None,
                  samples: Optional[List[Tuple[torch.Tensor,
+                                              torch.Tensor,
                                               torch.Tensor]]] = None,
-                 other_data: Optional[Dict[str, Any]] = None):
-        super().__init__(texts, labels, samples, other_data)
+                 **other_data: torch.Tensor):
+        """
+        Args:
+            texts:
+            images:
+            labels:
+            samples: instead of inputting texts, image and labels, they can be combined as a list of tuples (text, image, label).
+            other_data: other data the model needs, it should be torch tensor
+        """
+        super().__init__(texts, labels, samples, **other_data)
 
         if samples is not None:
             images = [sample[1] for sample in samples]
@@ -68,26 +81,25 @@ class TensorMultiModalDataset(TensorTextDataset):
 
 class FolderMultiModalDataset(FolderTextDataset):
     def __init__(
-        self,
-        root: str,
-        embedding: Optional[Callable[[str], Any]],
-        transform: Optional[Callable],
-        image_loader: Callable[[str], Any] = default_loader,
-        is_valid_file: Optional[Callable[[str], bool]] = None,
-        other_data: Optional[Dict[str, torch.Tensor]] = None,
-        walk_class_dir: Optional[Callable[[str, str, int, List[Tuple], Set],
-                                          None]] = walker_with_images):
-        super().__init__(root, embedding, other_data, walk_class_dir)
+            self,
+            root: str,
+            embedding: Callable[[str, Optional[Dict]], Any],
+            transform: Optional[Callable],
+            image_loader: Callable[[str], Any] = default_loader,
+            is_valid_file: Optional[Callable[[str], bool]] = None,
+            walk_class_dir: Optional[Callable[[str, str, int, List[Tuple], Set],
+                                              None]] = walker_with_images,
+            embedding_params: Dict[str, Any] = None,
+            **other_data: torch.Tensor):
+        super().__init__(root, embedding, walk_class_dir, embedding_params, **other_data)
         self.images = [sample[1] for sample in self.samples]
         self.transform = transform
         self.image_loader = image_loader
-        # self.__dict__.update(other_data)
 
     def __getitem__(self, index: int) -> Tuple:
         item = super().__getitem__(index)
         image = self.image_loader(self.images[index])
-        if self.transform is not None:
-            image = self.transform(image)
+        image = self.transform(image)
 
         if len(item) == 2:
             # text, image, label
