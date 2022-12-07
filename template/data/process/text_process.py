@@ -23,7 +23,7 @@ def tokenize(text,
              stop_words_path=default_chinese_stop_words_path) -> List[str]:
     cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "",
                           text).strip().lower()
-    split_words = jieba.cut_for_search(cleaned_text)
+    split_words = jieba.cut(cleaned_text)
     if stop_words is None:
         stop_words = get_stop_words(stop_words_path)
     # cleaned_text = " ".join([word for word in split_words if word not in stop_words])
