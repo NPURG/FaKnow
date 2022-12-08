@@ -75,7 +75,7 @@ class TensorMultiModalDataset(TensorTextDataset):
         if len(item) == 2:
             # text, image, label
             return item[0], self.images[index], item[1]
-        # text, image, label, other_data
+        # text, image, other_data, label
         return item[0], self.images[index], item[1], item[2]
 
 
@@ -104,5 +104,5 @@ class FolderMultiModalDataset(FolderTextDataset):
         if len(item) == 2:
             # text, image, label
             return item[0], image, item[1]
-        # text, image, label, other_data
+        # text, image, other_data, label
         return item[0], image, item[1], item[2]
