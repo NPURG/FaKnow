@@ -111,24 +111,23 @@ def run_eann(root: str, pre_trained_word2vec=True, max_text_len: int = None, wor
 
     model = EANN(event_num,
                  hidden_size=32,
-                 embed_dim=word_vectors.shape[0],
                  dropout=1,
                  reverse_lambd=1,
                  vocab_size=len(word_idx_map),
                  embed_weight=word_vectors)
-    criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
                                         list(model.parameters())),
                                  lr=0.0003)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
-    trainer = EANNTrainer(model, evaluator, criterion, optimizer)
+    trainer = EANNTrainer(model, evaluator, optimizer)
     trainer.fit(dataset, batch_size=20, epochs=100, validate_size=0.2, saved=True)
 
 
 if __name__ == '__main__':
     root = "F:/code/python/EANN-KDD18-degugged11.2/test/pairdata"
     run_eann(root, False)
+
     # image_transforms = transforms.Compose([
     #     transforms.Resize(256),
     #     transforms.CenterCrop(224),
@@ -140,12 +139,15 @@ if __name__ == '__main__':
     # word_vectors, word_idx_map = padding_vec_and_idx(word_vectors, word_idx_map)
     # masks, event_labels = generate_mask_and_event_label(root, max_text_len)
     # event_num = max(event_labels) + 1
-
-    # embedding_params = {'word_vectors': word_vectors, 'word_idx_map': word_idx_map, 'max_text_len': max_text_len}
+    #
+    # embedding_params = {'word_idx_map': word_idx_map, 'max_text_len': max_text_len}
     #
     # dataset = FolderMultiModalDataset(root, embedding=eann_word2idx, transform=image_transforms,
     #                                   embedding_params=embedding_params,
     #                                   mask=masks, event_label=torch.tensor(event_labels))
+    # for text, image, other_data, label in dataset:
+    #     print(text, image, other_data['mask'], other_data['event_label'], label, sep='\n\n')
+    #     break
     #
     # model = EANN(event_num,
     #              hidden_size=32,
@@ -154,11 +156,11 @@ if __name__ == '__main__':
     #              reverse_lambd=1,
     #              vocab_size=len(word_idx_map),
     #              embed_weight=word_vectors)
-    # criterion = torch.nn.CrossEntropyLoss()
+    # loss_func = torch.nn.CrossEntropyLoss()
     # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
     #                                     list(model.parameters())),
     #                              lr=0.0003)
     # evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
     #
-    # trainer = EANNTrainer(model, evaluator, criterion, optimizer)
+    # trainer = EANNTrainer(model, evaluator, loss_func, optimizer)
     # trainer.fit(dataset, batch_size=20, epochs=100, validate_size=0.2, saved=True)
