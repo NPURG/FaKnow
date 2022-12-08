@@ -35,7 +35,7 @@ class TensorTextDataset(torch.utils.data.Dataset):
         if self.other_data is None:
             return text, label
         other_data = {k: v[index] for k, v in self.other_data.items()}
-        return text, label, other_data
+        return text, other_data, label
 
     def __len__(self) -> int:
         return len(self.labels)
@@ -81,7 +81,7 @@ class FolderTextDataset(torch.utils.data.Dataset):
         if self.other_data is None:
             return text, label
         other_data = {k: v[index] for k, v in self.other_data.items()}
-        return text, label, other_data
+        return text, other_data, label
 
     def __len__(self) -> int:
         return len(self.samples)
