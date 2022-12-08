@@ -1,5 +1,7 @@
 from collections import OrderedDict
+from typing import Optional, Callable, Tuple, List
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,24 +27,27 @@ class _ReverseLayer(Function):
 
 class EANN(AbstractModel):
     def __init__(self, event_num: int, hidden_size: int,
-                 dropout: int, reverse_lambd: int, embed_dim: int, embed_weight, vocab_size):
+                 dropout: int, reverse_lambd: int, embed_weight: np.ndarray, vocab_size: int,
+                 loss_funcs: Optional[List[Callable]] = None, loss_weights: Optional[List[float]] = None):
         super(EANN, self).__init__()
-        # self.args = args
+
+        if loss_funcs is None:
+            loss_funcs = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss()]
+        self.loss_funcs = loss_funcs
+        if loss_weights is None:
+            loss_weights = [1.0, 1.0]
+        self.loss_weights = loss_weights
 
         self.event_num = event_num
-        # self.embed_dim = embed_dim
         self.embed_dim = embed_weight[0].shape[0]
         self.hidden_size = hidden_size
-        # self.lstm_size = self.embed_dim
         self.reverse_lambd = reverse_lambd
+        self.lstm_size = self.embed_dim
 
         # TEXT RNN
         # 真正的word embedding，使用了预训练好的权重
         self.embed = nn.Embedding(vocab_size, self.embed_dim)
         self.embed.weight = nn.Parameter(torch.from_numpy(embed_weight))
-        # self.lstm = nn.LSTM(self.lstm_size, self.lstm_size)
-        # self.text_fc = nn.Linear(self.lstm_size, self.hidden_size)
-        # self.text_encoder = nn.Linear(self.embed_dim, self.hidden_size)
 
         # TEXT CNN
         channel_in = 1
@@ -122,8 +127,18 @@ class EANN(AbstractModel):
         x = F.max_pool1d(x, x.size(2)).squeeze(2)
         return x
 
-    def calculate_loss(self):
-        pass
+    def calculate_loss(self, data) -> Tuple[torch.Tensor, str]:
+        text, image, mask, event_label, label = data[0], data[1], data[2]['mask'], data[2][
+            'event_label'].long(), data[3].long()
+        class_output, domain_output = self.forward(text, image, mask)
+        class_loss = self.loss_funcs[0](class_output, label) * self.loss_weights[0]
+        domain_loss = self.loss_funcs[1](domain_output, event_label) * self.loss_weights[1]
+        loss = class_loss + domain_loss
 
-    def predict(self, data):
-        pass
+        msg = f'class_loss={class_loss}, domain_loss={domain_loss}'
+        return loss, msg
+
+    def predict(self, data_without_label) -> torch.Tensor:
+        text, image, mask = data_without_label[0], data_without_label[1], data_without_label[2]['mask']
+        class_output, _ = self.forward(text, image, mask)
+        return class_output

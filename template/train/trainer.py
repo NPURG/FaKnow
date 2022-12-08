@@ -12,8 +12,8 @@ from template.model.model import AbstractModel
 
 
 class AbstractTrainer:
-    def __init__(self, model: AbstractModel, evaluator: Evaluator, criterion: Callable,
-                 optimizer: Optimizer):
+    def __init__(self, model: AbstractModel, evaluator: Evaluator,
+                 optimizer: Optimizer, loss_func: Optional[Callable] = None):
         raise NotImplementedError
 
     @torch.no_grad()
@@ -28,26 +28,22 @@ class AbstractTrainer:
 
 
 class BaseTrainer:
-    def __init__(self, model: AbstractModel, evaluator: Evaluator, criterion: Callable,
-                 optimizer: Optimizer):
+    def __init__(self, model: AbstractModel, evaluator: Evaluator,
+                 optimizer: Optimizer, loss_func: Optional[Callable] = None):
         self.model = model
-        self.criterion = criterion  # todo 放入trainer or model
+        self.loss_func = loss_func
         self.optimizer = optimizer
         self.evaluator = evaluator
 
     @torch.no_grad()
     def evaluate(self, data: torch.utils.data.Dataset, batch_size: int):
-        """evaluate after training"""
         self.model.eval()
         dataloader = DataLoader(data, batch_size, shuffle=False)
-        # todo 不分批次，采用concat直接把每批的output与y组合在一起，再分别传入
-        # 或者事先分好批次，把每个batch的output与y作为一个tuple，多个批次的tuple共同组成一个list
-        # self.evaluator.evaluate([(self.model(X), y) for X, y in dataloader])
         outputs = []
         labels = []
-        for X, y in dataloader:
-            outputs.append(self.model(X))
-            labels.append(y)
+        for batch_data in dataloader:
+            outputs.append(self.model.predict(batch_data[:-1]))
+            labels.append(batch_data[-1])
         return self.evaluator.evaluate(torch.concat(outputs), torch.concat(labels))
 
     def _train_epoch(self, data, batch_size: int, epoch: int) -> torch.float:
@@ -62,15 +58,19 @@ class BaseTrainer:
         #     desc=f'Training',
         #     leave=False
         # )
-        for batch_id, (X, y) in enumerate(dataloader):
-            # forward
-            output = self.model(X)
-            loss = self.criterion(output, y)
-
-            # backward
+        msg = None
+        for batch_id, batch_data in enumerate(dataloader):
+            # using trainer.loss_func first or model.calculate_loss
+            if self.loss_func is None:
+                loss, msg = self.model.calculate_loss(batch_data)
+            else:
+                loss = self.loss_func(batch_data)
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+
+        if msg is not None:
+            print(msg)
         return loss
 
     def _validate_epoch(self, data, batch_size: int):
