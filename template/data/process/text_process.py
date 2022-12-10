@@ -58,14 +58,14 @@ def generate_frequency_vocabulary(texts):
     return vocab
 
 
-def add_unknown_words(word_vectors: np.ndarray, vocab: Dict, min_df=1, k=32):
+def add_unknown_words(word_vector_dict: Dict[str, np.ndarray], frequency_vocab: Dict[str, int], min_df=1, k=32):
     """
     For words that occur in at least min_df documents, create a separate word vector.
     0.25 is chosen so the unknown vectors have (approximately) same variance as pre-trained ones
     """
-    for word in vocab:
-        if word not in word_vectors and vocab[word] >= min_df:
-            word_vectors[word] = np.random.uniform(-0.25, 0.25, k)
+    for word in frequency_vocab:
+        if word not in word_vector_dict and frequency_vocab[word] >= min_df:
+            word_vector_dict[word] = np.random.uniform(-0.25, 0.25, k)
 
 
 def build_word2vec(root: str, min_count=1, vector_size=100, window=5):
