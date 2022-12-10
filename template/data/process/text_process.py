@@ -12,7 +12,6 @@ default_chinese_stop_words_path = os.path.join(os.path.dirname(os.path.abspath(_
 
 
 def get_stop_words(filepath=default_chinese_stop_words_path):
-    # print(os.path.relpath("F:/code/python/Template/template/data/process/stop_words/stop_words.txt"))
     with open(filepath, 'r', encoding='utf-8') as f:
         stop_words = [str(line).strip() for line in f.readlines()]
     return stop_words
@@ -23,6 +22,7 @@ def tokenize(text,
              stop_words_path=default_chinese_stop_words_path) -> List[str]:
     cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "",
                           text).strip().lower()
+    # todo for English
     split_words = jieba.cut(cleaned_text)
     if stop_words is None:
         stop_words = get_stop_words(stop_words_path)
@@ -40,6 +40,7 @@ def get_texts(root: str) -> Tuple[List[List[str]], int]:
                 with open(file_path, encoding='utf-8') as f:
                     for i, l in enumerate(f.readlines()):
                         l = l.rstrip()
+                        # todo only for EANN
                         if (i + 1) % 2 == 0:
                             tokens = tokenize(l)
                             if len(tokens) > max_text_len:

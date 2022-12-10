@@ -100,7 +100,7 @@ def run_eann(root: str, pre_trained_word2vec=True, max_text_len: int = None, wor
         word_vectors, word_idx_map, max_text_len = build_word2vec(root)
         word_vectors, word_idx_map = padding_vec_and_idx(word_vectors, word_idx_map)
 
-    embedding_params = {'word_vectors': word_vectors, 'word_idx_map': word_idx_map, 'max_text_len': max_text_len}
+    embedding_params = {'word_idx_map': word_idx_map, 'max_text_len': max_text_len}
 
     masks, event_labels = generate_mask_and_event_label(root, max_text_len)
     event_num = max(event_labels) + 1
