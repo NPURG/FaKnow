@@ -26,9 +26,15 @@ class _ReverseLayer(Function):
 
 
 class EANN(AbstractModel):
-    def __init__(self, event_num: int, hidden_size: int,
-                 dropout: int, reverse_lambd: int, embed_weight: np.ndarray, vocab_size: int,
-                 loss_funcs: Optional[List[Callable]] = None, loss_weights: Optional[List[float]] = None):
+    def __init__(self,
+                 event_num: int,
+                 hidden_size: int,
+                 dropout: int,
+                 reverse_lambd: int,
+                 embed_weight: np.ndarray,
+                 vocab_size: int,
+                 loss_funcs: Optional[List[Callable]] = None,
+                 loss_weights: Optional[List[float]] = None):
         super(EANN, self).__init__()
 
         if loss_funcs is None:
@@ -128,17 +134,20 @@ class EANN(AbstractModel):
         return x
 
     def calculate_loss(self, data) -> Tuple[torch.Tensor, str]:
-        text, image, mask, event_label, label = data[0], data[1], data[2]['mask'], data[2][
-            'event_label'].long(), data[3].long()
+        text, mask, image, event_label, label = data[0][0], data[0][1], data[
+            1], data[2]['event_label'].long(), data[3].long()
         class_output, domain_output = self.forward(text, image, mask)
-        class_loss = self.loss_funcs[0](class_output, label) * self.loss_weights[0]
-        domain_loss = self.loss_funcs[1](domain_output, event_label) * self.loss_weights[1]
+        class_loss = self.loss_funcs[0](class_output,
+                                        label) * self.loss_weights[0]
+        domain_loss = self.loss_funcs[1](domain_output,
+                                         event_label) * self.loss_weights[1]
         loss = class_loss + domain_loss
 
         msg = f'class_loss={class_loss}, domain_loss={domain_loss}'
         return loss, msg
 
     def predict(self, data_without_label) -> torch.Tensor:
-        text, image, mask = data_without_label[0], data_without_label[1], data_without_label[2]['mask']
+        text, mask, image = data_without_label[0][0], data_without_label[0][
+            1], data_without_label[1]
         class_output, _ = self.forward(text, image, mask)
         return class_output
