@@ -9,7 +9,7 @@ from data.process.text_process import build_word2vec, padding_vec_and_idx
 from evaluate.evaluator import Evaluator
 from model.multi_modal.eann import EANN
 from template.data.dataset.multi_modal_dataset import FolderMultiModalDataset
-from template.data.process.text_process import tokenize
+from template.data.process.text_process import chinese_tokenize
 from train.eann_trainer import EANNTrainer
 
 
@@ -44,7 +44,7 @@ def generate_max_text_len_and_event_label(path: str):
 
                         # 第2行 文本内容
                         if (i + 1) % 2 == 0:
-                            tokens = tokenize(line)
+                            tokens = chinese_tokenize(line)
                             if len(tokens) > max_text_len:
                                 max_text_len = len(tokens)
     return max_text_len, event_labels
@@ -64,7 +64,7 @@ def eann_embedding(path: str, other_params: Dict[str, Any]):
     with open(path, encoding='utf-8') as f:
         _ = f.readline()
         line = f.readline()  # 第二行才是文本
-        tokens = tokenize(line)
+        tokens = chinese_tokenize(line)
     word_idx_map = other_params['word_idx_map']
     max_text_len = other_params['max_text_len']
     words_id = word_to_idx(tokens, word_idx_map, max_text_len)
