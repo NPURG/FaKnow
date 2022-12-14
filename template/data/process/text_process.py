@@ -17,9 +17,9 @@ def get_stop_words(filepath=default_chinese_stop_words_path):
     return stop_words
 
 
-def tokenize(text,
-             stop_words: Optional[List[str]] = None,
-             stop_words_path=default_chinese_stop_words_path) -> List[str]:
+def chinese_tokenize(text,
+                     stop_words: Optional[List[str]] = None,
+                     stop_words_path=default_chinese_stop_words_path) -> List[str]:
     cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "",
                           text).strip().lower()
     # todo for English
@@ -42,7 +42,7 @@ def get_texts(root: str) -> Tuple[List[List[str]], int]:
                         l = l.rstrip()
                         # todo only for EANN
                         if (i + 1) % 2 == 0:
-                            tokens = tokenize(l)
+                            tokens = chinese_tokenize(l)
                             if len(tokens) > max_text_len:
                                 max_text_len = len(tokens)
                             texts.append(tokens)
