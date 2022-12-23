@@ -9,8 +9,6 @@ def get_metric_func(name: str) -> Callable:
         return calculate_accuracy
     if name == 'precision':
         return calculate_precision
-    if name == 'mean_precision':
-        return calculate_mean_precision
     if name == 'recall':
         return calculate_recall
     if name == 'f1':
@@ -23,16 +21,12 @@ def calculate_accuracy(outputs: torch.Tensor, y: torch.Tensor):
 
 
 def calculate_precision(outputs: torch.Tensor, y: torch.Tensor):
-    return precision_score(outputs.argmax(dim=1), y, average='micro')
-
-
-def calculate_mean_precision(outputs: torch.Tensor, y: torch.Tensor):
-    return precision_score(outputs.argmax(dim=1), y, average='macro')
+    return precision_score(outputs.argmax(dim=1), y)
 
 
 def calculate_recall(outputs: torch.Tensor, y: torch.Tensor):
-    return recall_score(outputs.argmax(dim=1), y, average='micro')
+    return recall_score(outputs.argmax(dim=1), y)
 
 
 def calculate_f1(outputs: torch.Tensor, y: torch.Tensor):
-    return f1_score(outputs.argmax(dim=1), y, average='micro')
+    return f1_score(outputs.argmax(dim=1), y)

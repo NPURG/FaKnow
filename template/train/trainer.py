@@ -86,7 +86,7 @@ class BaseTrainer:
         validation = True
         if validate_data is None and validate_size is None:
             validation = False
-        else:
+        elif validate_data is None:
             validate_size = int(validate_size * len(train_data))
             train_size = len(train_data) - validate_size
             train_data, validate_data = torch.utils.data.random_split(
