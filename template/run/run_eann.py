@@ -5,12 +5,12 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-from data.process.text_process import build_word2vec, padding_vec_and_idx
-from evaluate.evaluator import Evaluator
-from model.multi_modal.eann import EANN
+from template.data.process.text_process import build_word2vec, padding_vec_and_idx
+from template.evaluate.evaluator import Evaluator
+from template.model.multi_modal.eann import EANN
 from template.data.dataset.multi_modal_dataset import FolderMultiModalDataset
 from template.data.process.text_process import chinese_tokenize
-from train.eann_trainer import EANNTrainer
+from template.train.eann_trainer import EANNTrainer
 
 
 def generate_event_label(event_id: int, event_label_map: Dict[int,
@@ -107,7 +107,6 @@ def run_eann(root: str,
 
     model = EANN(event_num,
                  hidden_size=32,
-                 dropout=1,
                  reverse_lambd=1,
                  vocab_size=len(word_idx_map),
                  embed_weight=word_vectors)

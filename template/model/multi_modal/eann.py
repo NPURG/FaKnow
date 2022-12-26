@@ -29,7 +29,6 @@ class EANN(AbstractModel):
     def __init__(self,
                  event_num: int,
                  hidden_size: int,
-                 dropout: int,
                  reverse_lambd: int,
                  embed_weight: np.ndarray,
                  vocab_size: int,
@@ -65,7 +64,6 @@ class EANN(AbstractModel):
         ])
         self.text_ccn_fc = nn.Linear(
             len(window_size) * filter_num, self.hidden_size)
-        self.dropout = nn.Dropout(dropout)
 
         # IMAGE
         vgg_19 = torchvision.models.vgg19(weights=VGG19_Weights.IMAGENET1K_V1)
