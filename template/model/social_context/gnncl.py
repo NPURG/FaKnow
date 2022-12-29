@@ -4,13 +4,18 @@ from template.model.model import AbstractModel
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import DenseSAGEConv, dense_diff_pool
-
-"""using DiffPool as the graph encoder and profile feature as the node feature"""
+"""
+using DiffPool as the graph encoder and profile feature as the node feature
+"""
 
 
 class _GNNLayer(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels,
-                 normalize=False, fc=True):
+    def __init__(self,
+                 in_channels,
+                 hidden_channels,
+                 out_channels,
+                 normalize=False,
+                 fc=True):
         super(_GNNLayer, self).__init__()
         self.conv1 = DenseSAGEConv(in_channels, hidden_channels, normalize)
         self.bn1 = torch.nn.BatchNorm1d(hidden_channels)
@@ -21,7 +26,7 @@ class _GNNLayer(torch.nn.Module):
 
         if fc is True:
             self.fc = torch.nn.Linear(2 * hidden_channels + out_channels,
-                                       out_channels)
+                                      out_channels)
         else:
             self.fc = None
 
@@ -44,12 +49,12 @@ class _GNNLayer(torch.nn.Module):
 
 
 class GNNCL(AbstractModel):
-    def __init__(self, num_features: int, num_classes: int, max_nodes: int):
+    def __init__(self, feature_size: int, max_nodes: int):
         super(GNNCL, self).__init__()
 
         num_nodes = ceil(0.25 * max_nodes)
-        self.gnn1_pool = _GNNLayer(num_features, 64, num_nodes)
-        self.gnn1_embed = _GNNLayer(num_features, 64, 64, fc=False)
+        self.gnn1_pool = _GNNLayer(feature_size, 64, num_nodes)
+        self.gnn1_embed = _GNNLayer(feature_size, 64, 64, fc=False)
 
         num_nodes = ceil(0.25 * num_nodes)
         self.gnn2_pool = _GNNLayer(3 * 64, 64, num_nodes)
@@ -58,7 +63,7 @@ class GNNCL(AbstractModel):
         self.gnn3_embed = _GNNLayer(3 * 64, 64, 64, fc=False)
 
         self.fc1 = torch.nn.Linear(3 * 64, 64)
-        self.fc2 = torch.nn.Linear(64, num_classes)
+        self.fc2 = torch.nn.Linear(64, 2)
 
     def forward(self, x, adj, mask=None):
         s = self.gnn1_pool(x, adj, mask)
@@ -84,5 +89,7 @@ class GNNCL(AbstractModel):
         return loss
 
     def predict(self, data_without_label) -> torch.Tensor:
-        output, _, _ = self.forward(data_without_label.x, data_without_label.adj, data_without_label.mask)
+        output, _, _ = self.forward(data_without_label.x,
+                                    data_without_label.adj,
+                                    data_without_label.mask)
         return F.softmax(output, dim=1)
