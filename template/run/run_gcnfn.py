@@ -17,8 +17,7 @@ def run_gnn(root: str,
     val_dataset = UPFD(root, name, feature, 'val', ToUndirected())
     test_dataset = UPFD(root, name, feature, 'test', ToUndirected())
 
-    model = GCNFN(feature_size=train_dataset.num_features,
-                  hidden_size=hidden_size, concat=True)
+    model = GCNFN(train_dataset.num_features, hidden_size, True)
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=0.001,
                                  weight_decay=0.01)
