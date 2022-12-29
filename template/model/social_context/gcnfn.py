@@ -3,7 +3,6 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATConv, global_mean_pool
-
 """
 using two GCN layers and one mean-pooling layer
 Vanilla GCNFN: concat = False, feature = content
@@ -12,23 +11,26 @@ UPFD-GCNFN: concat = True, feature = spacy
 
 
 class GCNFN(AbstractModel):
-    def __init__(self, num_features: int, num_classes: int, hidden_size: int, dropout_ratio=0.5, concat=False):
+    def __init__(self,
+                 feature_size: int,
+                 hidden_size: int,
+                 dropout_ratio=0.5,
+                 concat=False):
         super(GCNFN, self).__init__()
 
-        self.num_features = num_features
-        self.num_classes = num_classes
+        self.feature_size = feature_size
         self.hidden_size = hidden_size
         self.dropout_ratio = dropout_ratio
         self.concat = concat
         # todo 使用的是GAT而非GCN
-        self.conv1 = GATConv(self.num_features, self.hidden_size * 2)
+        self.conv1 = GATConv(self.feature_size, self.hidden_size * 2)
         self.conv2 = GATConv(self.hidden_size * 2, self.hidden_size * 2)
 
         if self.concat:
-            self.fc0 = nn.Linear(self.num_features, self.hidden_size)
+            self.fc0 = nn.Linear(self.feature_size, self.hidden_size)
 
         self.fc1 = nn.Linear(self.hidden_size * 2, self.hidden_size)
-        self.fc2 = nn.Linear(self.hidden_size, self.num_classes)
+        self.fc2 = nn.Linear(self.hidden_size, 2)
 
     def forward(self, data):
         x, edge_index, batch = data.x, data.edge_index, data.batch
@@ -41,7 +43,10 @@ class GCNFN(AbstractModel):
 
         # whether concat news embedding and graph embedding
         if self.concat:
-            news = torch.stack([data.x[(data.batch == idx).nonzero().squeeze()[0]] for idx in range(data.num_graphs)])
+            news = torch.stack([
+                data.x[(data.batch == idx).nonzero().squeeze()[0]]
+                for idx in range(data.num_graphs)
+            ])
             news = F.relu(self.fc0(news))
             x = torch.cat([x, news], dim=1)
             x = F.relu(self.fc1(x))
