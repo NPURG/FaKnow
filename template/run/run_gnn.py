@@ -11,7 +11,7 @@ from template.train.gnn_trainer import GNNTrainer
 def run_gnn(root: str,
             name: str,
             feature: str,
-            batch_size: int,
+            batch_size=128,
             epochs=75,
             hidden_size=128):
     torch.manual_seed(777)
@@ -45,5 +45,4 @@ if __name__ == '__main__':
     root = "E:\\dataset\\UPFD_Dataset"
     name = "politifact"
     feature = "profile"
-    batch_size = 128
-    run_gnn(root, name, feature, batch_size)
+    run_gnn(root, name, feature)
