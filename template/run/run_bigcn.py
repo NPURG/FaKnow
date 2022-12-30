@@ -10,7 +10,7 @@ from template.train.gnn_trainer import GNNTrainer
 def run_bigcn(root: str,
               name: str,
               feature: str,
-              batch_size: int,
+              batch_size=128,
               epochs=45,
               hidden_size=128,
               td_drop_rate=0.2,
@@ -21,8 +21,8 @@ def run_bigcn(root: str,
                        DropEdge(td_drop_rate, bu_drop_rate))
     test_dataset = UPFD(root, name, feature, 'test',
                         DropEdge(td_drop_rate, bu_drop_rate))
-
-    model = BiGCN(train_dataset.num_features, hidden_size, hidden_size)
+    feature_size = train_dataset.num_features
+    model = BiGCN(feature_size, hidden_size, hidden_size)
     lr = 0.01
     bu_params_id = list(map(id, model.BURumorGCN.parameters()))
     base_params = filter(lambda p: id(p) not in bu_params_id,
@@ -50,5 +50,4 @@ if __name__ == '__main__':
     root = "E:\\dataset\\UPFD_Dataset"
     name = "politifact"
     feature = "profile"
-    batch_size = 20
-    run_bigcn(root, name, feature, batch_size)
+    run_bigcn(root, name, feature)
