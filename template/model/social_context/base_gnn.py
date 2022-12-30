@@ -1,6 +1,7 @@
 from template.model.model import AbstractModel
 import torch
 import torch.nn.functional as F
+from torch import Tensor
 from torch_geometric.nn import GATConv, GCNConv, SAGEConv, global_max_pool
 
 
@@ -16,17 +17,18 @@ class _BaseGNN(AbstractModel):
             self.fc1 = torch.nn.Linear(self.hidden_size * 2, self.hidden_size)
         self.fc2 = torch.nn.Linear(self.hidden_size, 2)
 
-    def forward(self, data):
-        x, edge_index, batch = data.x, data.edge_index, data.batch
+    def forward(self, x: Tensor, edge_index: Tensor, batch: Tensor,
+                num_graphs: int):
         edge_attr = None
+        raw_x = x
         x = F.relu(self.conv(x, edge_index, edge_attr))
         x = global_max_pool(x, batch)
 
         # whether concat news embedding and graph embedding
         if self.concat:
             news = torch.stack([
-                data.x[(data.batch == idx).nonzero().squeeze()[0]]
-                for idx in range(data.num_graphs)
+                raw_x[(batch == idx).nonzero().squeeze()[0]]
+                for idx in range(num_graphs)
             ])
             news = F.relu(self.fc0(news))
             x = torch.cat([x, news], dim=1)
@@ -35,12 +37,16 @@ class _BaseGNN(AbstractModel):
         return x
 
     def calculate_loss(self, data) -> torch.Tensor:
-        output = self.forward(data)
+        output = self.forward(data.x, data.edge_index, data.batch,
+                              data.num_graphs)
         loss = F.nll_loss(output, data.y)
         return loss
 
     def predict(self, data_without_label) -> torch.Tensor:
-        output = self.forward(data_without_label)
+        output = self.forward(data_without_label.x,
+                              data_without_label.edge_index,
+                              data_without_label.batch,
+                              data_without_label.num_graphs)
         return F.softmax(output, dim=1)
 
 
