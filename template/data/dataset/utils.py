@@ -1,10 +1,13 @@
 import os
+
+import torch.utils.data
+from torch.utils.data import ConcatDataset, random_split
 from torchvision.datasets.folder import find_classes, is_image_file
 from typing import Optional, Callable, Dict, List, Tuple, Union, Set
 
 
-def default_walker(class_dir: str, class_name: str, class_index: int, instances: List[Tuple],
-                   available_classes: Set):
+def default_walker(class_dir: str, class_name: str, class_index: int,
+                   instances: List[Tuple], available_classes: Set):
     for root, _, file_names in sorted(os.walk(class_dir, followlinks=True)):
         for file_name in sorted(file_names):
             path = os.path.join(root, file_name)
@@ -14,8 +17,8 @@ def default_walker(class_dir: str, class_name: str, class_index: int, instances:
                 available_classes.add(class_name)
 
 
-def walker_with_images(class_dir: str, class_name: str, class_index: int, instances: List[Tuple],
-                       available_classes: Set):
+def walker_with_images(class_dir: str, class_name: str, class_index: int,
+                       instances: List[Tuple], available_classes: Set):
     for root, _, file_names in sorted(os.walk(class_dir, followlinks=True)):
         find_text = find_image = False
         for file_name in sorted(file_names):
@@ -35,18 +38,21 @@ def walker_with_images(class_dir: str, class_name: str, class_index: int, instan
 
 
 def make_dataset(
-        directory: str,
-        class_to_idx: Optional[Dict[str, int]] = None,
-        extensions: Optional[Union[str, Tuple[str, ...]]] = None,
-        is_valid_file: Optional[Callable[[str], bool]] = None,
-        walk_class_dir: Optional[Callable[[str, str, int, List[Tuple], Set], None]] = default_walker
+    directory: str,
+    class_to_idx: Optional[Dict[str, int]] = None,
+    extensions: Optional[Union[str, Tuple[str, ...]]] = None,
+    is_valid_file: Optional[Callable[[str], bool]] = None,
+    walk_class_dir: Optional[Callable[[str, str, int, List[Tuple], Set],
+                                      None]] = default_walker
 ) -> List[Tuple[str, int]]:
     directory = os.path.expanduser(directory)
 
     if class_to_idx is None:
         _, class_to_idx = find_classes(directory)
     elif not class_to_idx:
-        raise ValueError("'class_to_index' must have at least one entry to collect any samples.")
+        raise ValueError(
+            "'class_to_index' must have at least one entry to collect any samples."
+        )
 
     # both_none = extensions is None and is_valid_file is None
     # both_something = extensions is not None and is_valid_file is not None
@@ -67,7 +73,8 @@ def make_dataset(
         if not os.path.isdir(class_dir):
             continue
 
-        walk_class_dir(class_dir, class_name, class_index, instances, available_classes)
+        walk_class_dir(class_dir, class_name, class_index, instances,
+                       available_classes)
 
     empty_classes = set(class_to_idx.keys()) - available_classes
     if empty_classes:
@@ -77,3 +84,9 @@ def make_dataset(
         raise FileNotFoundError(msg)
 
     return instances
+
+
+def re_split_dataset(datasets: List[torch.utils.data.Dataset],
+                     lengths: List[int]):
+    all_dataset = ConcatDataset(datasets)
+    return random_split(all_dataset, lengths)
