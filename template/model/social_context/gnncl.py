@@ -1,7 +1,9 @@
 from math import ceil
+from typing import Optional
 
 from template.model.model import AbstractModel
 import torch
+from torch import Tensor
 import torch.nn.functional as F
 from torch_geometric.nn import DenseSAGEConv, dense_diff_pool
 """
@@ -9,14 +11,14 @@ using DiffPool as the graph encoder and profile feature as the node feature
 """
 
 
-class _GNNLayer(torch.nn.Module):
+class _DenseGNN(torch.nn.Module):
     def __init__(self,
-                 in_channels,
-                 hidden_channels,
-                 out_channels,
+                 in_channels: int,
+                 hidden_channels: int,
+                 out_channels: int,
                  normalize=False,
                  fc=True):
-        super(_GNNLayer, self).__init__()
+        super(_DenseGNN, self).__init__()
         self.conv1 = DenseSAGEConv(in_channels, hidden_channels, normalize)
         self.bn1 = torch.nn.BatchNorm1d(hidden_channels)
         self.conv2 = DenseSAGEConv(hidden_channels, hidden_channels, normalize)
@@ -30,14 +32,14 @@ class _GNNLayer(torch.nn.Module):
         else:
             self.fc = None
 
-    def bn(self, i, x):
+    def bn(self, i: int, x: Tensor):
         batch_size, num_nodes, num_channels = x.size()
         x = x.view(-1, num_channels)
         x = getattr(self, 'bn{}'.format(i))(x)
         x = x.view(batch_size, num_nodes, num_channels)
         return x
 
-    def forward(self, x, adj, mask=None):
+    def forward(self, x: Tensor, adj: Tensor, mask: Optional[Tensor] = None):
         x0 = x
         x1 = self.bn(1, F.relu(self.conv1(x0, adj, mask)))
         x2 = self.bn(2, F.relu(self.conv2(x1, adj, mask)))
@@ -53,19 +55,19 @@ class GNNCL(AbstractModel):
         super(GNNCL, self).__init__()
 
         num_nodes = ceil(0.25 * max_nodes)
-        self.gnn1_pool = _GNNLayer(feature_size, 64, num_nodes)
-        self.gnn1_embed = _GNNLayer(feature_size, 64, 64, fc=False)
+        self.gnn1_pool = _DenseGNN(feature_size, 64, num_nodes)
+        self.gnn1_embed = _DenseGNN(feature_size, 64, 64, fc=False)
 
         num_nodes = ceil(0.25 * num_nodes)
-        self.gnn2_pool = _GNNLayer(3 * 64, 64, num_nodes)
-        self.gnn2_embed = _GNNLayer(3 * 64, 64, 64, fc=False)
+        self.gnn2_pool = _DenseGNN(3 * 64, 64, num_nodes)
+        self.gnn2_embed = _DenseGNN(3 * 64, 64, 64, fc=False)
 
-        self.gnn3_embed = _GNNLayer(3 * 64, 64, 64, fc=False)
+        self.gnn3_embed = _DenseGNN(3 * 64, 64, 64, fc=False)
 
         self.fc1 = torch.nn.Linear(3 * 64, 64)
         self.fc2 = torch.nn.Linear(64, 2)
 
-    def forward(self, x, adj, mask=None):
+    def forward(self, x: Tensor, adj: Tensor, mask: Optional[Tensor] = None):
         s = self.gnn1_pool(x, adj, mask)
         x = self.gnn1_embed(x, adj, mask)
 
