@@ -32,7 +32,8 @@ class GCNFN(AbstractModel):
         self.fc1 = nn.Linear(self.hidden_size * 2, self.hidden_size)
         self.fc2 = nn.Linear(self.hidden_size, 2)
 
-    def forward(self, x: Tensor, edge_index: Tensor, batch: Tensor, num_graphs: int):
+    def forward(self, x: Tensor, edge_index: Tensor, batch: Tensor,
+                num_graphs: int):
         raw_x = x
         x = F.selu(self.conv1(x, edge_index))
         x = F.selu(self.conv2(x, edge_index))
