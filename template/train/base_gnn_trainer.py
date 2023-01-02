@@ -4,8 +4,7 @@ from torch_geometric.loader import DataLoader
 from template.train.trainer import BaseTrainer
 
 
-class GNNTrainer(BaseTrainer):
-
+class BaseGNNTrainer(BaseTrainer):
     def _train_epoch(self, data, batch_size: int, epoch: int) -> torch.float:
         """training for one epoch"""
         self.model.train()
@@ -31,4 +30,5 @@ class GNNTrainer(BaseTrainer):
         for batch_data in dataloader:
             outputs.append(self.model.predict(batch_data))
             labels.append(batch_data.y)
-        return self.evaluator.evaluate(torch.concat(outputs), torch.concat(labels))
+        return self.evaluator.evaluate(torch.concat(outputs),
+                                       torch.concat(labels))

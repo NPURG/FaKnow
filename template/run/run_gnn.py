@@ -5,7 +5,7 @@ from torch_geometric.transforms import ToUndirected
 from template.data.dataset.utils import re_split_dataset
 from template.evaluate.evaluator import Evaluator
 from template.model.social_context.base_gnn import SAGE
-from template.train.gnn_trainer import GNNTrainer
+from template.train.base_gnn_trainer import BaseGNNTrainer
 
 
 def run_gnn(root: str,
@@ -32,7 +32,7 @@ def run_gnn(root: str,
                                  weight_decay=0.01)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
-    trainer = GNNTrainer(model, evaluator, optimizer)
+    trainer = BaseGNNTrainer(model, evaluator, optimizer)
     trainer.fit(training_set,
                 batch_size=batch_size,
                 epochs=epochs,

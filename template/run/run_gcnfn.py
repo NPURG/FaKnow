@@ -3,7 +3,7 @@ import torch
 from torch_geometric.datasets import UPFD
 from torch_geometric.transforms import ToUndirected
 
-from template.train.gnn_trainer import GNNTrainer
+from template.train.base_gnn_trainer import BaseGNNTrainer
 from template.evaluate.evaluator import Evaluator
 from template.model.social_context.gcnfn import GCNFN
 
@@ -23,7 +23,7 @@ def run_gcnfn(root: str,
                                  lr=0.001,
                                  weight_decay=0.01)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
-    trainer = GNNTrainer(model, evaluator, optimizer)
+    trainer = BaseGNNTrainer(model, evaluator, optimizer)
 
     trainer.fit(train_dataset,
                 batch_size=batch_size,

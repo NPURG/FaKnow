@@ -4,7 +4,7 @@ from torch_geometric.datasets import UPFD
 from template.data.process.graph_process import DropEdge
 from template.evaluate.evaluator import Evaluator
 from template.model.social_context.bigcn import BiGCN
-from template.train.gnn_trainer import GNNTrainer
+from template.train.base_gnn_trainer import BaseGNNTrainer
 
 
 def run_bigcn(root: str,
@@ -37,7 +37,7 @@ def run_bigcn(root: str,
                                  weight_decay=0.001)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
-    trainer = GNNTrainer(model, evaluator, optimizer)
+    trainer = BaseGNNTrainer(model, evaluator, optimizer)
     trainer.fit(train_dataset,
                 batch_size=batch_size,
                 epochs=epochs,
