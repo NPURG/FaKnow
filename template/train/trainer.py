@@ -95,7 +95,7 @@ class BaseTrainer:
         # tqdm.write('----start training-----')
         print(f'training data size={len(train_data)}')
         if validation:
-            print(f'validation data size={validate_size}')
+            print(f'validation data size={len(validate_data)}')
 
         # training for epochs
         print('----start training-----')
