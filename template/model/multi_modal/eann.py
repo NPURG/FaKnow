@@ -66,7 +66,7 @@ class EANN(AbstractModel):
             len(window_size) * filter_num, self.hidden_size)
 
         # IMAGE
-        vgg_19 = torchvision.models.vgg19(weights=VGG19_Weights.IMAGENET1K_V1)
+        vgg_19 = torchvision.models.vgg19(weights='DEFAULT')
         for param in vgg_19.parameters():
             param.requires_grad = False
 

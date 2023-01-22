@@ -1,11 +1,11 @@
 import os
+import pickle
 from typing import Dict, List, Any
 
 import numpy as np
 import torch
 from torchvision import transforms
 
-from template.data.process.text_process import build_word2vec, padding_vec_and_idx
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.eann import EANN
 from template.data.dataset.multi_modal_dataset import FolderMultiModalDataset
@@ -74,10 +74,9 @@ def eann_embedding(path: str, other_params: Dict[str, Any]):
 
 
 def run_eann(root: str,
-             pre_trained_word2vec=True,
-             max_text_len: int = None,
-             word_vectors: np.ndarray = None,
-             word_idx_map: Dict[str, int] = None):
+             word_vectors: np.ndarray,
+             word_idx_map: Dict[str, int],
+             max_text_len: int = None):
     image_transforms = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -85,19 +84,15 @@ def run_eann(root: str,
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
-    if not pre_trained_word2vec:
-        word_vectors, word_idx_map, max_text_len = build_word2vec(root)
-        word_vectors, word_idx_map = padding_vec_and_idx(
-            word_vectors, word_idx_map)
-        print(f'using corpus from {root} to train word2vec')
+    _max_text_len, event_labels = generate_max_text_len_and_event_label(root)
+    event_num = max(event_labels) + 1
 
+    if max_text_len is None:
+        max_text_len = _max_text_len
     embedding_params = {
         'word_idx_map': word_idx_map,
         'max_text_len': max_text_len
     }
-
-    max_text_len, event_labels = generate_max_text_len_and_event_label(root)
-    event_num = max(event_labels) + 1
 
     dataset = FolderMultiModalDataset(root,
                                       embedding=eann_embedding,
@@ -124,49 +119,9 @@ def run_eann(root: str,
 
 
 if __name__ == '__main__':
-    root = "F:/code/python/EANN-KDD18-degugged11.2/test/pairdata"
-    run_eann(root, False)
-
-    # image_transforms = transforms.Compose([
-    #     transforms.Resize(256),
-    #     transforms.CenterCrop(224),
-    #     transforms.ToTensor(),
-    #     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    # ])
-    #
-    # word_vectors, word_idx_map, max_text_len = build_word2vec(root)
-    # word_vectors, word_idx_map = padding_vec_and_idx(
-    #     word_vectors, word_idx_map)
-    # print(f'using corpus from {root} to train word2vec')
-    #
-    # embedding_params = {
-    #     'word_idx_map': word_idx_map,
-    #     'max_text_len': max_text_len
-    # }
-    #
-    # max_text_len, event_labels = generate_max_text_len_and_event_label(root)
-    # event_num = max(event_labels) + 1
-    #
-    # dataset = FolderMultiModalDataset(root,
-    #                                   embedding=eann_word2idx,
-    #                                   transform=image_transforms,
-    #                                   embedding_params=embedding_params,
-    #                                   event_label=torch.tensor(event_labels))
-    # # for text, image, other_data, label in dataset:
-    # #     print(text[0], text[1], image, other_data['event_label'], label, sep='\n\n')
-    # #     break
-    # #
-    # model = EANN(event_num,
-    #              hidden_size=32,
-    #              dropout=1,
-    #              reverse_lambd=1,
-    #              vocab_size=len(word_idx_map),
-    #              embed_weight=word_vectors)
-    # loss_func = torch.nn.CrossEntropyLoss()
-    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
-    #                                     list(model.parameters())),
-    #                              lr=0.0003)
-    # evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
-    #
-    # trainer = EANNTrainer(model, evaluator, optimizer)
-    # trainer.fit(dataset, batch_size=20, epochs=100, validate_size=0.2, saved=True)
+    root = "E:/Python_program/Template/dataset/example/dataset_example_EANN"
+    word_vector_path = 'E:/Python_program/EANN-KDD18-degugged11.2/Data/weibo/word_embedding.pickle'
+    f = open(word_vector_path, 'rb')
+    weight = pickle.load(f)  # W, W2, word_idx_map, vocab
+    word_vectors, _, word_idx_map, vocab, max_len = weight[0], weight[1], weight[2], weight[3], weight[4]
+    run_eann(root, word_vectors, word_idx_map)
