@@ -16,6 +16,7 @@ class EANNTrainer(BaseTrainer):
         lr = 0.001 / (1. + 10 * p) ** 0.75
         self.optimizer.lr = lr
 
+        total_loss = 0
         msg = None
         for batch_id, batch_data in enumerate(dataloader):
             # using trainer.loss_func first or model.calculate_loss
@@ -27,6 +28,7 @@ class EANNTrainer(BaseTrainer):
             loss.backward()
             self.optimizer.step()
 
+            total_loss = total_loss + loss.item()
         if msg is not None:
             print(msg)
-        return loss
+        return total_loss / (batch_id + 1)
