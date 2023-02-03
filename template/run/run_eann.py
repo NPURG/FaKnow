@@ -11,6 +11,7 @@ from template.model.multi_modal.eann import EANN
 from template.data.dataset.multi_modal_dataset import FolderMultiModalDataset
 from template.data.process.text_process import chinese_tokenize
 from template.train.eann_trainer import EANNTrainer
+from template.train.trainer import BaseTrainer
 
 
 def generate_event_label(event_id: int, event_label_map: Dict[int,
@@ -76,7 +77,8 @@ def eann_embedding(path: str, other_params: Dict[str, Any]):
 def run_eann(root: str,
              word_vectors: np.ndarray,
              word_idx_map: Dict[str, int],
-             max_text_len: int = None):
+             max_text_len: int = None,
+             vocab_size: int = None):
     image_transforms = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -93,6 +95,8 @@ def run_eann(root: str,
         'word_idx_map': word_idx_map,
         'max_text_len': max_text_len
     }
+    if vocab_size is None:
+        vocab_size = len(word_idx_map)
 
     dataset = FolderMultiModalDataset(root,
                                       embedding=eann_embedding,
@@ -103,25 +107,29 @@ def run_eann(root: str,
     model = EANN(event_num,
                  hidden_size=32,
                  reverse_lambd=1,
-                 vocab_size=len(word_idx_map),
+                 vocab_size=vocab_size,
                  embed_weight=word_vectors)
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
                                         list(model.parameters())),
-                                 lr=0.00025)
+                                 lr=0.001)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
-
-    trainer = EANNTrainer(model, evaluator, optimizer)
+    lr_lambda = lambda epoch: 0.001 / (1. + 10 * (float(epoch) / 100)) ** 0.75
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
+                                                  lr_lambda=lr_lambda,
+                                                  verbose=True)
+    trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
+    # trainer = EANNTrainer(model, evaluator, optimizer)
     trainer.fit(dataset,
-                batch_size=20,
+                batch_size=100,
                 epochs=100,
                 validate_size=0.2,
-                saved=True)
+                saved=False)
 
 
 if __name__ == '__main__':
-    root = "E:/Python_program/Template/dataset/example/dataset_example_EANN"
+    root = "E:\\Python_program\\EANN-KDD18-degugged11.2\\test\\pairdata"
     word_vector_path = 'E:/Python_program/EANN-KDD18-degugged11.2/Data/weibo/word_embedding.pickle'
     f = open(word_vector_path, 'rb')
     weight = pickle.load(f)  # W, W2, word_idx_map, vocab
     word_vectors, _, word_idx_map, vocab, max_len = weight[0], weight[1], weight[2], weight[3], weight[4]
-    run_eann(root, word_vectors, word_idx_map)
+    run_eann(root, word_vectors, word_idx_map, max_text_len=None, vocab_size=len(vocab))
