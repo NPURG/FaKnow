@@ -23,11 +23,11 @@ def chinese_tokenize(text,
     cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "",
                           text).strip().lower()
     # todo for English
-    split_words = jieba.cut_for_search(cleaned_text)
+    split_words = jieba.lcut(cleaned_text)
     if stop_words is None:
         stop_words = get_stop_words(stop_words_path)
-    return " ".join([word for word in split_words if word not in stop_words])
-    # return [word for word in split_words if word not in stop_words]
+    # return " ".join([word for word in split_words if word not in stop_words])
+    return [word for word in split_words if word not in stop_words]
 
 
 def get_texts(root: str) -> Tuple[List[List[str]], int]:
