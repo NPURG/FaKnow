@@ -5,6 +5,7 @@ from typing import Optional, Callable
 
 import torch
 from torch.optim.optimizer import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data.dataloader import DataLoader
 
 from template.evaluate.evaluator import Evaluator
@@ -29,11 +30,12 @@ class AbstractTrainer:
 
 class BaseTrainer:
     def __init__(self, model: AbstractModel, evaluator: Evaluator,
-                 optimizer: Optimizer, loss_func: Optional[Callable] = None):
+                 optimizer: Optimizer, scheduler: Optional[_LRScheduler] = None, loss_func: Optional[Callable] = None):
         self.model = model
         self.loss_func = loss_func
         self.optimizer = optimizer
         self.evaluator = evaluator
+        self.scheduler = scheduler
 
     @torch.no_grad()
     def evaluate(self, data: torch.utils.data.Dataset, batch_size: int):
@@ -114,6 +116,8 @@ class BaseTrainer:
             #            f'time={training_end_time - training_start_time}s, '
             #            f'train loss={training_loss}')
             # tqdm.write(f'validation result: {validate_result}')
+            if self.scheduler is not None:
+                self.scheduler.step()
 
         # save the model
         if saved:
