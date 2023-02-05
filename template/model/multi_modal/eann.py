@@ -10,12 +10,12 @@ from torch.autograd import Function
 from torchvision.models import VGG19_Weights
 
 from template.model.model import AbstractModel
-
 """
 EANN: Multi-Modal Fake News Detection
 paper: https://dl.acm.org/doi/epdf/10.1145/3219819.3219903
 code: https://github.com/yaqingwang/EANN-KDD18
 """
+
 
 class _ReverseLayer(Function):
     @staticmethod
