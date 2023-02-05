@@ -6,6 +6,8 @@ from typing import Dict, List, Optional, Tuple
 import jieba
 import numpy as np
 from gensim.models import Word2Vec
+from nltk import word_tokenize, PorterStemmer, WordNetLemmatizer
+from nltk.corpus import stopwords
 
 default_chinese_stop_words_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stop_words',
                                                'stop_words.txt')
@@ -22,12 +24,34 @@ def chinese_tokenize(text,
                      stop_words_path=default_chinese_stop_words_path) -> List[str]:
     cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "",
                           text).strip().lower()
-    # todo for English
+
     split_words = jieba.lcut(cleaned_text)
     if stop_words is None:
         stop_words = get_stop_words(stop_words_path)
     # return " ".join([word for word in split_words if word not in stop_words])
     return [word for word in split_words if word not in stop_words]
+
+
+def english_tokenize(text: str) -> List[str]:
+    text = text.lower()
+    text = re.sub(r'\d+', '', text)
+    remove_chars = '[0-9’!"#$%&\'()*+,-./:;<=>?@，。?★、…【】《》？“”‘’！[\\]^_`{|}~]+'
+    text = re.sub(remove_chars, ' ', text)
+
+    text = text.strip()
+    stop_words = stopwords.words("english")
+    tokens = word_tokenize(text)
+    tokens = [token for token in tokens if token not in stop_words]
+
+    # 提取词干
+    stemmer = PorterStemmer()
+    tokens = [stemmer.stem(token) for token in tokens]
+
+    # 同义词替换
+    lemmatizer = WordNetLemmatizer()
+    tokens = [lemmatizer.lemmatize(token) for token in tokens]
+
+    return tokens
 
 
 def get_texts(root: str) -> Tuple[List[List[str]], int]:
