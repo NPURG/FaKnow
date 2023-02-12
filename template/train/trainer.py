@@ -1,7 +1,7 @@
 import datetime
 import os
 from time import time
-from typing import Optional, Callable
+from typing import Optional, Callable, Tuple
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -64,7 +64,11 @@ class BaseTrainer:
         for batch_id, batch_data in enumerate(dataloader):
             # using trainer.loss_func first or model.calculate_loss
             if self.loss_func is None:
-                loss, msg = self.model.calculate_loss(batch_data)
+                result = self.model.calculate_loss(batch_data)
+                if type(result) is tuple:
+                    loss, msg = result
+                else:
+                    loss = result
             else:
                 loss = self.loss_func(batch_data)
             self.optimizer.zero_grad()
@@ -81,7 +85,7 @@ class BaseTrainer:
         return self.evaluate(data, batch_size)
 
     def fit(self, train_data: torch.utils.data.Dataset, batch_size: int,
-            epochs: int, validate_data=None,
+            epochs: int, validate_data: Optional[torch.utils.data.Dataset]=None,
             validate_size: Optional[float] = None, saved=False, save_path: Optional[str] = None):
         """training"""
         # whether split validation set
