@@ -32,7 +32,7 @@ class TensorTextDataset(torch.utils.data.Dataset):
     def __getitem__(self, index: int) -> Tuple:
         text = self.texts[index]
         label = self.labels[index]
-        if self.other_data is None:
+        if self.other_data is None or len(self.other_data) == 0:
             return text, label
         other_data = {k: v[index] for k, v in self.other_data.items()}
         return text, other_data, label
@@ -78,7 +78,7 @@ class FolderTextDataset(torch.utils.data.Dataset):
         else:
             text = self.embedding(text, self.embedding_params)
 
-        if self.other_data is None:
+        if self.other_data is None or len(self.other_data) == 0:
             return text, label
         other_data = {k: v[index] for k, v in self.other_data.items()}
         return text, other_data, label
