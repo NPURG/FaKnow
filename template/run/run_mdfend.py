@@ -9,6 +9,7 @@ from template.data.dataset.text_dataset import TensorTextDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.mdfend import MDFEND
 from template.train.trainer import BaseTrainer
+from template.data.dataset.mdfend_dataset import JsonDataset
 
 
 def get_df(name: str) -> pd.DataFrame:
@@ -81,8 +82,10 @@ def run_mdfend(root: str):
                                                 gamma=0.98)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
-    train_set, test_set, val_set = load_dataset('train'), load_dataset(
-        'test'), load_dataset('val')
+    # train_set, test_set, val_set = load_dataset('train'), load_dataset(
+    #     'test'), load_dataset('val')
+    dataset = JsonDataset(root)
+    train_set, val_set, test_set = torch.utils.data.random_split(dataset, [1400, 200, 400])
 
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
     trainer.fit(train_set,
@@ -95,4 +98,5 @@ def run_mdfend(root: str):
 
 
 if __name__ == '__main__':
-    run_mdfend('root')
+    path = "E:\\Python_program\\MDFEND-Weibo21\\test\\all.json"
+    run_mdfend(path)

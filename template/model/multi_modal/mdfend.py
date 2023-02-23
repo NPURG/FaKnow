@@ -152,17 +152,16 @@ class MDFEND(AbstractModel):
         return torch.sigmoid(label_pred.squeeze(1))
 
     def calculate_loss(self, data):
-        text, other_data, label = data
-        output = self.forward(text, other_data['mask'], other_data['domain'])
-        return self.loss_func(output, label.float())
+        token_ids, masks, domains, labels = data
+        output = self.forward(token_ids, masks, domains)
+        return self.loss_func(output, labels.float())
 
     def predict(self, data_without_label):
-        text, other_data = data_without_label
+        token_ids, masks, domains = data_without_label
 
         # shape=(n,), data = 1 or 0
         round_pred = torch.round(
-            self.forward(text, other_data['mask'],
-                         other_data['domain'])).long()
+            self.forward(token_ids, masks, domains)).long()
         # after one hot: shape=(n,2), data = [0,1] or [1,0]
         one_hot_pred = torch.nn.functional.one_hot(round_pred)
         return one_hot_pred
