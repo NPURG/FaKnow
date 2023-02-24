@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
-from template.model.layers import _ReverseLayer
+from model.layers.layer import _ReverseLayer
 from template.model.model import AbstractModel
 
 """
