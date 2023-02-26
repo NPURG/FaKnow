@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
-from model.layers.layer import _ReverseLayer
+from model.layers.layer import GradientReverseLayer
 from template.model.model import AbstractModel
 
 """
@@ -105,7 +105,7 @@ class EANN(AbstractModel):
         # Fake or real
         class_output = self.class_classifier(text_image)
         # Domain (which Event)
-        reverse_feature = _ReverseLayer.apply(text_image, self.reverse_lambd)
+        reverse_feature = GradientReverseLayer.apply(text_image, self.reverse_lambd)
         domain_output = self.domain_classifier(reverse_feature)
 
         return class_output, domain_output
