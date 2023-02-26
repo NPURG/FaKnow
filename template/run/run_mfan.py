@@ -5,13 +5,13 @@ from typing import List
 import numpy as np
 import torch
 from PIL import Image
-from torchvision import transforms
 from torch.utils.data import random_split
+from torchvision import transforms
 
 from template.data.dataset.mfan_dataset import JsonDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.mfan import MFAN
-from template.train.trainer import BaseTrainer
+from template.train.pgd_trainer import MFANTrainer
 
 
 def tokenize(texts: List[str]):
@@ -68,7 +68,7 @@ def run_mfan(path: str, word_vectors: np.ndarray, max_len: int,
     model = MFAN(word_vectors, max_len, node_num, node_embedding, adj_matrix)
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-3)
     evaluator = Evaluator()
-    trainer = BaseTrainer(model, evaluator, optimizer)
+    trainer = MFANTrainer(model, evaluator, optimizer)
     trainer.fit(train_data,
                 batch_size=64,
                 epochs=20,
