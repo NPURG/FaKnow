@@ -39,9 +39,7 @@ class EANN(AbstractModel):
         self.embed_dim = embed_weight[0].shape[0]
         self.hidden_size = hidden_size
         self.reverse_lambd = reverse_lambd
-        self.lstm_size = self.embed_dim
 
-        # TEXT RNN
         # 真正的word embedding，使用了预训练好的权重
         self.embed = nn.Embedding(vocab_size, self.embed_dim)
         self.embed.weight = nn.Parameter(torch.from_numpy(embed_weight))
@@ -58,7 +56,7 @@ class EANN(AbstractModel):
             len(window_size) * filter_num, self.hidden_size)
 
         # IMAGE
-        vgg_19 = torchvision.models.vgg19(weights='DEFAULT')
+        vgg_19 = torchvision.models.vgg19(weights=torchvision.models.VGG19_Weights.DEFAULT)
         for param in vgg_19.parameters():
             param.requires_grad = False
 
@@ -66,8 +64,6 @@ class EANN(AbstractModel):
         num_ftrs = vgg_19.classifier._modules['6'].out_features
         self.vgg = vgg_19
         self.image_fc = nn.Linear(num_ftrs, self.hidden_size)
-        self.image_adv = nn.Linear(self.hidden_size, int(self.hidden_size))
-        self.image_encoder = nn.Linear(self.hidden_size, self.hidden_size)
 
         # Class Classifier
         self.class_classifier = nn.Sequential(
