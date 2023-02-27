@@ -8,6 +8,10 @@ from torch.autograd import Function
 
 
 class TextCNNLayer(nn.Module):
+    """
+    It's not a full TextCNN model. Only convolution and max pooling are including here
+    but without an embedding layer or fully connected layer. Thus, it should be a part of your own TextCNN model
+    """
     def __init__(self,
                  embedding_dim: int,
                  filter_num: int,
