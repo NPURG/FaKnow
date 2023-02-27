@@ -58,14 +58,14 @@ def load_adj_matrix(path: str, node_num: int):
     return adj_matrix
 
 
-def run_mfan(path: str, word_vectors: np.ndarray, max_len: int,
+def run_mfan(path: str, word_vectors: np.ndarray,
              node_embedding: np.ndarray, node_num: int,
              adj_matrix: torch.Tensor):
     dataset = JsonDataset(path, transform, tokenize)
     size = int(len(dataset) * 0.2)
     train_data, _ = random_split(dataset, [size, len(dataset) - size])
 
-    model = MFAN(word_vectors, max_len, node_num, node_embedding, adj_matrix)
+    model = MFAN(word_vectors, node_num, node_embedding, adj_matrix)
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-3)
     evaluator = Evaluator()
     trainer = MFANTrainer(model, evaluator, optimizer)
@@ -80,7 +80,6 @@ if __name__ == '__main__':
     path = "F:\\code\\python\\MFAN\\test\\weibo.json"
     pre = "F:\\code\\python\\MFAN\\dataset/weibo/weibo_files"
     adj_path = "F:\\code\\python\\MFAN\\dataset\\weibo\\weibo_files\\original_adj"
-    max_len = 50
     node_num = 6963
     adj_matrix = load_adj_matrix(adj_path, node_num)
     print('loading adj matrix')
@@ -89,5 +88,5 @@ if __name__ == '__main__':
     _, _, _, word_embeddings, _ = pickle.load(open(pre + "\\train.pkl", 'rb'))
     print('loading embedding')
 
-    run_mfan(path, word_embeddings, max_len, node_embedding, node_num,
+    run_mfan(path, word_embeddings, node_embedding, node_num,
              adj_matrix)

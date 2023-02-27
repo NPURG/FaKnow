@@ -3,12 +3,12 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
-from template.model.layers.attention import (
-    PositionWiseFFN,
-    ScaledDotProductAttention)
-from template.model.layers.layer import SignedGAT
+from template.model.layers.attention import (PositionWiseFFN,
+                                             ScaledDotProductAttention)
+from template.model.layers.layer import SignedGAT, TextCNNLayer
 from template.model.model import AbstractModel
 from template.utils.util import calculate_cos_matrix
+
 """
 MFAN: Multi-modal Feature-enhanced TransformerBlock Networks for Rumor Detection
 paper: https://www.ijcai.org/proceedings/2022/0335.pdf 
@@ -103,7 +103,6 @@ class TransformerBlock(nn.Module):
 class MFAN(AbstractModel):
     def __init__(self,
                  word_vectors: np.ndarray,
-                 max_len: int,
                  node_num: int,
                  node_embedding: np.ndarray,
                  adj_matrix: torch.Tensor,
@@ -117,14 +116,8 @@ class MFAN(AbstractModel):
 
         # text cnn
         kernel_sizes = [3, 4, 5]
-        self.convs = nn.ModuleList([
-            nn.Conv1d(self.embedding_size, 100, kernel_size=k)
-            for k in kernel_sizes
-        ])
-        # conv1d出来的形状为out_channel * (max_len - k + 1)
-        # conv2d out_channel * (max_len - k + 1) * 1
-        self.max_poolings = nn.ModuleList(
-            [nn.MaxPool1d(kernel_size=max_len - k + 1) for k in kernel_sizes])
+        self.text_cnn_layer = TextCNNLayer(self.embedding_size, 100,
+                                           kernel_sizes, nn.ReLU())
 
         # graph
         self.node_num = node_num
@@ -174,18 +167,8 @@ class MFAN(AbstractModel):
 
         # text
         text = self.word_embedding(text)
-        # 使用conv1d，需要交换max_len * embedding_size -> embedding_size * max_len
-        text = text.permute(0, 2, 1)
-        text_convs = []
-        for conv, max_pooling in list(zip(self.convs, self.max_poolings)):
-            act = self.relu(
-                conv(text))  # batch_size * out_channel * (max_len - k + 1)
-            pool = max_pooling(act)  # batch_size * out_channel * 1
-            pool = torch.squeeze(pool)
-            text_convs.append(pool)
-
-        text_feature = torch.cat(text_convs, dim=1).unsqueeze(1)
-        # batch_size = text_feature.size()[0]
+        text = self.text_cnn_layer(text)
+        text_feature = text.unsqueeze(1)
 
         # text image graph各自self-attention
         self_att_t = self.transformer_block(text_feature, text_feature,

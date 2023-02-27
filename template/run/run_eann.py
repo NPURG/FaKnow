@@ -1,17 +1,27 @@
 import os
 import pickle
-from typing import Dict, List, Any
+import re
+from typing import Dict, Any
 
+import jieba
 import numpy as np
 import torch
 from torchvision import transforms
 
+from data.process.text_process import get_stop_words
+from template.data.dataset.multi_modal_dataset import FolderMultiModalDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.eann import EANN
-from template.data.dataset.multi_modal_dataset import FolderMultiModalDataset
-from template.data.process.text_process import chinese_tokenize
-from template.train.eann_trainer import EANNTrainer
 from template.train.trainer import BaseTrainer
+
+
+def tokenize(text: str) -> str:
+    cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "",
+                          text).strip().lower()
+
+    split_words = jieba.cut_for_search(cleaned_text)
+    stop_words = get_stop_words()
+    return " ".join([word for word in split_words if word not in stop_words])
 
 
 def generate_event_label(event_id: int, event_label_map: Dict[int,
@@ -45,13 +55,13 @@ def generate_max_text_len_and_event_label(path: str):
 
                         # 第2行 文本内容
                         if (i + 1) % 2 == 0:
-                            tokens = chinese_tokenize(line)
+                            tokens = tokenize(line)
                             if len(tokens) > max_text_len:
                                 max_text_len = len(tokens)
     return max_text_len, event_labels
 
 
-def word_to_idx(text: List[str], word_idx_map: Dict[str, int],
+def word_to_idx(text: str, word_idx_map: Dict[str, int],
                 max_text_len: int):
     """convert words in text to id"""
     # todo 优化循环
@@ -65,7 +75,7 @@ def eann_embedding(path: str, other_params: Dict[str, Any]):
     with open(path, encoding='utf-8') as f:
         _ = f.readline()
         line = f.readline()  # 第二行才是文本
-        tokens = chinese_tokenize(line)
+        tokens = tokenize(line)
     word_idx_map = other_params['word_idx_map']
     max_text_len = other_params['max_text_len']
     words_id = word_to_idx(tokens, word_idx_map, max_text_len)
@@ -118,7 +128,6 @@ def run_eann(root: str,
                                                   lr_lambda=lr_lambda,
                                                   verbose=True)
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
-    # trainer = EANNTrainer(model, evaluator, optimizer)
     trainer.fit(dataset,
                 batch_size=100,
                 epochs=100,
@@ -127,8 +136,8 @@ def run_eann(root: str,
 
 
 if __name__ == '__main__':
-    root = "E:\\Python_program\\EANN-KDD18-degugged11.2\\test\\pairdata"
-    word_vector_path = 'E:/Python_program/EANN-KDD18-degugged11.2/Data/weibo/word_embedding.pickle'
+    root = "F:\\dataset\\dataset_example_EANN"
+    word_vector_path = "F:\\code\\python\EANN-KDD18-degugged11.2\\Data\\weibo\\word_embedding.pickle"
     f = open(word_vector_path, 'rb')
     weight = pickle.load(f)  # W, W2, word_idx_map, vocab
     word_vectors, _, word_idx_map, vocab, max_len = weight[0], weight[1], weight[2], weight[3], weight[4]

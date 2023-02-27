@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
-from model.layers.layer import GradientReverseLayer
+from model.layers.layer import GradientReverseLayer, TextCNNLayer
 from template.model.model import AbstractModel
 
 """
@@ -45,18 +45,16 @@ class EANN(AbstractModel):
         self.embed.weight = nn.Parameter(torch.from_numpy(embed_weight))
 
         # TEXT CNN
-        channel_in = 1
         filter_num = 20
         window_size = [1, 2, 3, 4]
-        self.convs = nn.ModuleList([
-            nn.Conv2d(channel_in, filter_num, (K, self.embed_dim))
-            for K in window_size
-        ])
+        self.text_ccn_layer = TextCNNLayer(self.embed_dim, filter_num,
+                                           window_size, F.leaky_relu)
         self.text_ccn_fc = nn.Linear(
             len(window_size) * filter_num, self.hidden_size)
 
         # IMAGE
-        vgg_19 = torchvision.models.vgg19(weights=torchvision.models.VGG19_Weights.DEFAULT)
+        vgg_19 = torchvision.models.vgg19(
+            weights=torchvision.models.VGG19_Weights.DEFAULT)
         for param in vgg_19.parameters():
             param.requires_grad = False
 
@@ -88,11 +86,7 @@ class EANN(AbstractModel):
         # text CNN
         text = self.embed(text)
         text = text * mask.unsqueeze(2).expand_as(text)
-        text = text.unsqueeze(1)
-        text = [F.leaky_relu(conv(text)).squeeze(3) for conv in self.convs
-                ]  # [(N,hidden_dim,W), ...]*len(window_size)
-        text = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in text]
-        text = torch.cat(text, 1)
+        text = self.text_ccn_layer(text)
         text = F.leaky_relu(self.text_ccn_fc(text))
 
         # combine Text and Image
@@ -101,7 +95,8 @@ class EANN(AbstractModel):
         # Fake or real
         class_output = self.class_classifier(text_image)
         # Domain (which Event)
-        reverse_feature = GradientReverseLayer.apply(text_image, self.reverse_lambd)
+        reverse_feature = GradientReverseLayer.apply(text_image,
+                                                     self.reverse_lambd)
         domain_output = self.domain_classifier(reverse_feature)
 
         return class_output, domain_output

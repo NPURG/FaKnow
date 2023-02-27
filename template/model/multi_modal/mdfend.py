@@ -6,10 +6,11 @@ code: https://github.com/kennqiang/MDFEND-Weibo21
 from typing import List, Optional, Tuple, Callable
 
 import torch
-from torch import nn
 from torch import Tensor
+from torch import nn
 from transformers import BertModel
 
+from model.layers.layer import TextCNNLayer
 from template.model.model import AbstractModel
 
 
@@ -38,41 +39,6 @@ class _MLP(nn.Module):
         return self.mlp(x)
 
 
-class _CNNLayer(nn.Module):
-    # def __init__(self, input_size: int, feature_kernel: Dict[int, int]):
-    #     """
-    #     Args:
-    #         feature_kernel: {kernel_size: out_channels}
-    #     """
-    #     super(_CNNLayer, self).__init__()
-    #     self.convs = torch.nn.ModuleList(
-    #         [torch.nn.Conv1d(input_size, out_channels=feature_num, kernel_size=kernel)
-    #          for kernel, feature_num in feature_kernel.items()])
-    #     input_shape = sum([feature_kernel[kernel] for kernel in feature_kernel])
-    def __init__(self, input_size: int, filter_num: int,
-                 filter_size: List[int]):
-        """
-        Args:
-        """
-        super(_CNNLayer, self).__init__()
-        self.convs = torch.nn.ModuleList([
-            torch.nn.Conv1d(input_size, out_channels=filter_num, kernel_size=k)
-            for k in filter_size
-        ])
-
-    def forward(self, input_data: Tensor) -> Tensor:
-        # todo permute
-        share_input_data = input_data.permute(0, 2, 1)
-        features = [conv(share_input_data) for conv in self.convs]
-        features = [
-            torch.max_pool1d(feature, feature.shape[-1])
-            for feature in features
-        ]
-        features = torch.cat(features, dim=1)
-        features = features.view([-1, features.shape[1]])
-        return features
-
-
 class _MaskAttentionLayer(torch.nn.Module):
     """
     Compute attention layer
@@ -94,7 +60,6 @@ class _MaskAttentionLayer(torch.nn.Module):
 
 class MDFEND(AbstractModel):
     def __init__(self,
-                 embedding_size: int,
                  pre_trained_bert_name: str,
                  mlp_dims: List[int],
                  dropout_rate: float,
@@ -106,36 +71,31 @@ class MDFEND(AbstractModel):
         self.expert_num = expert_num
         self.bert = BertModel.from_pretrained(
             pre_trained_bert_name).requires_grad_(False)
+        self.embedding_size = self.bert.config.hidden_size
         self.loss_func = loss_func
 
-        # key: kernel_size, value: out_channels
-        # todo 实验更改out channels不一致
-        # feature_kernel = {1: 64, 2: 64, 3: 64, 5: 64, 10: 64}
-        # experts = [_CNNLayer(embedding_size, feature_kernel) for _ in range(self.expert_num)]
         filter_num = 64
-        filter_size = [1, 2, 3, 5, 10]
+        filter_sizes = [1, 2, 3, 5, 10]
         experts = [
-            _CNNLayer(embedding_size, filter_num, filter_size)
+            TextCNNLayer(self.embedding_size, filter_num, filter_sizes)
             for _ in range(self.expert_num)
         ]
         self.experts = nn.ModuleList(experts)
 
-        self.gate = nn.Sequential(nn.Linear(embedding_size * 2, mlp_dims[-1]),
-                                  nn.ReLU(),
-                                  nn.Linear(mlp_dims[-1], self.expert_num),
-                                  nn.Softmax(dim=1))
+        self.gate = nn.Sequential(
+            nn.Linear(self.embedding_size * 2, mlp_dims[-1]), nn.ReLU(),
+            nn.Linear(mlp_dims[-1], self.expert_num), nn.Softmax(dim=1))
 
-        self.attention = _MaskAttentionLayer(embedding_size)
+        self.attention = _MaskAttentionLayer(self.embedding_size)
 
         self.domain_embedder = nn.Embedding(num_embeddings=self.domain_num,
-                                            embedding_dim=embedding_size)
+                                            embedding_dim=self.embedding_size)
         self.classifier = _MLP(320, mlp_dims, dropout_rate)
 
     def forward(self, text: Tensor, mask: Tensor, domain: Tensor):
         text_embedding = self.bert(text, attention_mask=mask).last_hidden_state
         attention_feature, _ = self.attention(text_embedding, mask)
 
-        # todo view(-1, 1)
         domain_embedding = self.domain_embedder(domain.view(-1, 1)).squeeze(1)
 
         gate_input = torch.cat([domain_embedding, attention_feature], dim=-1)
@@ -160,8 +120,8 @@ class MDFEND(AbstractModel):
         token_ids, masks, domains = data_without_label
 
         # shape=(n,), data = 1 or 0
-        round_pred = torch.round(
-            self.forward(token_ids, masks, domains)).long()
+        round_pred = torch.round(self.forward(token_ids, masks,
+                                              domains)).long()
         # after one hot: shape=(n,2), data = [0,1] or [1,0]
         one_hot_pred = torch.nn.functional.one_hot(round_pred)
         return one_hot_pred

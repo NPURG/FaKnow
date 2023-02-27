@@ -5,11 +5,11 @@ import pandas as pd
 import torch
 from transformers import BertTokenizer
 
+from template.data.dataset.mdfend_dataset import JsonDataset
 from template.data.dataset.text_dataset import TensorTextDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.mdfend import MDFEND
 from template.train.trainer import BaseTrainer
-from template.data.dataset.mdfend_dataset import JsonDataset
 
 
 def get_df(name: str) -> pd.DataFrame:
@@ -68,7 +68,7 @@ def read_txt(path: str, other_params: Dict[str, Any]):
 
 
 def run_mdfend(root: str):
-    model = MDFEND(768,
+    model = MDFEND(
                    'hfl/chinese-roberta-wwm-ext',
                    mlp_dims=[384],
                    dropout_rate=0.2,
@@ -98,5 +98,5 @@ def run_mdfend(root: str):
 
 
 if __name__ == '__main__':
-    path = "E:\\Python_program\\MDFEND-Weibo21\\test\\all.json"
+    path = "F:\\dataset\\weibo21\\all.json"
     run_mdfend(path)

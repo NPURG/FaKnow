@@ -1,8 +1,50 @@
+from typing import Optional, Callable, List
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
+
+
+class TextCNNLayer(nn.Module):
+    def __init__(self,
+                 embedding_dim: int,
+                 filter_num: int,
+                 filter_sizes: List[int],
+                 activate_fn: Optional[Callable] = None):
+        super().__init__()
+        # in_channel=1, out_channel=filter_num
+        self.convs = nn.ModuleList([
+            nn.Conv2d(1, filter_num, (k, embedding_dim)) for k in filter_sizes
+        ])
+        self.activate_fn = activate_fn
+
+    def forward(self, embedded_text: torch.Tensor):
+        # before unsqueeze: batch_size * max_len * embedding_dim
+        embedded_text = embedded_text.unsqueeze(1)
+
+        # before squeeze: batch_size * filter_num * (max_len-k+1) * 1
+        if self.activate_fn is None:
+            conv_features = [
+                conv(embedded_text).squeeze(3) for conv in self.convs
+            ]
+        else:
+            conv_features = [
+                self.activate_fn(conv(embedded_text).squeeze(3))
+                for conv in self.convs
+            ]
+
+        # before squeeze: batch_size * filter_num * 1
+        # conv.shape[2] = (max_len-k+1)
+        pool_features = [
+            torch.max_pool1d(conv, conv.shape[2]).squeeze(2)
+            for conv in conv_features
+        ]
+
+        # batch_size * (filter_num * len(filter_sizes))
+        concat_features = torch.cat(pool_features, dim=1)
+        return concat_features
 
 
 class GradientReverseLayer(Function):
