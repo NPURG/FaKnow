@@ -20,7 +20,7 @@ class SAFENumpyDataset(torch.utils.data.Dataset):
         x_images = np.load(root_dir / "case_image.npy", allow_pickle=True)
         # todo y应该是n*1，而非n*2
         # 代码不用动，要把 case_y_fn.npy 文件改成n*1
-        y = np.load(root_dir / "case_y_fn.npy")
+        y = np.load(root_dir / "case_y_fn_dim1.npy")
 
         self.x_heads = x_heads.astype(np.float32)
         self.x_bodies = x_bodies.astype(np.float32)

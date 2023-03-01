@@ -31,6 +31,7 @@ def run_safe(root: str):
 
 if __name__ == '__main__':
     # root = "E:\\Python_program\\Template\\dataset\\example\\dataset_example_SAFE"
-    root = Path("E:\\Python_program\\SAFE\\embedding")
+    # root = Path("E:\\Python_program\\SAFE\\embedding")
+    root =Path("C:\\Users\\10749\\Desktop\\embedding")
     run_safe(root)
 

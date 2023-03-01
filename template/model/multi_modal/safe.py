@@ -167,9 +167,10 @@ class SAFE(AbstractModel):
         class_output, cos_dis_sim = self.forward(headline, body, image)
 
         # pytorch内置的交叉熵，需要label为n*1，而不是n*2
-        class_loss = self.loss_funcs[0](class_output, label) * self.loss_weights[0]
+        class_loss = self.loss_funcs[0](class_output, label.long()) * self.loss_weights[0]
         # todo cos_dis_sim_loss 即 loss2，注意维度对齐
-        cos_dis_sim_loss = self.loss_funcs[1](cos_dis_sim, label) * self.loss_weights[1]
+        label = torch.nn.functional.one_hot(label.to(torch.int64), num_classes=2)
+        cos_dis_sim_loss = self.loss_funcs[1](cos_dis_sim.to(torch.float32), label.to(torch.float32)) * self.loss_weights[1]
 
         loss = class_loss + cos_dis_sim_loss
 
