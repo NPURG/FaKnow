@@ -1,10 +1,11 @@
-import torch
 from pathlib import Path
+
+import torch
+
+from template.data.dataset.safe_dataset import SAFENumpyDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.safe import SAFE
-from template.data.dataset.safe_dataset import SAFEDataset, SAFENumpyDataset
 from template.train.trainer import BaseTrainer
-from template.utils.sif_embedding import sif_embedding
 
 
 def run_safe(root: str):
@@ -32,6 +33,6 @@ def run_safe(root: str):
 if __name__ == '__main__':
     # root = "E:\\Python_program\\Template\\dataset\\example\\dataset_example_SAFE"
     # root = Path("E:\\Python_program\\SAFE\\embedding")
-    root =Path("C:\\Users\\10749\\Desktop\\embedding")
+    root =Path("F:\\code\\python\\SAFE-pytorch\\embedding")
     run_safe(root)
 

@@ -3,6 +3,7 @@ from typing import Optional, Callable, Tuple, List
 import torch
 from torch import Tensor, nn
 
+from model.layers.layer import TextCNNLayer
 from template.model.model import AbstractModel
 
 """
@@ -16,68 +17,32 @@ def cos_loss_func(cos_dis_sim: Tensor, label: Tensor) -> float:
     return -(label * cos_dis_sim.log()).sum(1).mean()
 
 
-# convolution layers
-class _ConvBlock(nn.Module):
-    def __init__(
-            self,
-            input_size: int,
-            input_len: int,
-            num_filters: int,
-            dropout_prob: float,
-            final_len: int,
-    ):
+class _TextCNN(nn.Module):
+    def __init__(self,
+                 input_size: int,
+                 filter_num: int,
+                 kernel_sizes: List[int],
+                 dropout: float,
+                 output_size: int):
         super().__init__()
-
-        # filter size: 3
-        self.conv3 = nn.Conv2d(1, num_filters, kernel_size=(3, input_len))
-        self.pool3 = nn.MaxPool2d(
-            kernel_size=(input_size - 3 + 1, 1),
-            stride=(1, 1),
-        )
-
-        # filter size: 4
-        self.conv4 = nn.Conv2d(1, num_filters, kernel_size=(4, input_len))
-        self.pool4 = nn.MaxPool2d(
-            kernel_size=(input_size - 4 + 1, 1),
-            stride=(1, 1),
-        )
-
-        self.dropout = nn.Dropout(dropout_prob)
-
-        self.fc = nn.Linear(num_filters * 2, final_len)
+        self.text_ccn_layer = TextCNNLayer(input_size, filter_num, kernel_sizes)
+        self.dropout = nn.Dropout(dropout)
+        self.fc = nn.Linear(len(kernel_sizes) * filter_num, output_size)
 
     def forward(self, x: torch.Tensor):
-        # bs, head_size, input_len -> bs, 1, head_size, input_len
-        x = x.unsqueeze(1)
-
-        # filter size: 3
-        x3 = self.conv3(x)
-        x3 = self.pool3(x3)
-
-        # filter size: 3
-        x4 = self.conv4(x)
-        x4 = self.pool4(x4)
-
-        x = torch.cat([x3, x4], dim=1)
-        x = x.permute(0, 2, 3, 1)
-        x = x.reshape(-1, x.shape[-1])
-
+        x = self.text_ccn_layer(x)
         x = self.dropout(x)
-
         return self.fc(x)
 
 
 class SAFE(AbstractModel):
     def __init__(
             self,
-            head_size: int = 30,
-            body_size: int = 100,
-            image_size: int = 66,
             embedding_size: int = 300,
-            input_len: int = 32,
-            num_filters: int = 128,
-            final_len: int = 200,
-            dropout_prob: float = 0.,
+            conv_in_size: int = 32,
+            filter_num: int = 128,
+            conv_out_size: int = 200,
+            dropout: float = 0.,
             loss_funcs: Optional[List[Callable]] = None,
             loss_weights: Optional[List[float]] = None,
     ):
@@ -91,58 +56,35 @@ class SAFE(AbstractModel):
         self.loss_weights = loss_weights
 
         self.embedding_size = embedding_size
-        self.input_len = input_len
-        self.dropout_prob = dropout_prob
 
-        self.reduce = nn.Linear(embedding_size, input_len)
+        self.reduce = nn.Linear(embedding_size, conv_in_size)
         nn.init.trunc_normal_(self.reduce.weight, std=0.1)
         nn.init.constant_(self.reduce.bias, 0.1)
 
-        self.head_block = _ConvBlock(
-            input_size=head_size,
-            input_len=input_len,
-            num_filters=num_filters,
-            dropout_prob=dropout_prob,
-            final_len=final_len,
-        )
+        filter_sizes = [3, 4]
+        self.head_block = _TextCNN(conv_in_size, filter_num, filter_sizes, dropout, conv_out_size)
+        self.body_block = _TextCNN(conv_in_size, filter_num, filter_sizes, dropout, conv_out_size)
+        self.image_block = _TextCNN(conv_in_size, filter_num, filter_sizes, dropout, conv_out_size)
 
-        self.body_block = _ConvBlock(
-            input_size=body_size,
-            input_len=input_len,
-            num_filters=num_filters,
-            dropout_prob=dropout_prob,
-            final_len=final_len,
-        )
-
-        self.image_block = _ConvBlock(
-            input_size=image_size,
-            input_len=input_len,
-            num_filters=num_filters,
-            dropout_prob=dropout_prob,
-            final_len=final_len,
-        )
-
-        # todo 对于类别输出再加一个softmax
-        self.predictor = nn.Linear(final_len * 3, 2)
+        self.predictor = nn.Linear(conv_out_size * 3, 2)
         nn.init.trunc_normal_(self.predictor.weight, std=0.1)
         nn.init.constant_(self.predictor.bias, 0.1)
 
     def forward(
             self,
-            x_heads: torch.Tensor,
-            x_bodies: torch.Tensor,
-            x_images: torch.Tensor,
+            head: torch.Tensor,
+            body: torch.Tensor,
+            image: torch.Tensor,
     ):
 
-        x_heads = self.reduce(x_heads)
-        x_bodies = self.reduce(x_bodies)
-        x_images = self.reduce(x_images)
+        head = self.reduce(head)
+        body = self.reduce(body)
+        image = self.reduce(image)
 
-        headline_vectors = self.head_block(x_heads)
-        body_vectors = self.body_block(x_bodies)
-        image_vectors = self.image_block(x_images)
+        headline_vectors = self.head_block(head)
+        body_vectors = self.body_block(body)
+        image_vectors = self.image_block(image)
 
-        # cos similarity
         combine_images = torch.cat([image_vectors, image_vectors], dim=1)
         combine_texts = torch.cat([headline_vectors, body_vectors], dim=1)
 
@@ -151,6 +93,7 @@ class SAFE(AbstractModel):
 
         image_text = (combine_images * combine_texts).sum(1)
 
+        # cos similarity
         cosine_similarity = (
                                     1 + (image_text / (combine_images_norm * combine_texts_norm + 1e-8))
                             ) / 2
@@ -166,19 +109,18 @@ class SAFE(AbstractModel):
         headline, body, image, label = data
         class_output, cos_dis_sim = self.forward(headline, body, image)
 
-        # pytorch内置的交叉熵，需要label为n*1，而不是n*2
         class_loss = self.loss_funcs[0](class_output, label.long()) * self.loss_weights[0]
-        # todo cos_dis_sim_loss 即 loss2，注意维度对齐
+
         label = torch.nn.functional.one_hot(label.to(torch.int64), num_classes=2)
-        cos_dis_sim_loss = self.loss_funcs[1](cos_dis_sim.to(torch.float32), label.to(torch.float32)) * self.loss_weights[1]
+        cos_dis_sim_loss = self.loss_funcs[1](cos_dis_sim.to(torch.float32), label.to(torch.float32)) * \
+                           self.loss_weights[1]
 
         loss = class_loss + cos_dis_sim_loss
-
         msg = f"class_loss={class_loss}, cos_dis_sim_loss={cos_dis_sim_loss}"
 
         return loss, msg
 
     def predict(self, data_without_label: Tuple[Tensor, Tensor, Tensor]) -> torch.Tensor:
-        x_heads, x_bodies, x_images = data_without_label
-        class_output, _ = self.forward(x_heads, x_bodies, x_images)
-        return class_output
+        head, body, image = data_without_label
+        class_output, _ = self.forward(head, body, image)
+        return torch.softmax(class_output, dim=-1)
