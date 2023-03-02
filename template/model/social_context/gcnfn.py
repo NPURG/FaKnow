@@ -3,6 +3,17 @@ import torch
 from torch import nn, Tensor
 import torch.nn.functional as F
 from torch_geometric.nn import GATConv, global_mean_pool
+
+"""
+User Preference-aware Fake News Detection
+paper: https://arxiv.org/abs/2104.12259
+code: https://github.com/safe-graph/GNN-FakeNews
+
+Fake news detection on social media using geometric deep learning
+paper: https://arxiv.org/abs/1902.06673
+"""
+
+
 """
 using two GCN layers and one mean-pooling layer
 Vanilla GCNFN: concat = False, feature = content

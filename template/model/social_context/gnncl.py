@@ -7,7 +7,12 @@ from torch import Tensor
 import torch.nn.functional as F
 from torch_geometric.nn import DenseSAGEConv, dense_diff_pool
 """
-using DiffPool as the graph encoder and profile feature as the node feature
+User Preference-aware Fake News Detection
+paper: https://arxiv.org/abs/2104.12259
+code: https://github.com/safe-graph/GNN-FakeNews
+
+Graph neural networks with continual learning for fake news detection from social media
+paper: https://arxiv.org/abs/2007.03316
 """
 
 

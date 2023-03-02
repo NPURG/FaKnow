@@ -7,7 +7,14 @@ from copy import copy
 from torch_scatter import scatter_mean
 
 from template.model.model import AbstractModel
-"""Bi-Directional Graph Convolutional Networks"""
+"""
+User Preference-aware Fake News Detection
+paper: https://arxiv.org/abs/2104.12259
+code: https://github.com/safe-graph/GNN-FakeNews
+
+Rumor Detection on Social Media with Bi-Directional Graph Convolutional Networks
+paper: https://arxiv.org/abs/2001.06362
+"""
 
 
 class _RumorGCN(torch.nn.Module):

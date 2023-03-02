@@ -3,6 +3,11 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch_geometric.nn import GATConv, GCNConv, SAGEConv, global_max_pool
+"""
+User Preference-aware Fake News Detection
+paper: https://arxiv.org/abs/2104.12259
+code: https://github.com/safe-graph/GNN-FakeNews
+"""
 
 
 class _BaseGNN(AbstractModel):
@@ -50,16 +55,34 @@ class _BaseGNN(AbstractModel):
         return F.softmax(output, dim=1)
 
 
+"""
+Semi-Supervised Classification with Graph Convolutional Networks
+paper: https://arxiv.org/abs/1609.02907
+"""
+
+
 class GCN(_BaseGNN):
     def __init__(self, feature_size: int, hidden_size: int, concat=False):
         super().__init__(feature_size, hidden_size, concat)
         self.conv = GCNConv(self.feature_size, self.hidden_size)
 
 
+"""
+Inductive Representation Learning on Large Graphs
+https://arxiv.org/abs/1706.02216
+"""
+
+
 class SAGE(_BaseGNN):
     def __init__(self, feature_size: int, hidden_size: int, concat=False):
         super().__init__(feature_size, hidden_size, concat)
         self.conv = SAGEConv(self.feature_size, self.hidden_size)
+
+
+"""
+Graph Attention Networks
+https://arxiv.org/abs/1710.10903
+"""
 
 
 class GAT(_BaseGNN):
