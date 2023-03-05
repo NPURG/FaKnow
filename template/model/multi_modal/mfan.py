@@ -22,13 +22,13 @@ class TransformerBlock(nn.Module):
                  key_size=16,
                  value_size=16,
                  head_num=8,
-                 attn_dropout=0.1):
+                 dropout=0.1):
         super(TransformerBlock, self).__init__()
-        # input size，k，v size指的是X经过Linear变换后的得到的维度
         self.head_num = head_num
         self.k_size = key_size if key_size is not None else input_size
         self.v_size = value_size if value_size is not None else input_size
 
+        # only for self-attention, the input dimensions of Q, K, V are the same
         self.W_q = nn.Parameter(torch.Tensor(input_size, head_num * key_size))
         self.W_k = nn.Parameter(torch.Tensor(input_size, head_num * key_size))
         self.W_v = nn.Parameter(torch.Tensor(input_size,
@@ -37,11 +37,11 @@ class TransformerBlock(nn.Module):
         self.W_o = nn.Parameter(torch.Tensor(value_size * head_num,
                                              input_size))
 
-        self.dropout = nn.Dropout(attn_dropout)
+        self.dropout = nn.Dropout(dropout)
 
-        self.ffn = PositionWiseFFN(input_size, input_size, input_size)
+        self.ffn = PositionWiseFFN(input_size, input_size, input_size, dropout)
         self.dot_product_attention = ScaledDotProductAttention(
-            epsilon=1e-6, dropout=attn_dropout)
+            epsilon=1e-6, dropout=dropout)
         self.__init_weights__()
 
     def __init_weights__(self):
@@ -87,12 +87,14 @@ class TransformerBlock(nn.Module):
         return output
 
     def forward(self, Q, K, V):
-        '''
+        """
+        only for self-attention, the input dimensions of Q, K, V are the same
+
         :param Q: (batch_size, max_q_words, input_size)
         :param K: (batch_size, max_k_words, input_size)
         :param V: (batch_size, max_v_words, input_size)
-        :return:  output: (batch_size, max_q_words, input_size)  same size as Q
-        '''
+        :return: output: (batch_size, max_q_words, input_size)  same size as Q
+        """
         attention_score = self.multi_head_attention(Q, K, V)
         # without norm
         X = Q + attention_score
@@ -139,7 +141,7 @@ class MFAN(AbstractModel):
         self.align_graph = nn.Linear(self.embedding_size, self.embedding_size)
         self.align_text = nn.Linear(self.embedding_size, self.embedding_size)
         self.transformer_block = TransformerBlock(
-            input_size=self.embedding_size, head_num=8, attn_dropout=0)
+            input_size=self.embedding_size, head_num=8, dropout=0)
 
         # classification
         self.dropout = nn.Dropout(dropout_rate)
