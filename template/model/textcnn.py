@@ -10,6 +10,7 @@ from model.model import AbstractModel
 """
 Convolutional Neural Networks for Sentence Classification
 paper: https://arxiv.org/abs/1408.5882
+code: https://github.com/yoonkim/CNN_sentence
 """
 
 
@@ -18,12 +19,13 @@ class TextCNN(AbstractModel):
                  word_vectors: torch.Tensor,
                  filter_num: int,
                  kernel_sizes: List[int],
-                 activate_func: Optional[Callable] = None,
-                 dropout=0.5):
+                 activate_func: Optional[Callable] = F.relu,
+                 dropout=0.5,
+                 freeze=True):
         super().__init__()
         self.loss_func = nn.CrossEntropyLoss()
 
-        self.word_embedding = nn.Embedding.from_pretrained(word_vectors)
+        self.word_embedding = nn.Embedding.from_pretrained(word_vectors, freeze=freeze)
 
         self.text_ccn_layer = TextCNNLayer(word_vectors.shape[-1], filter_num,
                                            kernel_sizes, activate_func)
