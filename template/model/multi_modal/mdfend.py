@@ -123,5 +123,5 @@ class MDFEND(AbstractModel):
         round_pred = torch.round(self.forward(token_ids, masks,
                                               domains)).long()
         # after one hot: shape=(n,2), data = [0,1] or [1,0]
-        one_hot_pred = torch.nn.functional.one_hot(round_pred)
+        one_hot_pred = torch.nn.functional.one_hot(round_pred, num_classes=2)
         return one_hot_pred
