@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
-from template.model.layers.attention import (PositionWiseFFN,
+from template.model.layers.attention import (FFN,
                                              ScaledDotProductAttention)
 from template.model.layers.layer import SignedGAT, TextCNNLayer
 from template.model.model import AbstractModel
@@ -39,7 +39,7 @@ class TransformerBlock(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-        self.ffn = PositionWiseFFN(input_size, input_size, input_size, dropout)
+        self.ffn = FFN(input_size, input_size, input_size, dropout)
         self.dot_product_attention = ScaledDotProductAttention(
             epsilon=1e-6, dropout=dropout)
         self.__init_weights__()

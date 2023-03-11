@@ -2,8 +2,8 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
-from torch import Tensor
 import torch.nn.functional as F
+from torch import Tensor
 
 """
 layers for attention mechanism, including:
@@ -39,13 +39,13 @@ def masked_softmax(X: Tensor, valid_lens: Optional[Tensor] = None):
         return nn.functional.softmax(X.reshape(shape), dim=-1)
 
 
-class PositionWiseFFN(nn.Module):
-    def __init__(self, ffn_num_input: int, ffn_num_hiddens: int,
-                 ffn_num_outputs: int, dropout=0., activation=F.relu):
-        super(PositionWiseFFN, self).__init__()
-        self.dense1 = nn.Linear(ffn_num_input, ffn_num_hiddens)
+class FFN(nn.Module):
+    def __init__(self, input_size: int, hidden_size: int,
+                 output_size: int, dropout=0., activation=F.relu):
+        super(FFN, self).__init__()
+        self.dense1 = nn.Linear(input_size, hidden_size)
         self.activation = activation
-        self.dense2 = nn.Linear(ffn_num_hiddens, ffn_num_outputs)
+        self.dense2 = nn.Linear(hidden_size, output_size)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor):
