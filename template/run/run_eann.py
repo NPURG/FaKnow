@@ -4,7 +4,6 @@ import re
 from typing import Dict, Any
 
 import jieba
-import numpy as np
 import torch
 from torchvision import transforms
 
@@ -85,10 +84,9 @@ def eann_embedding(path: str, other_params: Dict[str, Any]):
 
 
 def run_eann(root: str,
-             word_vectors: np.ndarray,
+             word_vectors: torch.Tensor,
              word_idx_map: Dict[str, int],
-             max_text_len: int = None,
-             vocab_size: int = None):
+             max_text_len: int = None):
     image_transforms = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -105,8 +103,6 @@ def run_eann(root: str,
         'word_idx_map': word_idx_map,
         'max_text_len': max_text_len
     }
-    if vocab_size is None:
-        vocab_size = len(word_idx_map)
 
     dataset = FolderMultiModalDataset(root,
                                       embedding=eann_embedding,
@@ -114,11 +110,7 @@ def run_eann(root: str,
                                       embedding_params=embedding_params,
                                       event_label=torch.tensor(event_labels))
 
-    model = EANN(event_num,
-                 hidden_size=32,
-                 reverse_lambd=1,
-                 vocab_size=vocab_size,
-                 embed_weight=word_vectors)
+    model = EANN(event_num, embed_weight=word_vectors)
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
                                         list(model.parameters())),
                                  lr=0.001)
@@ -141,4 +133,4 @@ if __name__ == '__main__':
     f = open(word_vector_path, 'rb')
     weight = pickle.load(f)  # W, W2, word_idx_map, vocab
     word_vectors, _, word_idx_map, vocab, max_len = weight[0], weight[1], weight[2], weight[3], weight[4]
-    run_eann(root, word_vectors, word_idx_map, max_text_len=None, vocab_size=len(vocab))
+    run_eann(root, torch.from_numpy(word_vectors), word_idx_map, max_text_len=None, vocab_size=len(vocab))

@@ -1,7 +1,6 @@
 from collections import OrderedDict
-from typing import Optional, Callable, Tuple, List
+from typing import Tuple
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,39 +11,38 @@ from template.model.model import AbstractModel
 
 """
 EANN: Multi-Modal Fake News Detection
-paper: https://dl.acm.org/doi/epdf/10.1145/3219819.3219903
+paper: https://arxiv.org/abs/2112.04831
 code: https://github.com/yaqingwang/EANN-KDD18
 """
 
 
 class EANN(AbstractModel):
+    r"""EANN: Multi-Modal Fake News Detection
+
+        Args:
+            event_num (int): number of events
+            embed_weight (Tensor): weight for word embedding layer, shape=(vocab_size, embedding_size)
+            reverse_lambda (float): lamda for gradient reverse layer. Default=1
+            hidden_size (int): size for hidden layers. Default=32
+        """
     def __init__(self,
                  event_num: int,
-                 hidden_size: int,
-                 reverse_lambd: int,
-                 embed_weight: np.ndarray,
-                 vocab_size: int,
-                 loss_funcs: Optional[List[Callable]] = None,
-                 loss_weights: Optional[List[float]] = None):
+                 embed_weight: torch.Tensor,
+                 reverse_lambda=1.0,
+                 hidden_size=32):
         super(EANN, self).__init__()
 
-        if loss_funcs is None:
-            loss_funcs = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss()]
-        self.loss_funcs = loss_funcs
-        if loss_weights is None:
-            loss_weights = [1.0, 1.0]
-        self.loss_weights = loss_weights
+        self.loss_funcs = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss()]
+        self.loss_weights = [1.0, 1.0]
 
         self.event_num = event_num
-        self.embed_dim = embed_weight[0].shape[0]
+        self.embed_dim = embed_weight.shape[-1]
         self.hidden_size = hidden_size
-        self.reverse_lambd = reverse_lambd
+        self.reverse_lambda = reverse_lambda
 
-        # 真正的word embedding，使用了预训练好的权重
-        self.embed = nn.Embedding(vocab_size, self.embed_dim)
-        self.embed.weight = nn.Parameter(torch.from_numpy(embed_weight))
+        # text
+        self.embed = nn.Embedding.from_pretrained(embed_weight, freeze=False)
 
-        # TEXT CNN
         filter_num = 20
         window_size = [1, 2, 3, 4]
         self.text_ccn_layer = TextCNNLayer(self.embed_dim, filter_num,
@@ -52,16 +50,14 @@ class EANN(AbstractModel):
         self.text_ccn_fc = nn.Linear(
             len(window_size) * filter_num, self.hidden_size)
 
-        # IMAGE
+        # image
         vgg_19 = torchvision.models.vgg19(
             weights=torchvision.models.VGG19_Weights.DEFAULT)
         for param in vgg_19.parameters():
             param.requires_grad = False
 
-        # visual model
-        num_ftrs = vgg_19.classifier._modules['6'].out_features
         self.vgg = vgg_19
-        self.image_fc = nn.Linear(num_ftrs, self.hidden_size)
+        self.image_fc = nn.Linear(vgg_19.classifier._modules['6'].out_features, self.hidden_size)
 
         # Class Classifier
         self.class_classifier = nn.Sequential(
@@ -79,6 +75,18 @@ class EANN(AbstractModel):
 
     def forward(self, text: torch.Tensor, image: torch.Tensor,
                 mask: torch.Tensor):
+        """
+
+        Args:
+            text (Tensor): text token ids
+            image (Tensor): image pixels
+            mask (Tensor): text masks
+
+        Returns:
+            tuple:
+                - class_output (Tensor): prediction of being fake news, shape=(batch_size, 2)
+                - domain_output (Tensor): prediction of belonging to which domain, shape=(batch_size, 2)
+        """
         # IMAGE
         image = self.vgg(image)  # [N, 512]
         image = F.leaky_relu(self.image_fc(image))
