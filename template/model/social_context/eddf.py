@@ -90,11 +90,11 @@ class EDDF(AbstractModel):
         class_out, decoder_out, specific_domain, shared_domain = self.forward(input)
 
         class_loss = nn.BCELoss()(class_out.squeeze(), label.float())
-        decoder_loss = nn.MSELoss()(decoder_out, input) * self.lambda1
-        specific_domain_loss = nn.MSELoss()(specific_domain, domain) * self.lambda2
-        shared_domain_loss = nn.MSELoss()(shared_domain, domain) * self.lambda3
+        decoder_loss = nn.MSELoss()(decoder_out, input)
+        specific_domain_loss = nn.MSELoss()(specific_domain, domain)
+        shared_domain_loss = nn.MSELoss()(shared_domain, domain)
 
-        loss = class_loss + decoder_loss + specific_domain_loss - shared_domain_loss
+        loss = class_loss + decoder_loss * self.lambda1 + specific_domain_loss * self.lambda2 + shared_domain_loss * self.lambda3
 
         msg = f'class_loss={class_loss}, decoder_loss={decoder_loss}, specific_domain_loss={specific_domain_loss}, ' \
               f'shared_domain_loss={shared_domain_loss} '
