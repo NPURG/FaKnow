@@ -4,8 +4,8 @@ from time import time
 from typing import Optional, Callable, Tuple
 
 import torch
-from torch.optim.optimizer import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.optimizer import Optimizer
 from torch.utils.data.dataloader import DataLoader
 
 from template.evaluate.evaluator import Evaluator
@@ -84,36 +84,49 @@ class BaseTrainer:
         # todo 计算best score，作为最佳结果保存
         return self.evaluate(data, batch_size)
 
-    def fit(self, train_data: torch.utils.data.Dataset, batch_size: int,
-            epochs: int, validate_data: Optional[torch.utils.data.Dataset]=None,
-            validate_size: Optional[float] = None, saved=False, save_path: Optional[str] = None):
-        """training"""
+    def _split_train_validate(self, train_data: torch.utils.data.Dataset,
+                              validate_data: Optional[torch.utils.data.Dataset] = None,
+                              validate_size: Optional[float] = None) -> Tuple[
+                              bool, torch.utils.data.Dataset, Optional[torch.utils.data.Dataset]]:
         # whether split validation set
+
         validation = True
         if validate_data is None and validate_size is None:
             validation = False
+            train_set, validate_set = train_data, None
+
         elif validate_data is None:
             validate_size = int(validate_size * len(train_data))
             train_size = len(train_data) - validate_size
-            train_data, validate_data = torch.utils.data.random_split(
+            train_set, validate_set = torch.utils.data.random_split(
                 train_data, [train_size, validate_size])
 
+        else:
+            train_set, validate_set = train_data, validate_data
+        return validation, train_set, validate_set
+
+    def fit(self, train_data: torch.utils.data.Dataset, batch_size: int,
+            epochs: int, validate_data: Optional[torch.utils.data.Dataset] = None,
+            validate_size: Optional[float] = None, saved=False, save_path: Optional[str] = None):
+        """training"""
+        validation, train_set, validate_set = self._split_train_validate(train_data, validate_data, validate_size)
+
         # tqdm.write('----start training-----')
-        print(f'training data size={len(train_data)}')
+        print(f'training data size={len(train_set)}')
         if validation:
-            print(f'validation data size={len(validate_data)}')
+            print(f'validation data size={len(validate_set)}')
 
         # training for epochs
         print('----start training-----')
         for epoch in range(epochs):
             print(f'\n--epoch=[{epoch + 1}/{epochs}]--')
             training_start_time = time()
-            training_loss = self._train_epoch(train_data, batch_size, epoch)
+            training_loss = self._train_epoch(train_set, batch_size, epoch)
             training_end_time = time()
             print(f'time={training_end_time - training_start_time}s, '
                   f'train loss={training_loss}')
             if validation:
-                validate_result = self._validate_epoch(validate_data,
+                validate_result = self._validate_epoch(validate_set,
                                                        batch_size)
                 print(f'      validation result: {validate_result}')
             # tqdm.write(f'epoch={epoch}, '
