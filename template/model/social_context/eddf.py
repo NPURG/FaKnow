@@ -26,9 +26,20 @@ class _Discriminator(nn.Module):
 
 
 class EDDF(AbstractModel):
+    r"""Embracing Domain Differences in Fake News Cross-domain Fake News Detection using Multi-modal Data
 
-    def __init__(self, input_size: int, domain_size: int, lambda1: float, lambda2: float, lambda3: float,
+        Args:
+            input_size (int): dimension of input representation
+            domain_size (int): dimension of domain vector
+            lambda1 (float): L_{recon} loss weight. Default: 1.0
+            lambda2 (float): L_{specific} loss weight. Default: 10.0
+            lambda3 (float): L_{shared} loss weight. Default: 5.0
+            hidden_size (int): size of hidden layer. Default: 512
+    """
+
+    def __init__(self, input_size: int, domain_size: int, lambda1=1.0, lambda2=10.0, lambda3=5.0,
                  hidden_size=512):
+
         super().__init__()
         self.input_size = input_size
         self.domain_size = domain_size
@@ -45,7 +56,20 @@ class EDDF(AbstractModel):
         self.specific_discriminator = _Discriminator(self.discriminate_size, domain_size)
         self.shared_discriminator = _Discriminator(self.discriminate_size, domain_size)
 
-    def forward(self, input: Tensor):
+    def forward(self, input: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        """
+
+        Args:
+            input (Tensor): input representation consisting of text and propagation network
+
+        Returns:
+            tuple:
+                - class_out (Tensor): prediction of being fake news, shape=(batch_size, 1)
+                - decoder_out (Tensor): prediction of input, shape=(batch_size, input_size)
+                - specific_domain (Tensor): specific domain output, shape=(batch_size, domain_size)
+                - shared_domain (Tensor): shared domain output, shape=(batch_size, domain_size)
+
+        """
         input_embedding = self.input_embedding_layer(input)
 
         # shape=(batch_size * 1)
