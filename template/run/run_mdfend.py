@@ -70,8 +70,6 @@ def read_txt(path: str, other_params: Dict[str, Any]):
 def run_mdfend(root: str):
     model = MDFEND(
                    'hfl/chinese-roberta-wwm-ext',
-                   mlp_dims=[384],
-                   dropout_rate=0.2,
                    domain_num=9)
 
     optimizer = torch.optim.Adam(params=model.parameters(),
