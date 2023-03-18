@@ -1,6 +1,5 @@
 from typing import Optional, Callable, List
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -123,7 +122,7 @@ class SignedAttention(nn.Module):
 
 class SignedGAT(nn.Module):
     def __init__(self,
-                 node_vectors: np.ndarray,
+                 node_vectors: torch.Tensor,
                  cos_sim_matrix: torch.Tensor,
                  num_features: int,
                  node_num: int,
@@ -135,8 +134,7 @@ class SignedGAT(nn.Module):
         super(SignedGAT, self).__init__()
         self.dropout = dropout
         self.node_num = node_num
-        self.node_embedding = nn.Embedding.from_pretrained(
-            torch.from_numpy(node_vectors), padding_idx=0)
+        self.node_embedding = nn.Embedding.from_pretrained(node_vectors, padding_idx=0)
         self.original_adj = adj_matrix
         self.potential_adj = torch.where(cos_sim_matrix > 0.5,
                                          torch.ones_like(cos_sim_matrix),

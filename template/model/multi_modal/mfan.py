@@ -1,10 +1,9 @@
-import numpy as np
 import torch
 import torch.nn as nn
 from torchvision import models
 
 from template.model.layers.attention import (FFN,
-                                             ScaledDotProductAttention)
+                                             ScaledDotProductAttention, transpose_qkv, transpose_output)
 from template.model.layers.layer import SignedGAT, TextCNNLayer
 from template.model.model import AbstractModel
 from template.utils.util import calculate_cos_matrix
@@ -58,32 +57,14 @@ class TransformerBlock(nn.Module):
         batch_size, q_len, _ = Q.size()
         batch_size, k_len, _ = K.size()
         batch_size, v_len, _ = V.size()
+        Q_ = transpose_qkv(Q.matmul(self.W_q), self.head_num)
+        K_ = transpose_qkv(K.matmul(self.W_k), self.head_num)
+        V_ = transpose_qkv(V.matmul(self.W_v), self.head_num)
 
-        Q_ = Q.matmul(self.W_q).view(batch_size, q_len, self.head_num,
-                                     self.k_size)
-        K_ = K.matmul(self.W_k).view(batch_size, k_len, self.head_num,
-                                     self.k_size)
-        V_ = V.matmul(self.W_v).view(batch_size, v_len, self.head_num,
-                                     self.v_size)
+        attention_score = self.dot_product_attention(Q_, K_, V_)
+        attention_score = transpose_output(attention_score, self.head_num)
 
-        Q_ = Q_.permute(0, 2, 1,
-                        3).contiguous().view(batch_size * self.head_num, q_len,
-                                             self.k_size)
-        K_ = K_.permute(0, 2, 1,
-                        3).contiguous().view(batch_size * self.head_num, q_len,
-                                             self.k_size)
-        V_ = V_.permute(0, 2, 1,
-                        3).contiguous().view(batch_size * self.head_num, q_len,
-                                             self.v_size)
-
-        attention_socre = self.dot_product_attention(Q_, K_, V_)
-        attention_socre = attention_socre.view(batch_size, self.head_num,
-                                               q_len, self.v_size)
-        attention_socre = attention_socre.permute(
-            0, 2, 1, 3).contiguous().view(batch_size, q_len,
-                                          self.head_num * self.v_size)
-
-        output = self.dropout(attention_socre.matmul(self.W_o))
+        output = self.dropout(attention_score.matmul(self.W_o))
         return output
 
     def forward(self, Q, K, V):
@@ -103,17 +84,28 @@ class TransformerBlock(nn.Module):
 
 
 class MFAN(AbstractModel):
+    """
+    MFAN: Multi-modal Feature-enhanced TransformerBlock Networks for Rumor Detection
+    """
     def __init__(self,
-                 word_vectors: np.ndarray,
+                 word_vectors: torch.Tensor,
                  node_num: int,
-                 node_embedding: np.ndarray,
+                 node_embedding: torch.Tensor,
                  adj_matrix: torch.Tensor,
                  dropout_rate=0.6):
+        """
+
+        Args:
+            word_vectors (Tensor): pretrained weights for word embedding
+            node_num (int): number of nodes in graph
+            node_embedding (Tensor): pretrained weights for node embedding
+            adj_matrix (Tensor): adjacent matrix of graph
+            dropout_rate (float): drop out rate. Default=0.6
+        """
         super(MFAN, self).__init__()
 
         # text embedding
-        self.word_embedding = nn.Embedding.from_pretrained(
-            torch.from_numpy(word_vectors), freeze=False, padding_idx=0)
+        self.word_embedding = nn.Embedding.from_pretrained(word_vectors, freeze=False, padding_idx=0)
         self.embedding_size = word_vectors.shape[-1]
 
         # text cnn
@@ -163,6 +155,18 @@ class MFAN(AbstractModel):
 
     def forward(self, post_id: torch.Tensor, text: torch.Tensor,
                 image: torch.Tensor):
+        """
+
+        Args:
+            post_id (Tensor): id of post, shape=(batch_size,)
+            text (Tensor): token ids, shape=(batch_size, max_len)
+            image (Tensor): shape=(batch_size, 3, width, height)
+
+        Returns:
+            tuple:
+                - class_output (Tensor): prediction of being fake news, shape=(batch_size, 2)
+                - dist (List[Tensor]): aligned text and aligned graph, shape=(batch_size, embedding_size)
+        """
         image_feature = self.resnet(image).unsqueeze(1)
 
         graph_feature = self.signed_gat.forward(post_id).unsqueeze(1)
@@ -182,14 +186,14 @@ class MFAN(AbstractModel):
 
         # 将Q换成image，text image co-attention，得到增强后的text
         enhanced_text = self.transformer_block(self_att_i, self_att_t,
-                                               self_att_t).squeeze()
+                                               self_att_t)
 
         # 此后使用的text，均为enhanced，而非最开始self-attention的版本
-        self_att_t = enhanced_text.unsqueeze(1)
+        self_att_t = enhanced_text
 
         # enhanced text与enhanced graph对齐
-        aligned_text = self.align_text(enhanced_text)
-        aligned_graph = self.align_graph(self_att_g)
+        aligned_text = self.align_text(enhanced_text.squeeze(1))
+        aligned_graph = self.align_graph(self_att_g.squeeze(1))
         dist = [aligned_text, aligned_graph]
 
         # co attention
@@ -210,15 +214,15 @@ class MFAN(AbstractModel):
         att_feature = torch.cat(
             (co_att_tg, co_att_gt, co_att_ti, co_att_it, co_att_gi, co_att_ig),
             dim=1)
-        output = self.classifier(att_feature)
+        class_output = self.classifier(att_feature)
 
-        return output, dist
+        return class_output, dist
 
     def calculate_loss(self, data):
         post_id, text, image, label = data
         class_output, dist = self.forward(post_id, text, image)
         class_loss = self.loss_funcs[0](class_output, label)
-        dis_loss = self.loss_funcs[1](dist[0], dist[1].squeeze())
+        dis_loss = self.loss_funcs[1](dist[0], dist[1])
 
         loss = class_loss + dis_loss
 

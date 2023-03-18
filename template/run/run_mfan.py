@@ -2,7 +2,6 @@ import json
 import pickle
 from typing import List
 
-import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import random_split
@@ -58,11 +57,11 @@ def load_adj_matrix(path: str, node_num: int):
     return adj_matrix
 
 
-def run_mfan(path: str, word_vectors: np.ndarray,
-             node_embedding: np.ndarray, node_num: int,
+def run_mfan(path: str, word_vectors: torch.Tensor,
+             node_embedding: torch.Tensor, node_num: int,
              adj_matrix: torch.Tensor):
     dataset = JsonDataset(path, transform, tokenize)
-    size = int(len(dataset) * 0.2)
+    size = int(len(dataset) * 0.02)
     train_data, _ = random_split(dataset, [size, len(dataset) - size])
 
     model = MFAN(word_vectors, node_num, node_embedding, adj_matrix)
@@ -88,5 +87,5 @@ if __name__ == '__main__':
     _, _, _, word_embeddings, _ = pickle.load(open(pre + "\\train.pkl", 'rb'))
     print('loading embedding')
 
-    run_mfan(path, word_embeddings, node_embedding, node_num,
+    run_mfan(path, torch.from_numpy(word_embeddings), torch.from_numpy(node_embedding), node_num,
              adj_matrix)
