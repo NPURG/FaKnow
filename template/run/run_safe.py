@@ -24,7 +24,7 @@ def run_safe(root: str):
 
     trainer = BaseTrainer(model, evaluator, optimizer)
     trainer.fit(dataset,
-                batch_size=100,
+                batch_size=64,
                 epochs=100,
                 validate_size=0.2,
                 saved=True)
