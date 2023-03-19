@@ -21,7 +21,7 @@ def dict2str(result_dict):
     """
 
     return "    ".join([
-        str(metric) + " : " + str(value)
+        str(metric) + "=" + str(value)
         for metric, value in result_dict.items()
     ])
 

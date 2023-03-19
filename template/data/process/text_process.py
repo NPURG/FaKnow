@@ -1,11 +1,10 @@
 import os
 import re
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import jieba
 import numpy as np
-from gensim.models import Word2Vec
 from nltk import word_tokenize, PorterStemmer, WordNetLemmatizer
 from nltk.corpus import stopwords
 
@@ -28,7 +27,6 @@ def chinese_tokenize(text,
     split_words = jieba.lcut(cleaned_text)
     if stop_words is None:
         stop_words = get_stop_words(stop_words_path)
-    # return " ".join([word for word in split_words if word not in stop_words])
     return [word for word in split_words if word not in stop_words]
 
 
@@ -54,26 +52,6 @@ def english_tokenize(text: str) -> List[str]:
     return tokens
 
 
-def get_texts(root: str) -> Tuple[List[List[str]], int]:
-    texts = []
-    max_text_len = 0
-    for dir in os.listdir(root):
-        for entry in os.scandir(os.path.join(root, dir)):
-            if os.path.splitext(entry.name)[1] == ".txt":
-                file_path = os.path.join(root, dir, entry.name)
-                with open(file_path, encoding='utf-8') as f:
-                    for i, l in enumerate(f.readlines()):
-                        l = l.rstrip()
-                        # todo only for EANN
-                        if (i + 1) % 2 == 0:
-                            tokens = chinese_tokenize(l)
-                            if len(tokens) > max_text_len:
-                                max_text_len = len(tokens)
-                            texts.append(tokens)
-
-    return texts, max_text_len
-
-
 def generate_frequency_vocabulary(texts):
     vocab = defaultdict(int)
     for sentence in texts:
@@ -90,17 +68,6 @@ def add_unknown_words(word_vector_dict: Dict[str, np.ndarray], frequency_vocab: 
     for word in frequency_vocab:
         if word not in word_vector_dict and frequency_vocab[word] >= min_df:
             word_vector_dict[word] = np.random.uniform(-0.25, 0.25, k)
-
-
-def build_word2vec(root: str, min_count=1, vector_size=100, window=5):
-    texts, max_text_len = get_texts(root)
-    frequency_vocabulary = generate_frequency_vocabulary(texts)
-    w2v = Word2Vec(texts,
-                   min_count=min_count,
-                   vector_size=vector_size,
-                   window=window)
-    add_unknown_words(w2v.wv, frequency_vocabulary)
-    return w2v.wv.vectors, w2v.wv.key_to_index, max_text_len
 
 
 def padding_vec_and_idx(word_vectors: np.ndarray, word_idx: Dict[str, int]):
