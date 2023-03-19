@@ -138,12 +138,17 @@ class MDFEND(AbstractModel):
         return torch.sigmoid(label_pred.squeeze(1))
 
     def calculate_loss(self, data) -> Tensor:
-        token_ids, masks, domains, labels = data
+        token_ids = data['text']['token_id']
+        masks = data['text']['mask']
+        domains = data['domain']
+        labels = data['label']
         output = self.forward(token_ids, masks, domains)
         return self.loss_func(output, labels.float())
 
     def predict(self, data_without_label) -> Tensor:
-        token_ids, masks, domains = data_without_label
+        token_ids = data_without_label['text']['token_id']
+        masks = data_without_label['text']['mask']
+        domains = data_without_label['domain']
 
         # shape=(n,), data = 1 or 0
         round_pred = torch.round(self.forward(token_ids, masks,

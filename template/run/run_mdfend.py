@@ -1,76 +1,40 @@
-import pickle
-from typing import List, Tuple, Dict, Any
+from typing import List, Dict
 
-import pandas as pd
 import torch
+from torch.utils.data import random_split
 from transformers import BertTokenizer
 
-from template.data.dataset.mdfend_dataset import JsonDataset
-from template.data.dataset.text_dataset import TensorTextDataset
+from data.dataset.text import TextDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.mdfend import MDFEND
 from template.train.trainer import BaseTrainer
+from utils.util import dict2str
 
 
-def get_df(name: str) -> pd.DataFrame:
-    with open(f"E:\\dataset\\weibo21_sub_df\\{name}.pkl", "rb") as f:
-        df = pickle.load(f)
-        df = df[df['category'] != '无法确定']
-    return df
+class MDFENDTokenizer:
+    def __init__(self, max_len=170, bert="hfl/chinese-roberta-wwm-ext"):
+        self.max_len = max_len
+        self.tokenizer = BertTokenizer.from_pretrained(bert)
+
+    def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
+        inputs = self.tokenizer(texts,
+                                return_tensors='pt',
+                                max_length=self.max_len,
+                                add_special_tokens=True,
+                                padding='max_length',
+                                truncation=True)
+        return {'token_id': inputs['input_ids'], 'mask': inputs['attention_mask']}
 
 
-def bert_tokenize(max_length: int,
-                  texts: List[str]) -> Tuple[torch.Tensor, torch.Tensor]:
-    tokenizer = BertTokenizer.from_pretrained("hfl/chinese-roberta-wwm-ext")
-    inputs = tokenizer(texts,
-                       return_tensors='pt',
-                       max_length=max_length,
-                       add_special_tokens=True,
-                       padding='max_length',
-                       truncation=True)
-    return inputs['input_ids'], inputs['attention_mask']
+def run_mdfend(path: str):
+    tokenizer = MDFENDTokenizer()
+    dataset = TextDataset(path, ['text'], tokenizer)
 
-
-def load_dataset(name: str):
-    df = get_df(name)
-    category_dict = {
-        "科技": 0,
-        "军事": 1,
-        "教育考试": 2,
-        "灾难事故": 3,
-        "政治": 4,
-        "医药健康": 5,
-        "财经商业": 6,
-        "文体娱乐": 7,
-        "社会生活": 8
-    }
-    content = df['content'].tolist()
-    token_ids, masks = bert_tokenize(170, content)
-    label = torch.tensor(df['label'].astype(int).to_numpy())
-    category = torch.tensor(
-        df['category'].apply(lambda c: category_dict[c]).to_numpy())
-    dataset = TensorTextDataset(texts=token_ids,
-                                labels=label,
-                                mask=masks,
-                                domain=category)
-    return dataset
-
-
-def read_txt(path: str, other_params: Dict[str, Any]):
-    max_length = other_params['max_length']
-    with open(path, encoding='utf-8') as f:
-        domain = f.readline()
-        text = f.readline()  # 第二行才是文本
-    tokenizer = BertTokenizer.from_pretrained("hfl/chinese-roberta-wwm-ext")
-    inputs = tokenizer(text, return_tensors='pt', max_length=max_length, add_special_tokens=True,
-                       padding='max_length', truncation=True)
-    return int(domain), inputs['input_ids'].squeeze(), inputs['attention_mask'].squeeze()
-
-
-def run_mdfend(root: str):
-    model = MDFEND(
-                   'hfl/chinese-roberta-wwm-ext',
-                   domain_num=9)
+    validate_size = int(len(dataset) * 0.1)
+    test_size = int(len(dataset) * 0.2)
+    train_size = len(dataset) - validate_size - test_size
+    train_set, validate_set, test_set = random_split(dataset, [train_size, validate_size, test_size])
+    model = MDFEND('hfl/chinese-roberta-wwm-ext', 9)
 
     optimizer = torch.optim.Adam(params=model.parameters(),
                                  lr=0.0005,
@@ -80,19 +44,14 @@ def run_mdfend(root: str):
                                                 gamma=0.98)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
-    # train_set, test_set, val_set = load_dataset('train'), load_dataset(
-    #     'test'), load_dataset('val')
-    dataset = JsonDataset(root)
-    train_set, val_set, test_set = torch.utils.data.random_split(dataset, [1400, 200, 400])
-
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
     trainer.fit(train_set,
-                validate_data=val_set,
-                batch_size=128,
+                validate_data=validate_set,
+                batch_size=64,
                 epochs=50,
                 saved=True)
     test_result = trainer.evaluate(test_set, batch_size=64)
-    print(test_result)
+    print('test result: ', dict2str(test_result))
 
 
 if __name__ == '__main__':

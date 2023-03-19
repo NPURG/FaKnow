@@ -10,12 +10,17 @@ from torch.utils.data.dataloader import DataLoader
 
 from template.evaluate.evaluator import Evaluator
 from template.model.model import AbstractModel
+from utils.util import dict2str
 
 
 class AbstractTrainer:
     def __init__(self, model: AbstractModel, evaluator: Evaluator,
-                 optimizer: Optimizer, loss_func: Optional[Callable] = None):
-        raise NotImplementedError
+                 optimizer: Optimizer, scheduler: Optional[_LRScheduler] = None, loss_func: Optional[Callable] = None):
+        self.model = model
+        self.loss_func = loss_func
+        self.optimizer = optimizer
+        self.evaluator = evaluator
+        self.scheduler = scheduler
 
     @torch.no_grad()
     def evaluate(self, data: torch.utils.data.Dataset, batch_size: int):
@@ -28,14 +33,10 @@ class AbstractTrainer:
         raise NotImplementedError
 
 
-class BaseTrainer:
+class BaseTrainer(AbstractTrainer):
     def __init__(self, model: AbstractModel, evaluator: Evaluator,
                  optimizer: Optimizer, scheduler: Optional[_LRScheduler] = None, loss_func: Optional[Callable] = None):
-        self.model = model
-        self.loss_func = loss_func
-        self.optimizer = optimizer
-        self.evaluator = evaluator
-        self.scheduler = scheduler
+        super(BaseTrainer, self).__init__(model, evaluator, optimizer, scheduler, loss_func)
 
     @torch.no_grad()
     def evaluate(self, data: torch.utils.data.Dataset, batch_size: int):
@@ -44,8 +45,8 @@ class BaseTrainer:
         outputs = []
         labels = []
         for batch_data in dataloader:
-            outputs.append(self.model.predict(batch_data[:-1]))
-            labels.append(batch_data[-1])
+            outputs.append(self.model.predict(batch_data))
+            labels.append(batch_data['label'])
         return self.evaluator.evaluate(torch.concat(outputs), torch.concat(labels))
 
     def _train_epoch(self, data, batch_size: int, epoch: int) -> torch.float:
@@ -128,7 +129,7 @@ class BaseTrainer:
             if validation:
                 validate_result = self._validate_epoch(validate_set,
                                                        batch_size)
-                print(f'      validation result: {validate_result}')
+                print(f'      validation result: {dict2str(validate_result)}')
             # tqdm.write(f'epoch={epoch}, '
             #            f'time={training_end_time - training_start_time}s, '
             #            f'train loss={training_loss}')
