@@ -1,8 +1,10 @@
-from template.model.model import AbstractModel
 import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch_geometric.nn import GATConv, GCNConv, SAGEConv, global_max_pool
+
+from template.model.model import AbstractModel
+
 """
 User Preference-aware Fake News Detection
 paper: https://arxiv.org/abs/2104.12259
@@ -62,7 +64,7 @@ paper: https://arxiv.org/abs/1609.02907
 
 
 class GCN(_BaseGNN):
-    def __init__(self, feature_size: int, hidden_size: int, concat=False):
+    def __init__(self, feature_size: int, hidden_size=128, concat=False):
         super().__init__(feature_size, hidden_size, concat)
         self.conv = GCNConv(self.feature_size, self.hidden_size)
 
@@ -74,7 +76,7 @@ https://arxiv.org/abs/1706.02216
 
 
 class SAGE(_BaseGNN):
-    def __init__(self, feature_size: int, hidden_size: int, concat=False):
+    def __init__(self, feature_size: int, hidden_size=128, concat=False):
         super().__init__(feature_size, hidden_size, concat)
         self.conv = SAGEConv(self.feature_size, self.hidden_size)
 
@@ -86,6 +88,6 @@ https://arxiv.org/abs/1710.10903
 
 
 class GAT(_BaseGNN):
-    def __init__(self, feature_size: int, hidden_size: int, concat=False):
+    def __init__(self, feature_size: int, hidden_size=128, concat=False):
         super().__init__(feature_size, hidden_size, concat)
         self.conv = GATConv(self.feature_size, self.hidden_size)
