@@ -22,7 +22,7 @@ class EANN(AbstractModel):
         Args:
             event_num (int): number of events
             embed_weight (Tensor): weight for word embedding layer, shape=(vocab_size, embedding_size)
-            reverse_lambda (float): lamda for gradient reverse layer. Default=1
+            reverse_lambda (float): lambda for gradient reverse layer. Default=1
             hidden_size (int): size for hidden layers. Default=32
         """
     def __init__(self,
@@ -60,9 +60,7 @@ class EANN(AbstractModel):
         self.image_fc = nn.Linear(vgg_19.classifier._modules['6'].out_features, self.hidden_size)
 
         # Class Classifier
-        self.class_classifier = nn.Sequential(
-            OrderedDict([('c_fc1', nn.Linear(2 * self.hidden_size, 2)),
-                         ('c_softmax', nn.Softmax(dim=1))]))
+        self.class_classifier = nn.Linear(2 * self.hidden_size, 2)
 
         # Event Classifier
         self.domain_classifier = nn.Sequential(
@@ -70,15 +68,14 @@ class EANN(AbstractModel):
                           nn.Linear(2 * self.hidden_size, self.hidden_size)),
                          ('d_relu1', nn.LeakyReLU(True)),
                          ('d_fc2', nn.Linear(self.hidden_size,
-                                             self.event_num)),
-                         ('d_softmax', nn.Softmax(dim=1))]))
+                                             self.event_num))]))
 
-    def forward(self, text: torch.Tensor, image: torch.Tensor,
-                mask: torch.Tensor):
+    def forward(self, token_id: torch.Tensor,
+                mask: torch.Tensor, image: torch.Tensor):
         """
 
         Args:
-            text (Tensor): text token ids
+            token_id (Tensor): text token ids
             image (Tensor): image pixels
             mask (Tensor): text masks
 
@@ -92,7 +89,7 @@ class EANN(AbstractModel):
         image = F.leaky_relu(self.image_fc(image))
 
         # text CNN
-        text = self.embed(text)
+        text = self.embed(token_id)
         text = text * mask.unsqueeze(2).expand_as(text)
         text = self.text_ccn_layer(text)
         text = F.leaky_relu(self.text_ccn_fc(text))
@@ -104,15 +101,18 @@ class EANN(AbstractModel):
         class_output = self.class_classifier(text_image)
         # Domain (which Event)
         reverse_feature = GradientReverseLayer.apply(text_image,
-                                                     self.reverse_lambd)
+                                                     self.reverse_lambda)
         domain_output = self.domain_classifier(reverse_feature)
 
         return class_output, domain_output
 
     def calculate_loss(self, data) -> Tuple[torch.Tensor, str]:
-        text, mask, image, event_label, label = data[0][0], data[0][1], data[
-            1], data[2]['event_label'].long(), data[3].long()
-        class_output, domain_output = self.forward(text, image, mask)
+        token_id = data['text']['token_id']
+        mask = data['text']['mask']
+        image = data['image']
+        event_label = data['domain'].long()
+        label = data['label'].long()
+        class_output, domain_output = self.forward(token_id, mask, image)
         class_loss = self.loss_funcs[0](class_output,
                                         label) * self.loss_weights[0]
         domain_loss = self.loss_funcs[1](domain_output,
@@ -123,7 +123,8 @@ class EANN(AbstractModel):
         return loss, msg
 
     def predict(self, data_without_label) -> torch.Tensor:
-        text, mask, image = data_without_label[0][0], data_without_label[0][
-            1], data_without_label[1]
-        class_output, _ = self.forward(text, image, mask)
-        return class_output
+        token_id = data_without_label['text']['token_id']
+        mask = data_without_label['text']['mask']
+        image = data_without_label['image']
+        class_output, _ = self.forward(token_id, mask, image)
+        return torch.softmax(class_output, dim=-1)

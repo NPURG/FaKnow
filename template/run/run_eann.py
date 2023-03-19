@@ -1,124 +1,77 @@
-import os
 import pickle
 import re
-from typing import Dict, Any
+from typing import Dict, List
 
 import jieba
 import torch
 from torchvision import transforms
 
-from data.process.text_process import get_stop_words
-from template.data.dataset.multi_modal_dataset import FolderMultiModalDataset
+from data.dataset.multi_modal import MultiModalDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.eann import EANN
 from template.train.trainer import BaseTrainer
 
 
-def tokenize(text: str) -> str:
-    cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "",
-                          text).strip().lower()
+class EANNTokenizer:
+    def __init__(self, vocab: Dict[str, int], max_len: int, stop_words: List[str]) -> None:
+        self.vocab = vocab
+        self.max_len = max_len
+        self.stop_words = stop_words
 
-    split_words = jieba.cut_for_search(cleaned_text)
-    stop_words = get_stop_words()
-    return " ".join([word for word in split_words if word not in stop_words])
+    def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
+        token_ids = []
+        masks = []
+        for text in texts:
 
+            # split words
+            cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "", text).strip().lower()
+            split_words = jieba.cut_for_search(cleaned_text)
+            words = " ".join([word for word in split_words if word not in self.stop_words])
 
-def generate_event_label(event_id: int, event_label_map: Dict[int,
-                                                              int]) -> int:
-    if event_id not in event_label_map:
-        event_label_map[event_id] = len(event_label_map)
-    event_label = event_label_map[event_id]
-    return event_label
+            # convert to id
+            token_id = [self.vocab[word] for word in words]
+            real_len = len(token_id)
+            if real_len < self.max_len:
+                token_id.extend([0] * (self.max_len - real_len))
+            elif real_len > self.max_len:
+                token_id = token_id[:self.max_len]
+            token_ids.append(token_id)
 
+            # generate mask
+            mask = torch.zeros(self.max_len)
+            mask[:real_len] = 1
+            masks.append(mask)
 
-def generate_max_text_len_and_event_label(path: str):
-    event_labels = []
-    event_label_map = {}
-    max_text_len = 0
-
-    for dir in os.listdir(path):
-        for entry in os.scandir(os.path.join(path, dir)):
-            # 找到路径下的文本文件
-            if os.path.splitext(entry.name)[1] == ".txt":
-                file_path = os.path.join(path, dir, entry.name)
-                with open(file_path, encoding='utf-8') as f:
-                    for i, line in enumerate(f.readlines()):
-                        line = line.rstrip()
-
-                        # 第1行 event_id
-                        if (i + 1) % 2 == 1:
-                            event_id = int(line)
-                            event_labels.append(
-                                generate_event_label(event_id,
-                                                     event_label_map))
-
-                        # 第2行 文本内容
-                        if (i + 1) % 2 == 0:
-                            tokens = tokenize(line)
-                            if len(tokens) > max_text_len:
-                                max_text_len = len(tokens)
-    return max_text_len, event_labels
+        return {'token_id': torch.tensor(token_ids), 'mask': torch.stack(masks)}
 
 
-def word_to_idx(text: str, word_idx_map: Dict[str, int],
-                max_text_len: int):
-    """convert words in text to id"""
-    # todo 优化循环
-    words_id = [word_idx_map[word] for word in text]  # 把每个word转为对应id
-    while len(words_id) < max_text_len:  # 填充0
-        words_id.append(0)
-    return words_id
+def adjust_lr(epoch: int) -> float:
+    return 0.001 / (1. + 10 * (float(epoch) / 100)) ** 0.75
 
 
-def eann_embedding(path: str, other_params: Dict[str, Any]):
-    with open(path, encoding='utf-8') as f:
-        _ = f.readline()
-        line = f.readline()  # 第二行才是文本
-        tokens = tokenize(line)
-    word_idx_map = other_params['word_idx_map']
-    max_text_len = other_params['max_text_len']
-    words_id = word_to_idx(tokens, word_idx_map, max_text_len)
-    mask = torch.zeros(max_text_len, dtype=torch.int)
-    mask[:len(tokens)] = 1
-    return torch.tensor(words_id), mask
-
-
-def run_eann(root: str,
+def run_eann(path: str,
              word_vectors: torch.Tensor,
              word_idx_map: Dict[str, int],
-             max_text_len: int = None):
-    image_transforms = transforms.Compose([
+             max_len: int,
+             stop_words: List[str]):
+    transform = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
+    tokenizer = EANNTokenizer(word_idx_map, max_len, stop_words)
 
-    _max_text_len, event_labels = generate_max_text_len_and_event_label(root)
-    event_num = max(event_labels) + 1
-
-    if max_text_len is None:
-        max_text_len = _max_text_len
-    embedding_params = {
-        'word_idx_map': word_idx_map,
-        'max_text_len': max_text_len
-    }
-
-    dataset = FolderMultiModalDataset(root,
-                                      embedding=eann_embedding,
-                                      transform=image_transforms,
-                                      embedding_params=embedding_params,
-                                      event_label=torch.tensor(event_labels))
+    dataset = MultiModalDataset(path, ['text'], tokenizer, ['image'], transform)
+    event_num = torch.max(dataset.data['domain']).item() + 1
 
     model = EANN(event_num, embed_weight=word_vectors)
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
                                         list(model.parameters())),
                                  lr=0.001)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
-    lr_lambda = lambda epoch: 0.001 / (1. + 10 * (float(epoch) / 100)) ** 0.75
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
-                                                  lr_lambda=lr_lambda,
-                                                  verbose=True)
+                                                  lr_lambda=adjust_lr)
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
     trainer.fit(dataset,
                 batch_size=100,
@@ -127,10 +80,18 @@ def run_eann(root: str,
                 saved=False)
 
 
-if __name__ == '__main__':
-    root = "F:\\dataset\\dataset_example_EANN"
+def main():
+    path = "F:\\dataset\\dataset_example_EANN\\all\\eann.json"
     word_vector_path = "F:\\code\\python\EANN-KDD18-degugged11.2\\Data\\weibo\\word_embedding.pickle"
-    f = open(word_vector_path, 'rb')
-    weight = pickle.load(f)  # W, W2, word_idx_map, vocab
-    word_vectors, _, word_idx_map, vocab, max_len = weight[0], weight[1], weight[2], weight[3], weight[4]
-    run_eann(root, torch.from_numpy(word_vectors), word_idx_map, max_text_len=None, vocab_size=len(vocab))
+    with open(word_vector_path, 'rb') as f:
+        weight = pickle.load(f)  # W, W2, word_idx_map, vocab
+        word_vectors, _, word_idx_map, _, max_len = weight
+
+    with open("F:\\code\\python\\Template\\template\\data\\process\\stop_words\\stop_words.txt", 'r',
+              encoding='utf-8') as f:
+        stop_words = [str(line).strip() for line in f.readlines()]
+    run_eann(path, torch.from_numpy(word_vectors), word_idx_map, max_len, stop_words)
+
+
+if __name__ == '__main__':
+    main()

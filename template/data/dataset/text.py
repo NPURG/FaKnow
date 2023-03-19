@@ -10,7 +10,8 @@ class TextDataset(Dataset):
     def __init__(self,
                  path: str,
                  text_features: List[str],
-                 tokenize: Callable[[List[str]], Any]):
+                 tokenize: Callable[[List[str]], Any],
+                 to_tensor=True):
         super().__init__()
         self.root = os.path.dirname(path)
 
@@ -22,7 +23,8 @@ class TextDataset(Dataset):
         for name in text_features:
             self.process_text(name)
 
-        self._to_tensor()
+        if to_tensor:
+            self._to_tensor()
 
     def __getitem__(self, index):
         item = {}
