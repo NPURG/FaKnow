@@ -10,7 +10,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from template.evaluate.evaluator import Evaluator
 from template.model.model import AbstractModel
-from utils.util import dict2str
+from template.utils.util import dict2str
 
 
 class AbstractTrainer:
@@ -101,6 +101,9 @@ class BaseTrainer(AbstractTrainer):
             train_size = len(train_data) - validate_size
             train_set, validate_set = torch.utils.data.random_split(
                 train_data, [train_size, validate_size])
+            if len(validate_set) == 0:
+                validation = False
+                validate_set = None
 
         else:
             train_set, validate_set = train_data, validate_data

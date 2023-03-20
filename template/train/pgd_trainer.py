@@ -28,8 +28,8 @@ class MFANTrainer(BaseTrainer):
                     self.model.zero_grad()
                 else:
                     pgd_word.restore_grad()
-                y_pred = self.model.predict(batch_data[:-1])
-                loss_adv = F.cross_entropy(y_pred, batch_data[-1])
+                y_pred = self.model.predict(batch_data)
+                loss_adv = F.cross_entropy(y_pred, batch_data['label'])
                 loss_adv.backward()
             pgd_word.restore()
 

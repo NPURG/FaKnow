@@ -4,7 +4,7 @@ from typing import List, Callable, Any
 import torch
 from PIL import Image
 
-from data.dataset.text import TextDataset
+from template.data.dataset.text import TextDataset
 
 
 class MultiModalDataset(TextDataset):

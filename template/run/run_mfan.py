@@ -3,11 +3,10 @@ import pickle
 from typing import List
 
 import torch
-from PIL import Image
 from torch.utils.data import random_split
 from torchvision import transforms
 
-from template.data.dataset.mfan_dataset import JsonDataset
+from template.data.dataset.multi_modal import MultiModalDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.mfan import MFAN
 from template.train.pgd_trainer import MFANTrainer
@@ -25,26 +24,15 @@ def tokenize(texts: List[str]):
 
 
 def pad_sequence(token_ids_list: List[List[int]], max_len=50):
-    paded_tokens = []
+    padded_tokens = []
     for token_ids in token_ids_list:
         if len(token_ids) >= max_len:
             token_ids = token_ids[:max_len]
         else:
             # 在最前方填充0
             token_ids = [0] * (max_len - len(token_ids)) + token_ids
-        paded_tokens.append(token_ids)
-    return torch.tensor(paded_tokens)
-
-
-def transform(path: str) -> torch.Tensor:
-    trans = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225])
-    ])
-    return trans(Image.open(path).convert("RGB"))
+        padded_tokens.append(token_ids)
+    return torch.tensor(padded_tokens)
 
 
 def load_adj_matrix(path: str, node_num: int):
@@ -60,8 +48,15 @@ def load_adj_matrix(path: str, node_num: int):
 def run_mfan(path: str, word_vectors: torch.Tensor,
              node_embedding: torch.Tensor, node_num: int,
              adj_matrix: torch.Tensor):
-    dataset = JsonDataset(path, transform, tokenize)
-    size = int(len(dataset) * 0.02)
+    transform = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225])
+    ])
+    dataset = MultiModalDataset(path, ['text'], tokenize, ['image'], transform)
+    size = int(len(dataset) * 0.001)
     train_data, _ = random_split(dataset, [size, len(dataset) - size])
 
     model = MFAN(word_vectors, node_num, node_embedding, adj_matrix)
@@ -75,8 +70,8 @@ def run_mfan(path: str, word_vectors: torch.Tensor,
                 saved=False)
 
 
-if __name__ == '__main__':
-    path = "F:\\code\\python\\MFAN\\test\\weibo.json"
+def main():
+    path = "F:\\code\\python\\MFAN\\new_data\\mfan.json"
     pre = "F:\\code\\python\\MFAN\\dataset/weibo/weibo_files"
     adj_path = "F:\\code\\python\\MFAN\\dataset\\weibo\\weibo_files\\original_adj"
     node_num = 6963
@@ -89,3 +84,7 @@ if __name__ == '__main__':
 
     run_mfan(path, torch.from_numpy(word_embeddings), torch.from_numpy(node_embedding), node_num,
              adj_matrix)
+
+
+if __name__ == '__main__':
+    main()

@@ -198,17 +198,17 @@ class MFAN(AbstractModel):
 
         # co attention
         co_att_tg = self.transformer_block(self_att_t, self_att_g,
-                                           self_att_g).squeeze()
+                                           self_att_g).squeeze(1)
         co_att_gt = self.transformer_block(self_att_g, self_att_t,
-                                           self_att_t).squeeze()
+                                           self_att_t).squeeze(1)
         co_att_ti = self.transformer_block(self_att_t, self_att_i,
-                                           self_att_i).squeeze()
+                                           self_att_i).squeeze(1)
         co_att_it = self.transformer_block(self_att_i, self_att_t,
-                                           self_att_t).squeeze()
+                                           self_att_t).squeeze(1)
         co_att_gi = self.transformer_block(self_att_g, self_att_i,
-                                           self_att_i).squeeze()
+                                           self_att_i).squeeze(1)
         co_att_ig = self.transformer_block(self_att_i, self_att_g,
-                                           self_att_g).squeeze()
+                                           self_att_g).squeeze(1)
 
         #  最终分类
         att_feature = torch.cat(
@@ -219,7 +219,10 @@ class MFAN(AbstractModel):
         return class_output, dist
 
     def calculate_loss(self, data):
-        post_id, text, image, label = data
+        post_id = data['post_id']
+        text = data['text']
+        image = data['image']
+        label = data['label']
         class_output, dist = self.forward(post_id, text, image)
         class_loss = self.loss_funcs[0](class_output, label)
         dis_loss = self.loss_funcs[1](dist[0], dist[1])
@@ -231,6 +234,8 @@ class MFAN(AbstractModel):
         return loss, msg
 
     def predict(self, data_without_label):
-        post_id, text, image = data_without_label
+        post_id = data_without_label['post_id']
+        text = data_without_label['text']
+        image = data_without_label['image']
         class_output, _ = self.forward(post_id, text, image)
         return class_output
