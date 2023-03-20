@@ -33,10 +33,10 @@ class _BaseGNN(AbstractModel):
             x (Tensor): node feature, shape=(num_nodes, feature_size)
             edge_index (Tensor): edge index, shape=(2, num_edges)
             batch (Tensor): index of graph each node belongs to, shape=(num_nodes,)
-            num_graphs (int): number of graphs
+            num_graphs (int): number of graphs, a.k.a. batch_size
 
         Returns:
-            output (Tensor): prediction of each graph being fake, shape=(num_graphs, 2)
+            output (Tensor): prediction of being fake, shape=(num_graphs, 2)
         """
         edge_attr = None
         raw_x = x
