@@ -1,19 +1,20 @@
 import torch
 import torch.nn.functional as F
-from torch import Tensor
+from torch import Tensor, nn
 from torch_geometric.nn import GATConv, GCNConv, SAGEConv, global_max_pool
 
 from template.model.model import AbstractModel
 
-"""
-User Preference-aware Fake News Detection
-paper: https://arxiv.org/abs/2104.12259
-code: https://github.com/safe-graph/GNN-FakeNews
-"""
-
 
 class _BaseGNN(AbstractModel):
     def __init__(self, feature_size: int, hidden_size: int, concat=False):
+        """
+
+        Args:
+            feature_size (int): dimension of input node feature
+            hidden_size (int): Default=128
+            concat (bool): concat news embedding and graph embedding. Default=False
+        """
         super(_BaseGNN, self).__init__()
         self.feature_size = feature_size
         self.hidden_size = hidden_size
@@ -26,6 +27,17 @@ class _BaseGNN(AbstractModel):
 
     def forward(self, x: Tensor, edge_index: Tensor, batch: Tensor,
                 num_graphs: int):
+        """
+
+        Args:
+            x (Tensor): node feature, shape=(num_nodes, feature_size)
+            edge_index (Tensor): edge index, shape=(2, num_edges)
+            batch (Tensor): index of graph each node belongs to, shape=(num_nodes,)
+            num_graphs (int): number of graphs
+
+        Returns:
+            output (Tensor): prediction of each graph being fake, shape=(num_graphs, 2)
+        """
         edge_attr = None
         raw_x = x
         x = F.relu(self.conv(x, edge_index, edge_attr))
@@ -40,13 +52,14 @@ class _BaseGNN(AbstractModel):
             news = F.relu(self.fc0(news))
             x = torch.cat([x, news], dim=1)
             x = F.relu(self.fc1(x))
-        x = F.log_softmax(self.fc2(x), dim=-1)
+        x = self.fc2(x)
         return x
 
     def calculate_loss(self, data) -> torch.Tensor:
         output = self.forward(data.x, data.edge_index, data.batch,
                               data.num_graphs)
-        loss = F.nll_loss(output, data.y)
+        loss_fn = nn.CrossEntropyLoss()
+        loss = loss_fn(output, data.y)
         return loss
 
     def predict(self, data_without_label) -> torch.Tensor:
@@ -57,37 +70,52 @@ class _BaseGNN(AbstractModel):
         return F.softmax(output, dim=1)
 
 
-"""
-Semi-Supervised Classification with Graph Convolutional Networks
-paper: https://arxiv.org/abs/1609.02907
-"""
-
-
 class GCN(_BaseGNN):
-    def __init__(self, feature_size: int, hidden_size=128, concat=False):
-        super().__init__(feature_size, hidden_size, concat)
+    """
+    Semi-Supervised Classification with Graph Convolutional Networks
+    paper: https://arxiv.org/abs/1609.02907
+    code: https://github.com/safe-graph/GNN-FakeNews
+    """
+    def __init__(self, feature_size: int, hidden_size=128):
+        """
+
+        Args:
+            feature_size (int): dimension of input node feature
+            hidden_size (int): Default=128
+        """
+        super().__init__(feature_size, hidden_size, False)
         self.conv = GCNConv(self.feature_size, self.hidden_size)
 
 
-"""
-Inductive Representation Learning on Large Graphs
-https://arxiv.org/abs/1706.02216
-"""
-
-
 class SAGE(_BaseGNN):
-    def __init__(self, feature_size: int, hidden_size=128, concat=False):
-        super().__init__(feature_size, hidden_size, concat)
+    """
+    Inductive Representation Learning on Large Graphs
+    paper: https://arxiv.org/abs/1706.02216
+    code: https://github.com/safe-graph/GNN-FakeNews
+    """
+    def __init__(self, feature_size: int, hidden_size=128):
+        """
+
+        Args:
+            feature_size (int): dimension of input node feature
+            hidden_size (int): Default=128
+        """
+        super().__init__(feature_size, hidden_size, False)
         self.conv = SAGEConv(self.feature_size, self.hidden_size)
 
 
-"""
-Graph Attention Networks
-https://arxiv.org/abs/1710.10903
-"""
-
-
 class GAT(_BaseGNN):
-    def __init__(self, feature_size: int, hidden_size=128, concat=False):
-        super().__init__(feature_size, hidden_size, concat)
+    """
+    Graph Attention Networks
+    paper: https://arxiv.org/abs/1710.10903
+    code: https://github.com/safe-graph/GNN-FakeNews
+    """
+    def __init__(self, feature_size: int, hidden_size=128):
+        """
+
+        Args:
+            feature_size (int): dimension of input node feature
+            hidden_size (int): Default=128
+        """
+        super().__init__(feature_size, hidden_size, False)
         self.conv = GATConv(self.feature_size, self.hidden_size)

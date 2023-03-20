@@ -4,7 +4,7 @@ from torch_geometric.transforms import ToUndirected
 
 from template.data.dataset.utils import re_split_dataset
 from template.evaluate.evaluator import Evaluator
-from template.model.social_context.base_gnn import SAGE
+from template.model.social_context.upfd import UPFDSAGE
 from template.train.base_gnn_trainer import BaseGNNTrainer
 
 
@@ -12,8 +12,7 @@ def run_gnn(root: str,
             name: str,
             feature: str,
             batch_size=128,
-            epochs=75,
-            hidden_size=128):
+            epochs=75):
     torch.manual_seed(777)
     train_dataset = UPFD(root, name, feature, 'train', ToUndirected())
     val_dataset = UPFD(root, name, feature, 'val', ToUndirected())
@@ -26,7 +25,7 @@ def run_gnn(root: str,
          len(test_dataset)])
 
     feature_size = train_dataset.num_features
-    model = SAGE(feature_size, hidden_size, True)
+    model = UPFDSAGE(feature_size)
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=0.01,
                                  weight_decay=0.01)
@@ -42,7 +41,7 @@ def run_gnn(root: str,
 
 
 if __name__ == '__main__':
-    root = "E:\\dataset\\UPFD_Dataset"
+    root = "F:\\dataset\\UPFD_Dataset"
     name = "politifact"
     feature = "profile"
     run_gnn(root, name, feature)
