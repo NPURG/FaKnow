@@ -1,39 +1,38 @@
-from template.model.model import AbstractModel
 import torch
-from torch import nn, Tensor
 import torch.nn.functional as F
+from torch import nn, Tensor
 from torch_geometric.nn import GATConv, global_mean_pool
 
-"""
-User Preference-aware Fake News Detection
-paper: https://arxiv.org/abs/2104.12259
-code: https://github.com/safe-graph/GNN-FakeNews
+from template.model.model import AbstractModel
 
+"""
 Fake news detection on social media using geometric deep learning
 paper: https://arxiv.org/abs/1902.06673
+code: https://github.com/safe-graph/GNN-FakeNews
 """
 
 
-"""
-using two GCN layers and one mean-pooling layer
-Vanilla GCNFN: concat = False, feature = content
-UPFD-GCNFN: concat = True, feature = spacy
-"""
-
-
-class GCNFN(AbstractModel):
+class _BaseGCNFN(AbstractModel):
     def __init__(self,
                  feature_size: int,
-                 hidden_size: int,
+                 hidden_size=128,
                  dropout_ratio=0.5,
                  concat=False):
-        super(GCNFN, self).__init__()
+        """
+
+        Args:
+            feature_size (int): dimension of input node feature
+            hidden_size (int): dimension of hidden layer. Default=128
+            dropout_ratio (float): dropout ratio. Default=0.5
+            concat (bool): concat news embedding and graph embedding. Default=False
+        """
+        super(_BaseGCNFN, self).__init__()
 
         self.feature_size = feature_size
         self.hidden_size = hidden_size
         self.dropout_ratio = dropout_ratio
         self.concat = concat
-        # todo 使用的是GAT而非GCN
+
         self.conv1 = GATConv(self.feature_size, self.hidden_size * 2)
         self.conv2 = GATConv(self.hidden_size * 2, self.hidden_size * 2)
 
@@ -45,6 +44,17 @@ class GCNFN(AbstractModel):
 
     def forward(self, x: Tensor, edge_index: Tensor, batch: Tensor,
                 num_graphs: int):
+        """
+
+        Args:
+            x (Tensor): node feature, shape=(num_nodes, feature_size)
+            edge_index (Tensor): edge index, shape=(2, num_edges)
+            batch (Tensor): index of graph each node belongs to, shape=(num_nodes,)
+            num_graphs (int): number of graphs, a.k.a. batch_size
+
+        Returns:
+            output (Tensor): prediction of being fake, shape=(num_graphs, 2)
+        """
         raw_x = x
         x = F.selu(self.conv1(x, edge_index))
         x = F.selu(self.conv2(x, edge_index))
@@ -62,13 +72,14 @@ class GCNFN(AbstractModel):
             x = torch.cat([x, news], dim=1)
             x = F.relu(self.fc1(x))
 
-        x = F.log_softmax(self.fc2(x), dim=-1)
-        return x
+        out = self.fc2(x)
+        return out
 
     def calculate_loss(self, data) -> torch.Tensor:
         output = self.forward(data.x, data.edge_index, data.batch,
                               data.num_graphs)
-        loss = F.nll_loss(output, data.y)
+        loss_fn = nn.CrossEntropyLoss()
+        loss = loss_fn(output, data.y)
         return loss
 
     def predict(self, data_without_label) -> torch.Tensor:
@@ -77,3 +88,21 @@ class GCNFN(AbstractModel):
                               data_without_label.batch,
                               data_without_label.num_graphs)
         return F.softmax(output, dim=1)
+
+
+class GCNFN(_BaseGCNFN):
+    """
+    Fake news detection on social media using geometric deep learning
+    """
+    def __init__(self,
+                 feature_size: int,
+                 hidden_size=128,
+                 dropout_ratio=0.5):
+        """
+
+        Args:
+            feature_size (int): dimension of input node feature
+            hidden_size (int): dimension of hidden layer. Default=128
+            dropout_ratio (float): dropout ratio. Default=0.5
+        """
+        super(GCNFN, self).__init__(feature_size, hidden_size, dropout_ratio, False)

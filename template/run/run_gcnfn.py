@@ -1,11 +1,10 @@
 import torch
-
 from torch_geometric.datasets import UPFD
 from torch_geometric.transforms import ToUndirected
 
-from template.train.base_gnn_trainer import BaseGNNTrainer
 from template.evaluate.evaluator import Evaluator
 from template.model.social_context.gcnfn import GCNFN
+from template.train.base_gnn_trainer import BaseGNNTrainer
 
 
 def run_gcnfn(root: str,
@@ -18,7 +17,7 @@ def run_gcnfn(root: str,
     val_dataset = UPFD(root, name, feature, 'val', ToUndirected())
     test_dataset = UPFD(root, name, feature, 'test', ToUndirected())
 
-    model = GCNFN(train_dataset.num_features, hidden_size, concat=True)
+    model = GCNFN(train_dataset.num_features, hidden_size)
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=0.001,
                                  weight_decay=0.01)
@@ -35,10 +34,10 @@ def run_gcnfn(root: str,
 
 if __name__ == '__main__':
     """
-    Vanilla GCNFN: concat = False, feature = content
-    UPFD-GCNFN: concat = True, feature = spacy
+    Vanilla _BaseGCNFN: concat = False, feature = content
+    UPFD-_BaseGCNFN: concat = True, feature = spacy
     """
-    root = "E:\\dataset\\UPFD_Dataset"
+    root = "F:\\dataset\\UPFD_Dataset"
     name = "politifact"
-    feature = "spacy"
+    feature = "content"
     run_gcnfn(root, name, feature)
