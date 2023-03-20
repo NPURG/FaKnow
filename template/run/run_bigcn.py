@@ -47,7 +47,7 @@ def run_bigcn(root: str,
 
 
 if __name__ == '__main__':
-    root = "E:\\dataset\\UPFD_Dataset"
+    root = "F:\\dataset\\UPFD_Dataset"
     name = "politifact"
     feature = "profile"
     run_bigcn(root, name, feature)
