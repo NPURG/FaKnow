@@ -1,18 +1,17 @@
 from math import ceil
 from typing import Optional
 
-from template.model.model import AbstractModel
 import torch
-from torch import Tensor
 import torch.nn.functional as F
+from torch import Tensor
 from torch_geometric.nn import DenseSAGEConv, dense_diff_pool
-"""
-User Preference-aware Fake News Detection
-paper: https://arxiv.org/abs/2104.12259
-code: https://github.com/safe-graph/GNN-FakeNews
 
+from template.model.model import AbstractModel
+
+"""
 Graph neural networks with continual learning for fake news detection from social media
 paper: https://arxiv.org/abs/2007.03316
+code: https://github.com/safe-graph/GNN-FakeNews
 """
 
 
@@ -57,6 +56,11 @@ class _DenseGNN(torch.nn.Module):
 
 class GNNCL(AbstractModel):
     def __init__(self, feature_size: int, max_nodes: int):
+        """
+        Args:
+            feature_size (int): dimension of input node feature
+            max_nodes (int): maximum number of nodes in a graph
+        """
         super(GNNCL, self).__init__()
 
         num_nodes = ceil(0.25 * max_nodes)
@@ -73,6 +77,19 @@ class GNNCL(AbstractModel):
         self.fc2 = torch.nn.Linear(64, 2)
 
     def forward(self, x: Tensor, adj: Tensor, mask: Optional[Tensor] = None):
+        """
+
+        Args:
+            x (Tensor): node feature, shape (batch_size, max_nodes, feature_size)
+            adj (Tensor): adjacency matrix, shape (batch_size, max_nodes, max_nodes)
+            mask (Optional[Tensor], optional): mask for adjacency matrix, shape (batch_size, max_nodes). Default=None.
+
+        Returns:
+            Tuple[Tensor, Tensor, Tensor]:
+                output (Tensor): prediction of being fake, shape (batch_size, 2).
+                l (Tensor): loss of first pooling layer.
+                e (Tensor): entropy of first pooling layer.
+        """
         s = self.gnn1_pool(x, adj, mask)
         x = self.gnn1_embed(x, adj, mask)
 
@@ -87,12 +104,13 @@ class GNNCL(AbstractModel):
 
         x = x.mean(dim=1)
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=-1), l1 + l2, e1 + e2
+        out = self.fc2(x)
+        return out, l1 + l2, e1 + e2
 
     def calculate_loss(self, data) -> torch.Tensor:
         output, _, _ = self.forward(data.x, data.adj, data.mask)
-        loss = F.nll_loss(output, data.y.view(-1))
+        loss_func = torch.nn.CrossEntropyLoss()
+        loss = loss_func(output, data.y.view(-1))
         return loss
 
     def predict(self, data_without_label) -> torch.Tensor:

@@ -47,7 +47,7 @@ def run_gnncl(root: str,
 
 
 if __name__ == '__main__':
-    root = "E:\\dataset\\UPFD_Dataset"
+    root = "F:\\dataset\\UPFD_Dataset"
     name = "politifact"
     feature = "profile"
     batch_size = 128
