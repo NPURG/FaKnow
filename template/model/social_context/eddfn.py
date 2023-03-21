@@ -25,7 +25,7 @@ class _Discriminator(nn.Module):
         return self.sigmoid(self.ffn(input))
 
 
-class EDDF(AbstractModel):
+class EDDFN(AbstractModel):
     r"""Embracing Domain Differences in Fake News Cross-domain Fake News Detection using Multi-modal Data
 
         Args:
