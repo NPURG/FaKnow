@@ -1,0 +1,1 @@
+see at https://github.com/safe-graph/GNN-FakeNews for UPFD dataset format
