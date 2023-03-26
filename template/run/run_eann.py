@@ -4,12 +4,14 @@ from typing import Dict, List
 
 import jieba
 import torch
+from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
 
 from data.dataset.multi_modal import MultiModalDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.eann import EANN
 from template.train.trainer import BaseTrainer
+from template.utils.util import dict2str
 
 
 class EANNTokenizer:
@@ -65,6 +67,15 @@ def run_eann(path: str,
     dataset = MultiModalDataset(path, ['text'], tokenizer, ['image'], transform)
     event_num = torch.max(dataset.data['domain']).item() + 1
 
+    val_size = int(len(dataset) * 0.1)
+    test_size = int(len(dataset) * 0.2)
+    train_size = len(dataset) - val_size - test_size
+    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
+
+    train_loader = DataLoader(train_dataset, batch_size=100, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=100, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=100, shuffle=False)
+
     model = EANN(event_num, embed_weight=word_vectors)
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
                                         list(model.parameters())),
@@ -73,11 +84,9 @@ def run_eann(path: str,
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
                                                   lr_lambda=adjust_lr)
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
-    trainer.fit(dataset,
-                batch_size=100,
-                epochs=100,
-                validate_size=0.2,
-                saved=False)
+    trainer.fit(train_loader, num_epoch=100, validate_loader=val_loader)
+    test_result = trainer.evaluate(test_loader)
+    print(f"test result: {dict2str(test_result)}")
 
 
 def main():

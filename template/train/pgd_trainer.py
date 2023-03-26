@@ -7,13 +7,12 @@ from template.utils.pgd import PGD
 
 
 class MFANTrainer(BaseTrainer):
-    def _train_epoch(self, data, batch_size: int, epoch: int) -> torch.float:
+    def _train_epoch(self, data: DataLoader, epoch: int) -> torch.float:
         self.model.train()
-        dataloader = DataLoader(data, batch_size, shuffle=True)
 
         pgd_word = PGD(self.model, emb_name='word_embedding', epsilon=6, alpha=1.8)
 
-        for batch_id, batch_data in enumerate(dataloader):
+        for batch_id, batch_data in enumerate(data):
             # common loss
             loss_defence, msg = self.model.calculate_loss(batch_data)
             self.optimizer.zero_grad()

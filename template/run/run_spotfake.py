@@ -1,10 +1,13 @@
-import torch
 import random
+
 import numpy as np
 import pandas as pd
+import torch
 import torchvision
 from torch.optim import AdamW
+from torch.utils.data import DataLoader
 from transformers import BertTokenizer
+
 from template.data.dataset.spotfake_dataset import FakeNewsDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.multi_modal.spotfake import SpotFake
@@ -36,6 +39,8 @@ def run_spotfake(
 
     training_set = FakeNewsDataset(df_train, root + "images_train/", image_transform, tokenizer, MAX_LEN)
     validation_set = FakeNewsDataset(df_test, root + "images_test/", image_transform, tokenizer, MAX_LEN)
+    train_loader = DataLoader(training_set, batch_size=batch_size, shuffle=True)
+    validation_loader = DataLoader(validation_set, batch_size=batch_size, shuffle=True)
 
     model = SpotFake(pre_trained_bert_name=pre_trained_bert_name)
 
@@ -48,13 +53,14 @@ def run_spotfake(
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
     trainer = BaseTrainer(model, evaluator, optimizer)
-    trainer.fit(train_data=training_set,
-                batch_size=batch_size,
-                epochs=epochs,
-                validate_data=validation_set)
+    trainer.fit(train_loader, epochs, validation_loader)
 
 
-if __name__ == '__main__':
+def main():
     root = "/root/Template/dataset/example/dataset_example_SpotFake/twitter/"
     pre_trained_bert_name = "bert-base-uncased"
     run_spotfake(root, pre_trained_bert_name)
+
+
+if __name__ == '__main__':
+    main()

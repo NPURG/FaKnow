@@ -133,8 +133,11 @@ class SAFE(AbstractModel):
 
         return class_output, cos_dis_sim
 
-    def calculate_loss(self, data: Tuple[Tensor, Tensor, Tensor, Tensor]) -> Tuple[torch.Tensor, str]:
-        headline, body, image, label = data
+    def calculate_loss(self, data) -> Tuple[torch.Tensor, str]:
+        headline = data['head']
+        body = data['body']
+        image = data['image']
+        label = data['label']
         class_output, cos_dis_sim = self.forward(headline, body, image)
 
         class_loss = self.loss_funcs[0](class_output, label) * self.loss_weights[0]
@@ -145,7 +148,9 @@ class SAFE(AbstractModel):
 
         return loss, msg
 
-    def predict(self, data_without_label: Tuple[Tensor, Tensor, Tensor]) -> torch.Tensor:
-        head, body, image = data_without_label
+    def predict(self, data_without_label) -> torch.Tensor:
+        head = data_without_label['head']
+        body = data_without_label['body']
+        image = data_without_label['image']
         class_output, _ = self.forward(head, body, image)
         return class_output

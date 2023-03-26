@@ -1,5 +1,6 @@
 import torch
 from torch_geometric.datasets import UPFD
+from torch_geometric.loader import DenseDataLoader
 from torch_geometric.transforms import ToUndirected, ToDense
 
 from template.evaluate.evaluator import Evaluator
@@ -32,24 +33,35 @@ def run_gnncl(root: str,
                         transform=ToDense(max_nodes),
                         pre_transform=ToUndirected())
 
+    train_loader = DenseDataLoader(train_dataset,
+                                   batch_size=batch_size,
+                                   shuffle=True)
+    val_loader = DenseDataLoader(val_dataset,
+                                 batch_size=batch_size,
+                                 shuffle=False)
+    test_loader = DenseDataLoader(test_dataset,
+                                  batch_size=batch_size,
+                                  shuffle=False)
+
     model = GNNCL(train_dataset.num_features, max_nodes)
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=0.1)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
     trainer = DenseGNNTrainer(model, evaluator, optimizer)
-    trainer.fit(train_dataset,
-                batch_size=batch_size,
-                epochs=epochs,
-                validate_data=val_dataset)
-    test_result = trainer.evaluate(test_dataset, batch_size=batch_size)
+    trainer.fit(train_loader, epochs, val_loader)
+    test_result = trainer.evaluate(test_loader)
     print(f'test result={test_result}')
 
 
-if __name__ == '__main__':
+def main():
     root = "F:\\dataset\\UPFD_Dataset"
     name = "politifact"
     feature = "profile"
     batch_size = 128
     max_nodes = 500
     run_gnncl(root, name, feature, batch_size, max_nodes)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,5 +1,6 @@
 import torch
 from torch_geometric.datasets import UPFD
+from torch_geometric.loader import DataLoader
 from torch_geometric.transforms import ToUndirected
 
 from template.data.dataset.utils import re_split_dataset
@@ -24,6 +25,16 @@ def run_gnn(root: str,
          len(val_dataset),
          len(test_dataset)])
 
+    train_loader = DataLoader(training_set,
+                              batch_size=batch_size,
+                              shuffle=True)
+    val_loader = DataLoader(validation_set,
+                            batch_size=batch_size,
+                            shuffle=False)
+    test_loader = DataLoader(testing_set,
+                             batch_size=batch_size,
+                             shuffle=False)
+
     feature_size = train_dataset.num_features
     model = UPFDSAGE(feature_size)
     optimizer = torch.optim.Adam(model.parameters(),
@@ -32,11 +43,8 @@ def run_gnn(root: str,
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
     trainer = BaseGNNTrainer(model, evaluator, optimizer)
-    trainer.fit(training_set,
-                batch_size=batch_size,
-                epochs=epochs,
-                validate_data=validation_set)
-    test_result = trainer.evaluate(testing_set, batch_size=batch_size)
+    trainer.fit(train_loader, epochs, val_loader)
+    test_result = trainer.evaluate(test_loader)
     print(f'test result={test_result}')
 
 

@@ -31,7 +31,7 @@ class SAFENumpyDataset(torch.utils.data.Dataset):
         return self.x_heads.shape[0]
 
     def __getitem__(self, index: int):
-        return self.x_heads[index], self.x_bodies[index], self.x_images[index], self.y[index]
+        return {'head': self.x_heads[index], 'body': self.x_bodies[index], 'image': self.x_images[index], 'label': self.y[index]}
 
 
 class SAFEDataset(FolderTextDataset):

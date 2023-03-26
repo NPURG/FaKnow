@@ -3,7 +3,7 @@ import pickle
 from typing import List
 
 import torch
-from torch.utils.data import random_split
+from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
 
 from template.data.dataset.multi_modal import MultiModalDataset
@@ -58,16 +58,15 @@ def run_mfan(path: str, word_vectors: torch.Tensor,
     dataset = MultiModalDataset(path, ['text'], tokenize, ['image'], transform)
     size = int(len(dataset) * 0.001)
     train_data, _ = random_split(dataset, [size, len(dataset) - size])
+    train_loader = DataLoader(train_data,
+                                               batch_size=64,
+                                               shuffle=True)
 
     model = MFAN(word_vectors, node_num, node_embedding, adj_matrix)
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-3)
     evaluator = Evaluator()
     trainer = MFANTrainer(model, evaluator, optimizer)
-    trainer.fit(train_data,
-                batch_size=64,
-                epochs=20,
-                validate_size=0.2,
-                saved=False)
+    trainer.fit(train_loader, num_epoch=20)
 
 
 def main():
