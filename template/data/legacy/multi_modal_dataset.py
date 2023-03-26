@@ -4,7 +4,7 @@ import torch.utils.data
 import torchvision
 from torchvision.datasets.folder import default_loader
 
-from template.data.dataset.text_dataset import FolderTextDataset, TensorTextDataset
+from data.legacy.text_dataset import FolderTextDataset, TensorTextDataset
 from template.data.dataset.utils import walker_with_images
 
 
