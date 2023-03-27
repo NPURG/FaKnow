@@ -8,7 +8,7 @@ from torchvision import transforms
 
 from template.data.dataset.multi_modal import MultiModalDataset
 from template.evaluate.evaluator import Evaluator
-from template.model.multi_modal.mfan import MFAN
+from template.model.content_based.multi_modal.mfan import MFAN
 from template.train.pgd_trainer import MFANTrainer
 
 

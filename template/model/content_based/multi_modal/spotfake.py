@@ -1,7 +1,8 @@
 import torch
-from torchvision import models
 import torch.nn as nn
+from torchvision import models
 from transformers import BertModel
+
 from template.model.model import AbstractModel
 
 """

@@ -6,7 +6,7 @@ from transformers import BertTokenizer
 
 from data.dataset.text import TextDataset
 from template.evaluate.evaluator import Evaluator
-from template.model.multi_modal.mdfend import MDFEND
+from template.model.content_based.mdfend import MDFEND
 from template.train.trainer import BaseTrainer
 from utils.util import dict2str
 

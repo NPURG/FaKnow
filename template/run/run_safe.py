@@ -3,9 +3,9 @@ from pathlib import Path
 import torch
 from torch.utils.data import random_split, DataLoader
 
+from model.content_based.multi_modal.safe import SAFE
 from template.data.dataset.safe_dataset import SAFENumpyDataset
 from template.evaluate.evaluator import Evaluator
-from template.model.multi_modal.safe import SAFE
 from template.train.trainer import BaseTrainer
 from template.utils.util import dict2str
 

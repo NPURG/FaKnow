@@ -10,7 +10,7 @@ from transformers import BertTokenizer
 
 from template.data.dataset.spotfake_dataset import FakeNewsDataset
 from template.evaluate.evaluator import Evaluator
-from template.model.multi_modal.spotfake import SpotFake
+from template.model.content_based.multi_modal.spotfake import SpotFake
 from template.train.trainer import BaseTrainer
 
 

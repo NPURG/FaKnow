@@ -9,7 +9,7 @@ from torchvision import transforms
 
 from data.dataset.multi_modal import MultiModalDataset
 from template.evaluate.evaluator import Evaluator
-from template.model.multi_modal.eann import EANN
+from template.model.content_based.multi_modal.eann import EANN
 from template.train.trainer import BaseTrainer
 from template.utils.util import dict2str
 
