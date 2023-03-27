@@ -1,3 +1,5 @@
+from typing import Dict, Tuple
+
 import torch
 import torch.nn as nn
 from torchvision import models
@@ -218,7 +220,7 @@ class MFAN(AbstractModel):
 
         return class_output, dist
 
-    def calculate_loss(self, data):
+    def calculate_loss(self, data) -> Tuple[torch.Tensor, Dict[str, float]]:
         post_id = data['post_id']
         text = data['text']
         image = data['image']
@@ -229,9 +231,7 @@ class MFAN(AbstractModel):
 
         loss = class_loss + dis_loss
 
-        msg = f"class_loss={class_loss}, dis_loss={dis_loss}"
-
-        return loss, msg
+        return loss, {'class_loss': class_loss.item(), 'dis_loss': dis_loss.item()}
 
     def predict(self, data_without_label):
         post_id = data_without_label['post_id']

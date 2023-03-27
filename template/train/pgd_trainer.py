@@ -1,20 +1,21 @@
-import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from template.train.trainer import BaseTrainer
 from template.utils.pgd import PGD
+from template.utils.util import dict2str
 
 
 class MFANTrainer(BaseTrainer):
-    def _train_epoch(self, data: DataLoader, epoch: int) -> torch.float:
+    def _train_epoch(self, data: DataLoader, epoch: int):
         self.model.train()
 
         pgd_word = PGD(self.model, emb_name='word_embedding', epsilon=6, alpha=1.8)
+        loss_defence = others = loss_adv = None
 
         for batch_id, batch_data in enumerate(data):
             # common loss
-            loss_defence, msg = self.model.calculate_loss(batch_data)
+            loss_defence, others = self.model.calculate_loss(batch_data)
             self.optimizer.zero_grad()
             loss_defence.backward()
 
@@ -33,5 +34,4 @@ class MFANTrainer(BaseTrainer):
             pgd_word.restore()
 
             self.optimizer.step()
-        print(msg, f"pgd_loss={loss_adv}")
-        return loss_defence
+        print(f"loss={loss_defence.item()}  {dict2str(others)}  pgd_loss={loss_adv.item()}", end='  ')

@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Dict
 
 import torch
 import torch.nn.functional as F
@@ -21,8 +21,8 @@ class _Discriminator(nn.Module):
         self.ffn = FFN(input_size, domain_size * 2, domain_size, activation=torch.sigmoid)
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, input: Tensor):
-        return self.sigmoid(self.ffn(input))
+    def forward(self, input_representation: Tensor):
+        return self.sigmoid(self.ffn(input_representation))
 
 
 class EDDFN(AbstractModel):
@@ -56,11 +56,11 @@ class EDDFN(AbstractModel):
         self.specific_discriminator = _Discriminator(self.discriminate_size, domain_size)
         self.shared_discriminator = _Discriminator(self.discriminate_size, domain_size)
 
-    def forward(self, input: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, input_representation: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
 
         Args:
-            input (Tensor): input representation consisting of text and propagation network
+            input_representation (Tensor): input representation consisting of text and propagation network
 
         Returns:
             tuple:
@@ -70,7 +70,7 @@ class EDDFN(AbstractModel):
                 - shared_domain (Tensor): shared domain output, shape=(batch_size, domain_size)
 
         """
-        input_embedding = self.input_embedding_layer(input)
+        input_embedding = self.input_embedding_layer(input_representation)
 
         # shape=(batch_size * 1)
         class_out = self.output_classifier(input_embedding)
@@ -85,27 +85,27 @@ class EDDFN(AbstractModel):
 
         return class_out, decoder_out, specific_domain, shared_domain
 
-    def calculate_loss(self, data) -> Tuple[torch.FloatTensor, str]:
-        input, domain, label = data
-        class_out, decoder_out, specific_domain, shared_domain = self.forward(input)
+    def calculate_loss(self, data) -> Tuple[torch.Tensor, Dict[str, float]]:
+        input_representation, domain, label = data
+        class_out, decoder_out, specific_domain, shared_domain = self.forward(input_representation)
 
         class_loss = nn.BCELoss()(class_out.squeeze(), label.float())
-        decoder_loss = nn.MSELoss()(decoder_out, input)
-        specific_domain_loss = nn.MSELoss()(specific_domain, domain)
-        shared_domain_loss = nn.MSELoss()(shared_domain, domain)
+        decoder_loss = nn.MSELoss()(decoder_out, input_representation) * self.lambda1
+        specific_domain_loss = nn.MSELoss()(specific_domain, domain) * self.lambda2
+        shared_domain_loss = nn.MSELoss()(shared_domain, domain) * self.lambda3
 
-        loss = class_loss + decoder_loss * self.lambda1 + specific_domain_loss * self.lambda2 + shared_domain_loss * self.lambda3
+        loss = class_loss + decoder_loss + specific_domain_loss + shared_domain_loss
 
-        msg = f'class_loss={class_loss}, decoder_loss={decoder_loss}, specific_domain_loss={specific_domain_loss}, ' \
-              f'shared_domain_loss={shared_domain_loss} '
-        return loss, msg
+        return loss, {'class_loss': class_loss.item(), 'decoder_loss': decoder_loss.item(),
+                      'specific_domain_loss': specific_domain_loss.item(),
+                      'shared_domain_loss': shared_domain_loss.item()}
 
     def predict(self, data_without_label):
         if type(data_without_label) is tuple:
-            input = data_without_label[0]
+            input_representation = data_without_label[0]
         else:
-            input = data_without_label
+            input_representation = data_without_label
 
-        class_out = self.forward(input)[0]
+        class_out = self.forward(input_representation)[0]
         class_out = torch.round(class_out).long().squeeze()
         return F.one_hot(class_out, num_classes=2)

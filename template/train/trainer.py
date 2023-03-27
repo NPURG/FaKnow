@@ -48,64 +48,44 @@ class BaseTrainer(AbstractTrainer):
             labels.append(batch_data['label'])
         return self.evaluator.evaluate(torch.concat(outputs), torch.concat(labels))
 
-    def _train_epoch(self, loader: DataLoader, epoch: int) -> torch.float:
+    def _train_epoch(self, loader: DataLoader, epoch: int):
         """training for one epoch"""
         self.model.train()
         # todo tqdm与print冲突
-        # data_iter = tenumerate(
+        # data_iter = enumerate(
         #     dataloader,
         #     total=len(dataloader),
         #     ncols=100,
         #     desc=f'Training',
         #     leave=False
         # )
-        msg = loss = None
+        loss = others = None
         for batch_id, batch_data in enumerate(loader):
-            # using trainer.loss_func first or model.calculate_loss
-            if self.loss_func is None:
-                result = self.model.calculate_loss(batch_data)
-                if type(result) is tuple:
-                    loss, msg = result
-                else:
-                    loss = result
+            result = self.model.calculate_loss(batch_data)
+
+            # check result type
+            if type(result) is tuple and len(result) == 2 and type(result[1]) is dict:
+                loss = result[0]
+                others = result[1]
+            elif type(result) is torch.Tensor:
+                loss = result
             else:
-                loss = self.loss_func(batch_data)
+                raise TypeError(f"result type error: {type(result)}")
+
+            # backward
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 
-        if msg is not None:
-            print(msg)
-        return loss
+        print(f"loss={loss.item()}", end='  ')
+        if others is not None:
+            print(dict2str(others), end='  ')
 
     def _validate_epoch(self, loader: DataLoader):
         """validation after training for one epoch"""
         # todo 计算best score，作为最佳结果保存
-        return self.evaluate(loader)
-
-    # def _split_train_validate(self, train_data: torch.utils.data.Dataset,
-    #                           validate_data: Optional[torch.utils.data.Dataset] = None,
-    #                           validate_size: Optional[float] = None) -> Tuple[
-    #                           bool, torch.utils.data.Dataset, Optional[torch.utils.data.Dataset]]:
-    #     # whether split validation set
-    #
-    #     validation = True
-    #     if validate_data is None and validate_size is None:
-    #         validation = False
-    #         train_set, validate_set = train_data, None
-    #
-    #     elif validate_data is None:
-    #         validate_size = int(validate_size * len(train_data))
-    #         train_size = len(train_data) - validate_size
-    #         train_set, validate_set = torch.utils.data.random_split(
-    #             train_data, [train_size, validate_size])
-    #         if len(validate_set) == 0:
-    #             validation = False
-    #             validate_set = None
-    #
-    #     else:
-    #         train_set, validate_set = train_data, validate_data
-    #     return validation, train_set, validate_set
+        result = self.evaluate(loader)
+        print(f'      validation result: {dict2str(result)}')
 
     def save(self, save_path: str):
         """save the model"""
@@ -123,11 +103,9 @@ class BaseTrainer(AbstractTrainer):
     def fit(self, train_loader: DataLoader,
             num_epoch: int, validate_loader: Optional[DataLoader] = None,
             save=False, save_path: Optional[str] = None):
-        """training"""
         validation = True
         if validate_loader is None:
             validation = False
-        # validation, train_set, validate_set = self._split_train_validate(train_data, validate_data, validate_size)
 
         # tqdm.write('----start training-----')
         print(f'training data size={len(train_loader.dataset)}')
@@ -138,18 +116,21 @@ class BaseTrainer(AbstractTrainer):
         print('----start training-----')
         for epoch in range(num_epoch):
             print(f'\n--epoch=[{epoch + 1}/{num_epoch}]--')
+
+            # train
             training_start_time = time()
-            training_loss = self._train_epoch(train_loader, epoch)
+            self._train_epoch(train_loader, epoch)
             training_end_time = time()
-            print(f'time={training_end_time - training_start_time}s, '
-                  f'train loss={training_loss}')
+            print(f'training time={training_end_time - training_start_time}s')
+
+            # validate
             if validation:
-                validate_result = self._validate_epoch(validate_loader)
-                print(f'      validation result: {dict2str(validate_result)}')
+                self._validate_epoch(validate_loader)
             # tqdm.write(f'epoch={epoch}, '
             #            f'time={training_end_time - training_start_time}s, '
             #            f'train loss={training_loss}')
             # tqdm.write(f'validation result: {validate_result}')
+
             if self.scheduler is not None:
                 self.scheduler.step()
 
