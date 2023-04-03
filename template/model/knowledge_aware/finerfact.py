@@ -75,7 +75,8 @@ class FinerFact(AbstractModel):
                  user_num=32,
                  word_num=7,
                  user_embed_dim=64,
-                 user_embedding: Optional[Tensor] = None):
+                 user_embedding: Optional[Tensor] = None,
+                 user_field_num=8):
         """
 
         Args:
@@ -93,6 +94,7 @@ class FinerFact(AbstractModel):
             word_num (int): number of words in each tweet. Default=7
             user_embed_dim (int): dimension of user embedding. Default=64
             user_embedding (Tensor): pretrained user embedding. If None, user embedding will be generated from scratch. Default=None
+            user_field_num (int): number of user fields for training user embedding from scratch. Default=8
         """
         super(FinerFact, self).__init__()
 
@@ -131,12 +133,7 @@ class FinerFact(AbstractModel):
 
         # whether to use pretrained user embedding
         if user_embedding is None:
-            fields_user = [
-                'followers_count', 'friends_count', 'listed_count',
-                'statuses_count', 'favourites_count', 'geo_enabled',
-                'verified', 'has_location'
-            ]
-            self.user_embedding = nn.Linear(len(fields_user),
+            self.user_embedding = nn.Linear(user_field_num,
                                             self.user_embed_dim,
                                             bias=False)
             nn.init.normal_(self.user_embedding.weight, mean, std)
