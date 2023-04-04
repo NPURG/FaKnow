@@ -10,7 +10,7 @@ from template.model.model import AbstractModel
 
 """
 Towards Fine-Grained Reasoning for Fake News Detection
-paper: https://arxiv.org/abs/2110.15064
+paper: https://aaai.org/papers/05746-towards-fine-grained-reasoning-for-fake-news-detection/
 code: https://github.com/Ahren09/FinerFact
 """
 
@@ -537,9 +537,9 @@ class FinerFact(AbstractModel):
                 token_id,
                 mask,
                 type_id,
-                R_p,
-                R_u,
-                R_k,
+                post_rank,
+                user_rank,
+                keyword_rank,
                 user_metadata=None):
         """
 
@@ -547,9 +547,9 @@ class FinerFact(AbstractModel):
             token_id (Tensor): shape=(batch_size, evidence_num, max_len)
             mask (Tensor): shape=(batch_size, evidence_num, max_len)
             type_id (Tensor): shape=(batch_size, evidence_num, max_len)
-            R_p (Tensor): ranking of posts, shape=(batch_size, evidence_num, tweet_num)
-            R_u (Tensor): ranking of users, shape=(batch_size, evidence_num, user_num)
-            R_k (Tensor): ranking of keywords, shape=(batch_size, evidence_num, word_num)
+            post_rank (Tensor): ranking of posts, shape=(batch_size, evidence_num, tweet_num)
+            user_rank (Tensor): ranking of users, shape=(batch_size, evidence_num, user_num)
+            keyword_rank (Tensor): ranking of keywords, shape=(batch_size, evidence_num, word_num)
             user_metadata (Tensor): shape=(batch_size, evidence_num, user_num, user_embed_dim). Default=None
 
         Returns:
@@ -574,7 +574,7 @@ class FinerFact(AbstractModel):
 
         bert_hidden_states, bert_pool_out = self.bert_extractor(
             token_id, mask, type_id)
-        delta = self.att_prior_mr(R_p, R_u, R_k)
+        delta = self.att_prior_mr(post_rank, user_rank, keyword_rank)
 
         select_prob, inputs_att, inputs_att_de, z_qv_z_v_all = self.channel_text(
             bert_hidden_states, bert_pool_out, mask, type_id, delta)
@@ -607,30 +607,30 @@ class FinerFact(AbstractModel):
         return logits
 
     def calculate_loss(self, data):
-        # token_id, mask, type_id, label, R_p, R_u, R_k, user_metadata = data
+        # token_id, mask, type_id, label, post_rank, user_rank, keyword_rank, user_metadata = data
         """get item from batch dict"""
         token_id = data['token_id']
         mask = data['mask']
         type_id = data['type_id']
         label = data['label']
-        R_p = data['R_p']
-        R_u = data['R_u']
-        R_k = data['R_k']
+        post_rank = data['post_rank']
+        user_rank = data['user_rank']
+        keyword_rank = data['keyword_rank']
         user_metadata = data.get('user_metadata', None)
-        logits = self.forward(token_id, mask, type_id, R_p, R_u, R_k,
+        logits = self.forward(token_id, mask, type_id, post_rank, user_rank, keyword_rank,
                               user_metadata)
         loss = F.nll_loss(logits, label)
         return loss
 
     def predict(self, data):
-        # token_id, mask, type_id, R_p, R_u, R_k, user_metadata = data_without_label
+        # token_id, mask, type_id, post_rank, user_rank, keyword_rank, user_metadata = data_without_label
         token_id = data['token_id']
         mask = data['mask']
         type_id = data['type_id']
-        R_p = data['R_p']
-        R_u = data['R_u']
-        R_k = data['R_k']
+        post_rank = data['post_rank']
+        user_rank = data['user_rank']
+        keyword_rank = data['keyword_rank']
         user_metadata = data.get('user_metadata', None)
-        logits = self.forward(token_id, mask, type_id, R_p, R_u, R_k,
+        logits = self.forward(token_id, mask, type_id, post_rank, user_rank, keyword_rank,
                               user_metadata)
         return logits
