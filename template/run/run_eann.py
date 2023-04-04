@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
 
-from data.dataset.multi_modal import MultiModalDataset
+from template.data.dataset.multi_modal import MultiModalDataset
 from template.evaluate.evaluator import Evaluator
 from template.model.content_based.multi_modal.eann import EANN
 from template.train.trainer import BaseTrainer

@@ -5,7 +5,7 @@ import numpy as np
 import torch.utils.data
 from nltk.tokenize import sent_tokenize
 
-from data.legacy.text_dataset import FolderTextDataset
+from template.data.legacy.text_dataset import FolderTextDataset
 
 
 class SAFENumpyDataset(torch.utils.data.Dataset):

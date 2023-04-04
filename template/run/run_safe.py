@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import random_split, DataLoader
 
-from model.content_based.multi_modal.safe import SAFE
+from template.model.content_based.multi_modal.safe import SAFE
 from template.data.dataset.safe_dataset import SAFENumpyDataset
 from template.evaluate.evaluator import Evaluator
 from template.train.trainer import BaseTrainer
@@ -23,19 +23,22 @@ def run_safe(root: str):
     test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
     model = SAFE()
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
-                                        list(model.parameters())),
-                                 lr=0.00025)
+    optimizer = torch.optim.Adam(
+        filter(
+            lambda p: p.requires_grad,
+            list(model.parameters())),
+        lr=0.00025
+    )
     evaluator = Evaluator(["accuracy", "precision", "recall", "f1"])
 
     trainer = BaseTrainer(model, evaluator, optimizer)
-    trainer.fit(train_loader, num_epoch=100, validate_loader=val_loader)
+    trainer.fit(train_loader=train_loader, num_epoch=100, validate_loader=val_loader, save=True)
     test_result = trainer.evaluate(test_loader)
     print("test result: ", {dict2str(test_result)})
 
 
 def main():
-    root = Path("F:\\code\\python\\SAFE-pytorch\\embedding")
+    root = Path(r"C:\Users\10749\Desktop\Template\dataset\example\embedding")
     run_safe(root)
 
 
