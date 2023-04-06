@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from model.layers.layer import TextCNNLayer
+from template.model.layers.layer import TextCNNLayer
 from template.model.model import AbstractModel
 
 """

@@ -13,7 +13,6 @@ from template.evaluate.evaluator import Evaluator
 from template.model.content_based.multi_modal.spotfake import SpotFake
 from template.train.trainer import BaseTrainer
 
-
 def run_spotfake(
         root: str,
         pre_trained_bert_name="bert-base-uncased",

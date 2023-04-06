@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
-from model.layers.layer import GradientReverseLayer, TextCNNLayer
+from template.model.layers.layer import GradientReverseLayer, TextCNNLayer
 from template.model.model import AbstractModel
 
 """
