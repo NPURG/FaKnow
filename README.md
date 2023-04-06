@@ -1,4 +1,4 @@
-FaKnow
+# FaKnow
 
 **FaKnow** (**Fa**ke **Know**), a unified *Fake News Detection* algorithms library, including models and training process.
 
