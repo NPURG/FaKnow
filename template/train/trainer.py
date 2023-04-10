@@ -34,8 +34,7 @@ class AbstractTrainer:
     @torch.no_grad()
     def evaluate(
             self,
-            data: DataLoader,
-            batch_size: int
+            data: DataLoader
     ):
         """evaluate after training"""
         raise NotImplementedError
@@ -132,13 +131,13 @@ class BaseTrainer(AbstractTrainer):
         pbar.close()
 
         # train visualization(tensorboard + log + console)
+        writer.add_scalar("Train/loss", loss.item(), epoch)
         if others is None:
             writer.add_scalar("Train/loss", loss.item(), epoch)
             self.logger.info(f"training loss : loss={loss.item():.8f}")
             tqdm.write(f"training loss : loss={loss.item():.8f}")
-        if others is not None:
+        else:
             for metric, value in others.items():
-                writer.add_scalar("Train/loss", loss.item(), epoch)
                 writer.add_scalar("Train/" + metric, value, epoch)
             self.logger.info(f"training loss : loss={loss.item():.8f}    " + dict2str(others))
             tqdm.write(f"training loss : loss={loss.item():.8f}    " + dict2str(others))
@@ -254,11 +253,8 @@ class BaseTrainer(AbstractTrainer):
             # validate
             if validation:
                 self._validate_epoch(validate_loader, epoch, writer)
-            # tqdm.write(f'epoch={epoch}, '
-            #            f'time={training_end_time - training_start_time}s, '
-            #            f'train loss={training_loss}')
-            # tqdm.write(f'validation result: {validate_result}')
 
+            # learning rate scheduler
             if self.scheduler is not None:
                 self.scheduler.step()
 

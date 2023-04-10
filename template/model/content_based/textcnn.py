@@ -20,7 +20,7 @@ class TextCNN(AbstractModel):
         Args:
             word_vectors (torch.Tensor): weights of word embedding layer, shape=(vocab_size, embedding_size)
             filter_num (int): number of filters in conv layer
-            kernel_sizes (List[int]): list of different kernel sizes for TextCNNLayer
+            kernel_sizes (List[int]): list of different kernel_num sizes for TextCNNLayer
             activate_func (Callable): activate function for TextCNNLayer. Default=relu
             dropout (float): drop out rate of fully connected layer. Default=0.5
             freeze (bool): whether to freeze weights in word embedding layer while training. Default=True
