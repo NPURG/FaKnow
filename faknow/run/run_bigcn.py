@@ -2,7 +2,7 @@ import torch
 from torch_geometric.datasets import UPFD
 from torch_geometric.loader import DataLoader
 
-from faknow.data.process.graph_process import DropEdge
+from faknow.utils.util import DropEdge
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.bigcn import BiGCN
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
