@@ -96,7 +96,7 @@ def main():
         weight = pickle.load(f)  # W, W2, word_idx_map, vocab
         word_vectors, _, word_idx_map, _, max_len = weight
 
-    with open("F:\\code\\python\\Template\\faknow\\data\\process\\stop_words\\stop_words.txt", 'r',
+    with open("F:\\code\\python\\FaKnow\\faknow\\data\\process\\stop_words\\stop_words.txt", 'r',
               encoding='utf-8') as f:
         stop_words = [str(line).strip() for line in f.readlines()]
     run_eann(path, torch.from_numpy(word_vectors), word_idx_map, max_len, stop_words)
