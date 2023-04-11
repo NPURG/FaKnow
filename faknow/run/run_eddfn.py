@@ -3,7 +3,7 @@ import pickle
 import torch.optim
 from torch.utils.data import TensorDataset, DataLoader
 
-from faknow.data.process.lsh import lsh_data_selection
+from faknow.utils.util import lsh_data_selection
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.eddfn import EDDFN
 from faknow.train.trainer import BaseTrainer
