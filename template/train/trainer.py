@@ -191,7 +191,7 @@ class BaseTrainer(AbstractTrainer):
             validation = False
 
         # create files(tb_logs + logs)
-        tb_logs_path = f"tb_logs\\{self.model.__class__.__name__}-{datetime.datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}"
+        tb_logs_path = f"tb_logs/{self.model.__class__.__name__}-{datetime.datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}"
         writer = SummaryWriter(tb_logs_path)
 
         logs_dir = os.path.join(os.getcwd(), "logs")
