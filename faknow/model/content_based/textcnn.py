@@ -9,7 +9,7 @@ from model.model import AbstractModel
 
 """
 Convolutional Neural Networks for Sentence Classification
-paper: https://arxiv.org/abs/1408.5882
+paper: https://aclanthology.org/D14-1181/
 code: https://github.com/yoonkim/CNN_sentence
 """
 

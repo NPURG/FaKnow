@@ -5,7 +5,7 @@ from faknow.model.social_context.gcnfn import _BaseGCNFN
 
 """
 User Preference-aware Fake News Detection
-paper: https://arxiv.org/abs/2104.12259
+paper: https://dl.acm.org/doi/abs/10.1145/3404835.3462990
 code: https://github.com/safe-graph/GNN-FakeNews
 """
 

@@ -1,6 +1,6 @@
 """
 MDFEND: Multi-domain Fake News Detection
-paper: https://arxiv.org/pdf/2201.00987
+paper: https://dl.acm.org/doi/10.1145/3459637.3482139
 code: https://github.com/kennqiang/MDFEND-Weibo21
 """
 from typing import List, Optional, Tuple

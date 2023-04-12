@@ -10,7 +10,7 @@ from faknow.model.layers.attention import FFN
 
 """
 Embracing Domain Differences in Fake News Cross-domain Fake News Detection using Multi-modal Data
-paper: https://arxiv.org/abs/2102.06314
+paper: https://ojs.aaai.org/index.php/AAAI/article/view/16134
 code: github.com/amilasilva92/cross-domain-fake-news-detection-aaai2021
 """
 

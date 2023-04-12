@@ -11,7 +11,7 @@ from faknow.model.model import AbstractModel
 
 """
 EANN: Multi-Modal Fake News Detection
-paper: https://arxiv.org/abs/2112.04831
+paper: https://dl.acm.org/doi/abs/10.1145/3219819.3219903
 code: https://github.com/yaqingwang/EANN-KDD18
 """
 

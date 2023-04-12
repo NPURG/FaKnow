@@ -5,6 +5,13 @@ from transformers import BertModel
 from faknow.model.model import AbstractModel
 
 device = torch.device("cuda")
+"""
+SpotFake: Multi-Modal Fake News Detection
+paper: https://ieeexplore.ieee.org/document/8919302
+code: https://github.com/shiivangii/SpotFake
+"""
+
+
 # 文本Bert基本模型
 class _TextEncoder(nn.Module):
     def __init__(

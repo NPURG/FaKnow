@@ -9,7 +9,7 @@ from faknow.model.model import AbstractModel
 
 """
 SAFE: Similarity-Aware Multi-Modal Fake News Detection
-paper: https://arxiv.org/pdf/2003.04981v1.pdf
+paper: https://dl.acm.org/doi/abs/10.1007/978-3-030-47436-2_27
 code: https://github.com/Jindi0/SAFE
 """
 

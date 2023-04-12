@@ -12,7 +12,7 @@ from faknow.utils.util import calculate_cos_matrix
 
 """
 MFAN: Multi-modal Feature-enhanced TransformerBlock Networks for Rumor Detection
-paper: https://www.ijcai.org/proceedings/2022/0335.pdf 
+paper: https://www.ijcai.org/proceedings/2022/335
 code: https://github.com/drivsaf/MFAN
 """
 

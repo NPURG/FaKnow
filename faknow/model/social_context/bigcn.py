@@ -10,7 +10,7 @@ from faknow.model.model import AbstractModel
 
 """
 Rumor Detection on Social Media with Bi-Directional Graph Convolutional Networks
-paper: https://arxiv.org/abs/2001.06362
+paper: https://ojs.aaai.org/index.php/AAAI/article/view/5393
 code: https://github.com/safe-graph/GNN-FakeNews
 """
 

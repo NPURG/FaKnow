@@ -73,7 +73,7 @@ class _BaseGNN(AbstractModel):
 class GCN(_BaseGNN):
     """
     Semi-Supervised Classification with Graph Convolutional Networks
-    paper: https://arxiv.org/abs/1609.02907
+    paper: https://ieeexplore.ieee.org/document/8953909
     code: https://github.com/safe-graph/GNN-FakeNews
     """
     def __init__(self, feature_size: int, hidden_size=128):
@@ -90,7 +90,7 @@ class GCN(_BaseGNN):
 class SAGE(_BaseGNN):
     """
     Inductive Representation Learning on Large Graphs
-    paper: https://arxiv.org/abs/1706.02216
+    paper: https://dl.acm.org/doi/10.5555/3294771.3294869
     code: https://github.com/safe-graph/GNN-FakeNews
     """
     def __init__(self, feature_size: int, hidden_size=128):
@@ -107,7 +107,7 @@ class SAGE(_BaseGNN):
 class GAT(_BaseGNN):
     """
     Graph Attention Networks
-    paper: https://arxiv.org/abs/1710.10903
+    paper: https://openreview.net/forum?id=rJXMpikCZ
     code: https://github.com/safe-graph/GNN-FakeNews
     """
     def __init__(self, feature_size: int, hidden_size=128):
