@@ -4,8 +4,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
-from model.layers.layer import TextCNNLayer
-from model.model import AbstractModel
+from faknow.model.layers.layer import TextCNNLayer
+from faknow.model.model import AbstractModel
 
 """
 Convolutional Neural Networks for Sentence Classification

@@ -4,11 +4,11 @@ import torch
 from torch.utils.data import random_split, DataLoader
 from transformers import BertTokenizer
 
-from data.dataset.text import TextDataset
+from faknow.data.dataset.text import TextDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.mdfend import MDFEND
 from faknow.train.trainer import BaseTrainer
-from utils.util import dict2str
+from faknow.utils.util import dict2str
 
 
 class MDFENDTokenizer:

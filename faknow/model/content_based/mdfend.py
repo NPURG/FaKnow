@@ -10,7 +10,7 @@ from torch import Tensor
 from torch import nn
 from transformers import BertModel
 
-from model.layers.layer import TextCNNLayer
+from faknow.model.layers.layer import TextCNNLayer
 from faknow.model.model import AbstractModel
 
 
