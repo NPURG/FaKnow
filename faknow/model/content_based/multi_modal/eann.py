@@ -25,6 +25,7 @@ class EANN(AbstractModel):
             reverse_lambda (float): lambda for gradient reverse layer. Default=1
             hidden_size (int): size for hidden layers. Default=32
         """
+
     def __init__(self,
                  event_num: int,
                  embed_weight: torch.Tensor,
@@ -64,11 +65,9 @@ class EANN(AbstractModel):
 
         # Event Classifier
         self.domain_classifier = nn.Sequential(
-            OrderedDict([('d_fc1',
-                          nn.Linear(2 * self.hidden_size, self.hidden_size)),
-                         ('d_relu1', nn.LeakyReLU(True)),
-                         ('d_fc2', nn.Linear(self.hidden_size,
-                                             self.event_num))]))
+            nn.Linear(2 * self.hidden_size, self.hidden_size),
+            nn.LeakyReLU(True),
+            nn.Linear(self.hidden_size, self.event_num))
 
     def forward(self, token_id: torch.Tensor,
                 mask: torch.Tensor, image: torch.Tensor):
@@ -82,7 +81,7 @@ class EANN(AbstractModel):
         Returns:
             tuple:
                 - class_output (Tensor): prediction of being fake news, shape=(batch_size, 2)
-                - domain_output (Tensor): prediction of belonging to which domain, shape=(batch_size, 2)
+                - domain_output (Tensor): prediction of belonging to which domain, shape=(batch_size, domain_num)
         """
         # IMAGE
         image = self.vgg(image)  # [N, 512]
