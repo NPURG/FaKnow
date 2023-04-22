@@ -17,6 +17,7 @@ class FinerFactDataset(Dataset):
         self.type_id = type_id
         self.mask = mask
         self.token_id = token_id
+
     def __len__(self):
         return len(self.label)
 

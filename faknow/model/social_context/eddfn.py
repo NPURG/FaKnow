@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch import nn
 
-from model.model import AbstractModel
+from faknow.model.model import AbstractModel
 from faknow.model.layers.attention import FFN
 
 """

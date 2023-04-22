@@ -5,11 +5,11 @@ from torch.optim import AdamW
 from torch.utils.data import TensorDataset, random_split
 from transformers import get_linear_schedule_with_warmup
 
-from data.dataset.finerfact_dataset import FinerFactDataset
-from evaluate.evaluator import Evaluator
-from model.knowledge_aware.finerfact import FinerFact
-from train.trainer import BaseTrainer
-from utils.util import dict2str
+from faknow.data.dataset.finerfact_dataset import FinerFactDataset
+from faknow.evaluate.evaluator import Evaluator
+from faknow.model.knowledge_aware.finerfact import FinerFact
+from faknow.train.trainer import BaseTrainer
+from faknow.utils.util import dict2str
 
 
 def run_finerfact(train_path, test_path, bert_name):
