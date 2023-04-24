@@ -1,5 +1,5 @@
 import torch
-from torchvision import models, transforms
+from torchvision import models
 import torch.nn as nn
 from transformers import BertModel
 from faknow.model.model import AbstractModel
