@@ -11,6 +11,7 @@ Feed-Forward Networks
 AddNorm
 Scaled Dot Product Attention
 Mutil-head Attention
+Encoder Layer
 """
 
 
@@ -38,6 +39,43 @@ def masked_softmax(x: Tensor, valid_lens: Optional[Tensor] = None):
         # value, whose exponentiation outputs 0
         x = sequence_mask(x.reshape(-1, shape[-1]), valid_lens, value=-1e6)
         return nn.functional.softmax(x.reshape(shape), dim=-1)
+
+
+def transpose_qkv(x, num_heads):
+    """
+    Transposition for parallel computation of multiple attention heads.
+    Args:
+        x: (batch_size, num, num_hiddens), num_hiddens = head_num * out_size
+        num_heads: number of attention heads
+
+    Returns:
+        (batch_size * head_num, num, num_hiddens/head_num)
+    """
+
+    # after:
+    # (batch_size, num, head_num, num_hiddens/head_num)
+    x = x.reshape(x.shape[0], x.shape[1], num_heads, -1)
+
+    # after:
+    # (batch_size, head_num, num, num_hiddens/head_num)
+    x = x.permute(0, 2, 1, 3)
+
+    return x.reshape(-1, x.shape[2], x.shape[3])
+
+
+def transpose_output(x, num_heads):
+    """
+    Reverse the operation of transpose_qkv.
+    Args:
+        x: (batch_size * head_num, num, num_hiddens/head_num)
+        num_heads: number of attention heads
+
+    Returns:
+        (batch_size, num, num_hiddens), num_hiddens = head_num * out_size
+    """
+    x = x.reshape(-1, num_heads, x.shape[1], x.shape[2])
+    x = x.permute(0, 2, 1, 3)
+    return x.reshape(x.shape[0], x.shape[1], -1)
 
 
 class FFN(nn.Module):
@@ -157,38 +195,29 @@ class MultiHeadAttention(nn.Module):
         return self.W_o(output_concat)
 
 
-def transpose_qkv(x, num_heads):
-    """
-    Transposition for parallel computation of multiple attention heads.
-    Args:
-        x: (batch_size, num, num_hiddens), num_hiddens = head_num * out_size
-        num_heads: number of attention heads
+class EncoderLayer(nn.Module):
+    def __init__(self,
+                 input_size: int,
+                 ffn_hidden_size: int,
+                 head_num: int,
+                 k_out_size: int,
+                 v_out_size: int,
+                 dropout=0.,
+                 bias=False):
+        super(EncoderLayer, self).__init__()
+        self.attention = MultiHeadAttention(input_size,
+                                            k_out_size,
+                                            v_out_size,
+                                            head_num,
+                                            dropout=dropout,
+                                            bias=bias)
+        self.addnorm1 = AddNorm(input_size, dropout)
+        self.ffn = FFN(input_size,
+                       ffn_hidden_size,
+                       input_size,
+                       dropout)
+        self.addnorm2 = AddNorm(input_size, dropout)
 
-    Returns:
-        (batch_size * head_num, num, num_hiddens/head_num)
-    """
-
-    # after:
-    # (batch_size, num, head_num, num_hiddens/head_num)
-    x = x.reshape(x.shape[0], x.shape[1], num_heads, -1)
-
-    # after:
-    # (batch_size, head_num, num, num_hiddens/head_num)
-    x = x.permute(0, 2, 1, 3)
-
-    return x.reshape(-1, x.shape[2], x.shape[3])
-
-
-def transpose_output(x, num_heads):
-    """
-    Reverse the operation of transpose_qkv.
-    Args:
-        x: (batch_size * head_num, num, num_hiddens/head_num)
-        num_heads: number of attention heads
-
-    Returns:
-        (batch_size, num, num_hiddens), num_hiddens = head_num * out_size
-    """
-    x = x.reshape(-1, num_heads, x.shape[1], x.shape[2])
-    x = x.permute(0, 2, 1, 3)
-    return x.reshape(x.shape[0], x.shape[1], -1)
+    def forward(self, x, valid_lens=None):
+        y = self.addnorm1(x, self.attention(x, x, x, valid_lens))
+        return self.addnorm2(y, self.ffn(y))
