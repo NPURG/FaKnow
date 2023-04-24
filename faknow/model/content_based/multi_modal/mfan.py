@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
-from faknow.model.layers.attention import (FFN,
-                                           ScaledDotProductAttention, transpose_qkv, transpose_output)
+from faknow.model.layers.transformer import (FFN,
+                                             ScaledDotProductAttention, transpose_qkv, transpose_output)
 from faknow.model.layers.layer import SignedGAT, TextCNNLayer
 from faknow.model.model import AbstractModel
 from faknow.utils.util import calculate_cos_matrix

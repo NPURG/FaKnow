@@ -6,7 +6,7 @@ from torch import Tensor
 from torch import nn
 
 from faknow.model.model import AbstractModel
-from faknow.model.layers.attention import FFN
+from faknow.model.layers.transformer import FFN
 
 """
 Embracing Domain Differences in Fake News Cross-domain Fake News Detection using Multi-modal Data

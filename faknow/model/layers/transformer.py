@@ -6,43 +6,51 @@ import torch.nn.functional as F
 from torch import Tensor
 
 """
-layers for attention mechanism, including:
+layers for transformer, including:
 Feed-Forward Networks
-Scaled Dot Product TransformerBlock
+AddNorm
+Scaled Dot Product Attention
 Mutil-head Attention
 """
 
 
-def sequence_mask(X: Tensor, valid_len: Optional[Tensor] = None, value=0.):
+def sequence_mask(x: Tensor, valid_len: Optional[Tensor] = None, value=0.):
     """Mask irrelevant entries in sequences."""
-    max_len = X.size(1)
+    max_len = x.size(1)
     mask = torch.arange(max_len, dtype=torch.float32,
-                        device=X.device)[None, :] < valid_len[:, None]
-    X[~mask] = value
-    return X
+                        device=x.device)[None, :] < valid_len[:, None]
+    x[~mask] = value
+    return x
 
 
-def masked_softmax(X: Tensor, valid_lens: Optional[Tensor] = None):
+def masked_softmax(x: Tensor, valid_lens: Optional[Tensor] = None):
     """Perform softmax operation by masking elements on the last axis."""
-    # X: 3D tensor, valid_lens: 1D or 2D tensor
+    # x: 3D tensor, valid_lens: 1D or 2D tensor
     if valid_lens is None:
-        return nn.functional.softmax(X, dim=-1)
+        return nn.functional.softmax(x, dim=-1)
     else:
-        shape = X.shape
+        shape = x.shape
         if valid_lens.dim() == 1:
             valid_lens = torch.repeat_interleave(valid_lens, shape[1])
         else:
             valid_lens = valid_lens.reshape(-1)
         # On the last axis, replace masked elements with a very large negative
         # value, whose exponentiation outputs 0
-        X = sequence_mask(X.reshape(-1, shape[-1]), valid_lens, value=-1e6)
-        return nn.functional.softmax(X.reshape(shape), dim=-1)
+        x = sequence_mask(x.reshape(-1, shape[-1]), valid_lens, value=-1e6)
+        return nn.functional.softmax(x.reshape(shape), dim=-1)
 
 
 class FFN(nn.Module):
-    def __init__(self, input_size: int, hidden_size: int,
-                 output_size: int, dropout=0., activation=F.relu):
+    def __init__(self, input_size: int,
+                 hidden_size: int,
+                 output_size: Optional[int] = None,
+                 dropout=0.,
+                 activation=F.relu):
         super(FFN, self).__init__()
+
+        if output_size is None:
+            output_size = input_size
+
         self.dense1 = nn.Linear(input_size, hidden_size)
         self.activation = activation
         self.dense2 = nn.Linear(hidden_size, output_size)
@@ -53,6 +61,21 @@ class FFN(nn.Module):
         return self.dropout(x)
 
 
+class AddNorm(nn.Module):
+    def __init__(self, normalized_shape: int, dropout=0.):
+        super(AddNorm, self).__init__()
+        self.dropout = nn.Dropout(dropout)
+        self.ln = nn.LayerNorm(normalized_shape)
+
+    def forward(self, x: Tensor, y: Tensor):
+        """
+        Args:
+            x: residual
+            y: output of sublayer
+        """
+        return self.ln(self.dropout(y) + x)
+
+
 class ScaledDotProductAttention(nn.Module):
     def __init__(self, dropout=0., epsilon=0.):
         super(ScaledDotProductAttention, self).__init__()
@@ -60,17 +83,19 @@ class ScaledDotProductAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.attention_weights = None
 
-    # Shape of queries: (batch_size, num_queries, d)
-    # Shape of keys: (batch_size, num_key-value pairs, d)
-    # Shape of values: (batch_size, num_key-value pairs, value dimension)
-    # Shape of valid_lens: (batch_size,) or (batch_size, num_queries)
     def forward(self,
                 queries: Tensor,
                 keys: Tensor,
                 values: Tensor,
                 valid_lens: Optional[Tensor] = None):
+        """
+        Args:
+            queries: (batch_size, q_num, d)
+            keys: (batch_size, k-v_num, d)
+            values: (batch_size, k-v_num, v-dim)
+            valid_lens: (batch_size,) or (batch_size, q_num)
+        """
         d = queries.shape[-1]
-        # Set transpose_b=True to swap the last two dimensions of keys
         scores = torch.bmm(queries, keys.transpose(
             1, 2)) / (d ** 0.5 + self.epsilon)
         self.attention_weights = masked_softmax(scores, valid_lens)
@@ -83,7 +108,7 @@ class MultiHeadAttention(nn.Module):
                  k_out_size: int,
                  v_out_size: int,
                  head_num: int,
-                 out_size:  Optional[int] = None,
+                 out_size: Optional[int] = None,
                  q_in_size: Optional[int] = None,
                  k_in_size: Optional[int] = None,
                  v_in_size: Optional[int] = None,
@@ -103,14 +128,16 @@ class MultiHeadAttention(nn.Module):
         self.W_o = nn.Linear(v_out_size * head_num, self.out_size * head_num, bias=bias)
 
     def forward(self, queries, keys, values, valid_lens=None):
-        # Shape of queries, keys, or values:
-        # (batch_size, no. of queries or key-value pairs, num_hiddens)
-
-        # Shape of valid_lens:
-        # (batch_size,) or (batch_size, no. of queries)
+        """
+        Args:
+            queries: (batch_size, q_num, d)
+            keys: (batch_size, k-v_num, d)
+            values: (batch_size, k-v_num, v-dim)
+            valid_lens: (batch_size,) or (batch_size, q_num)
+        """
 
         # After transpose:
-        # (batch_size * head_num, no. of queries or key-value pairs, num_hiddens/head_num)
+        # (batch_size * head_num, num, out_size)
         queries = transpose_qkv(self.W_q(queries), self.head_num)
         keys = transpose_qkv(self.W_k(keys), self.head_num)
         values = transpose_qkv(self.W_v(values), self.head_num)
@@ -122,34 +149,46 @@ class MultiHeadAttention(nn.Module):
                                                  repeats=self.head_num,
                                                  dim=0)
 
-        # Shape of output: (batch_size * head_num, no. of queries, num_hiddens/head_num)
+        # (batch_size * head_num, num, out_size)
         output = self.attention(queries, keys, values, valid_lens)
 
-        # Shape of output_concat: (batch_size, no. of queries, num_hiddens)
+        # Shape of output_concat: (batch_size, num, head_num * out_size
         output_concat = transpose_output(output, self.head_num)
         return self.W_o(output_concat)
 
 
-def transpose_qkv(X, num_heads):
-    """Transposition for parallel computation of multiple attention heads."""
+def transpose_qkv(x, num_heads):
+    """
+    Transposition for parallel computation of multiple attention heads.
+    Args:
+        x: (batch_size, num, num_hiddens), num_hiddens = head_num * out_size
+        num_heads: number of attention heads
 
-    # before reshape:
-    # (batch_size, no. of queries or key-value pairs, num_hiddens).
-    # after reshape:
-    # (batch_size, no. of queries or key-value pairs, head_num, num_hiddens/head_num)
-    X = X.reshape(X.shape[0], X.shape[1], num_heads, -1)
+    Returns:
+        (batch_size * head_num, num, num_hiddens/head_num)
+    """
 
-    # Shape of output X:
-    # (batch_size, head_num, no. of queries or key-value pairs, num_hiddens/head_num)
-    X = X.permute(0, 2, 1, 3)
+    # after:
+    # (batch_size, num, head_num, num_hiddens/head_num)
+    x = x.reshape(x.shape[0], x.shape[1], num_heads, -1)
 
-    # Shape of output:
-    # (batch_size * head_num, no. of queries or key-value pairs, num_hiddens/head_num)
-    return X.reshape(-1, X.shape[2], X.shape[3])
+    # after:
+    # (batch_size, head_num, num, num_hiddens/head_num)
+    x = x.permute(0, 2, 1, 3)
+
+    return x.reshape(-1, x.shape[2], x.shape[3])
 
 
-def transpose_output(X, num_heads):
-    """Reverse the operation of transpose_qkv."""
-    X = X.reshape(-1, num_heads, X.shape[1], X.shape[2])
-    X = X.permute(0, 2, 1, 3)
-    return X.reshape(X.shape[0], X.shape[1], -1)
+def transpose_output(x, num_heads):
+    """
+    Reverse the operation of transpose_qkv.
+    Args:
+        x: (batch_size * head_num, num, num_hiddens/head_num)
+        num_heads: number of attention heads
+
+    Returns:
+        (batch_size, num, num_hiddens), num_hiddens = head_num * out_size
+    """
+    x = x.reshape(-1, num_heads, x.shape[1], x.shape[2])
+    x = x.permute(0, 2, 1, 3)
+    return x.reshape(x.shape[0], x.shape[1], -1)
