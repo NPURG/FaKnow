@@ -8,6 +8,7 @@ import torch.nn.functional as F
 
 from faknow.model.layers.dct import DctStem, DctInceptionBlock, conv2d_bn_relu
 from faknow.model.layers.transformer import FFN, AddNorm
+from faknow.model.model import AbstractModel
 
 """
 Multimodal Fusion with Co-Attention Networks for Fake News Detection
@@ -208,7 +209,7 @@ class _CoAttentionLayer(nn.Module):
         return output
 
 
-class MCAN(nn.Module):
+class MCAN(AbstractModel):
     def __init__(self,
                  bert: str,
                  kernel_sizes: Optional[List[int]] = None,
@@ -226,12 +227,14 @@ class MCAN(nn.Module):
         # check input
         if kernel_sizes is None:
             kernel_sizes = [3, 3, 3]
-        elif len(kernel_sizes) != 3 or not all(type(x) == int for x in kernel_sizes) or not all(x > 0 for x in kernel_sizes):
+        elif len(kernel_sizes) != 3 or not all(type(x) == int for x in kernel_sizes) or not all(
+                x > 0 for x in kernel_sizes):
             raise ValueError("kernel_sizes must be a list of 3 positive integers")
 
         if num_channels is None:
             num_channels = [32, 64, 128]
-        elif len(num_channels) != 3 or not all(type(x) == int for x in num_channels) or not all(x > 0 for x in num_channels):
+        elif len(num_channels) != 3 or not all(type(x) == int for x in num_channels) or not all(
+                x > 0 for x in num_channels):
             raise ValueError("num_channels must be a list of 3 positive integers")
         assert drop_and_bn in ['drop-BN', 'BN-drop', 'drop-only', 'BN-only', 'none'], \
             "drop_and_bn must be one of 'drop-BN', 'BN-drop', 'drop-only', 'BN-only', 'none'"
@@ -333,3 +336,9 @@ class MCAN(nn.Module):
         output = self.linear2(output)
 
         return output
+
+    def calculate_loss(self, data):
+        pass
+
+    def predict(self, data):
+        pass
