@@ -130,8 +130,11 @@ class ScaledDotProductAttention(nn.Module):
         Args:
             queries: (batch_size, q_num, d)
             keys: (batch_size, k-v_num, d)
-            values: (batch_size, k-v_num, v-dim)
+            values: (batch_size, k-v_num, v_dim)
             valid_lens: (batch_size,) or (batch_size, q_num)
+
+        Returns:
+            attention_values: (batch_size, q_num, v_dim)
         """
         d = queries.shape[-1]
         scores = torch.bmm(queries, keys.transpose(
@@ -172,6 +175,9 @@ class MultiHeadAttention(nn.Module):
             keys: (batch_size, k-v_num, d)
             values: (batch_size, k-v_num, v-dim)
             valid_lens: (batch_size,) or (batch_size, q_num)
+
+        Returns:
+            multi-head output: (batch_size, q_num, out_size * head_num)
         """
 
         # After transpose:
@@ -187,10 +193,11 @@ class MultiHeadAttention(nn.Module):
                                                  repeats=self.head_num,
                                                  dim=0)
 
-        # (batch_size * head_num, num, out_size)
+        # (batch_size * head_num, q_num, v_out_size)
         output = self.attention(queries, keys, values, valid_lens)
 
-        # Shape of output_concat: (batch_size, num, head_num * out_size
+        # After transpose:
+        # (batch_size, q_num, head_num * v_out_size)
         output_concat = transpose_output(output, self.head_num)
         return self.W_o(output_concat)
 

@@ -266,7 +266,7 @@ class NEP(AbstractModel):
             avg_mic: average micro news simcse representation, shape=(batch_size, simcse_dim)
             kernel_p_mac: gaussian kernel of similarity between post and macro news, shape=(batch_size, kernel_num)
             kernel_p_mic: gaussian kernel of similarity between  post and micro news, shape=(batch_size, kernel_num)
-            kernel_avgmic_mic: gaussian kernel of similarity between average micro and micro news, shape=(batch_size, kernel_num)
+            kernel_avg_mic_mic: gaussian kernel of similarity between average micro and micro news, shape=(batch_size, kernel_num)
             **kwargs: parameters for fnd forward
 
         Returns:
