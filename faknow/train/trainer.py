@@ -15,6 +15,30 @@ from faknow.evaluate.evaluator import Evaluator
 from faknow.model.model import AbstractModel
 from faknow.utils.util import dict2str
 
+import sys
+import contextlib
+
+
+class DummyFile:
+    def __init__(self, file):
+        if file is None:
+            file = sys.stderr
+        self.file = file
+
+    def write(self, x):
+        if len(x.rstrip()) > 0:
+            tqdm.write(x, file=self.file)
+
+
+@contextlib.contextmanager
+def redirect_stdout(file=None):
+    if file is None:
+        file = sys.stderr
+    old_stdout = file
+    sys.stdout = DummyFile(file)
+    yield
+    sys.stdout = old_stdout
+
 
 class AbstractTrainer:
     def __init__(
@@ -135,12 +159,14 @@ class BaseTrainer(AbstractTrainer):
         if others is None:
             writer.add_scalar("Train/loss", loss.item(), epoch)
             self.logger.info(f"training loss : loss={loss.item():.8f}")
-            tqdm.write(f"training loss : loss={loss.item():.8f}")
+            with redirect_stdout():
+                print(f"training loss : loss={loss.item():.8f}")
         else:
             for metric, value in others.items():
                 writer.add_scalar("Train/" + metric, value, epoch)
             self.logger.info(f"training loss : loss={loss.item():.8f}    " + dict2str(others))
-            tqdm.write(f"training loss : loss={loss.item():.8f}    " + dict2str(others))
+            with redirect_stdout():
+                print(f"training loss : loss={loss.item():.8f}    " + dict2str(others))
 
     def _validate_epoch(
             self,
@@ -157,7 +183,8 @@ class BaseTrainer(AbstractTrainer):
         for metric, value in result.items():
             writer.add_scalar("Validation/" + metric, value, epoch)
         self.logger.info("validation result : " + dict2str(result))
-        tqdm.write("validation result : " + dict2str(result))
+        with redirect_stdout():
+            print("validation result : " + dict2str(result))
 
     def save(
             self,
@@ -175,7 +202,8 @@ class BaseTrainer(AbstractTrainer):
 
         # save visualization(log + console)
         self.logger.info(f'\nmodel is saved as {save_path}')
-        tqdm.write(f'\nmodel is saved as {save_path}')
+        with redirect_stdout():
+            print(f'\nmodel is saved as {save_path}')
 
     def fit(
             self,
@@ -208,17 +236,21 @@ class BaseTrainer(AbstractTrainer):
         self.logger.addHandler(fh)
 
         # print some information
-        tqdm.write(f'training data size={len(train_loader.dataset)}')
+        with redirect_stdout():
+            print(f'training data size={len(train_loader.dataset)}')
         self.logger.info(f'training data size={len(train_loader.dataset)}')
         if validation:
-            tqdm.write(f'validation data size={len(validate_loader.dataset)}')
+            with redirect_stdout():
+                print(f'validation data size={len(validate_loader.dataset)}')
             self.logger.info(f'validation data size={len(validate_loader.dataset)}')
         self.logger.info(f'Tensorboard log is saved as {tb_logs_path}')
 
         # training for num_epoch
-        tqdm.write('----start training-----')
+        with redirect_stdout():
+            print('----start training-----')
         for epoch in range(num_epoch):
-            tqdm.write(f'\n--epoch=[{epoch + 1}/{num_epoch}]--')
+            with redirect_stdout():
+                print(f'\n--epoch=[{epoch + 1}/{num_epoch}]--')
 
             # create formatter and add it to the handlers
             formatter = logging.Formatter('')
@@ -242,13 +274,15 @@ class BaseTrainer(AbstractTrainer):
             training_time = training_end_time - training_start_time
             if training_time < 60:
                 self.logger.info(f'training time={training_time:.1f}s')
-                tqdm.write(f'training time={training_time:.1f}s')
+                with redirect_stdout():
+                    print(f'training time={training_time:.1f}s')
             else:
                 training_time = int(training_time)
                 minutes = training_time // 60
                 seconds = training_time % 60
                 self.logger.info(f'training time={minutes}m{seconds:02d}s')
-                tqdm.write(f'training time={minutes}m{seconds:02d}s')
+                with redirect_stdout():
+                    print(f'training time={minutes}m{seconds:02d}s')
 
             # validate
             if validation:
