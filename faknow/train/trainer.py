@@ -134,7 +134,6 @@ class BaseTrainer(AbstractTrainer):
         # train visualization(tensorboard + log + console)
         writer.add_scalar("Train/loss", loss.item(), epoch)
         if others is None:
-            writer.add_scalar("Train/loss", loss.item(), epoch)
             self.logger.info(f"training loss : loss={loss.item():.8f}")
             print(f"training loss : loss={loss.item():.8f}", file=sys.stderr)
         else:

@@ -26,8 +26,8 @@ def run_spotfake(
     torch.manual_seed(seed_value)
     torch.cuda.manual_seed_all(seed_value)
 
-    df_train = pd.read_csv("/root/Template/dataset/example/dataset_example_SpotFake/twitter/train_posts_clean.csv")
-    df_test = pd.read_csv("/root/Template/dataset/example/dataset_example_SpotFake/twitter/test_posts.csv")
+    df_train = pd.read_csv("/root/FaKnow/dataset/example/SpotFake/twitter/train_posts_clean.csv")
+    df_test = pd.read_csv("/root/FaKnow/dataset/example/SpotFake/twitter/test_posts.csv")
 
     image_transform = torchvision.transforms.Compose([
         torchvision.transforms.Resize(size=(224, 224)),
@@ -56,7 +56,7 @@ def run_spotfake(
 
 
 def main():
-    root = "/root/Template/dataset/example/dataset_example_SpotFake/twitter/"
+    root = "/root/FaKnow/dataset/example/SpotFake/twitter/"
     pre_trained_bert_name = "bert-base-uncased"
     run_spotfake(root, pre_trained_bert_name)
 
