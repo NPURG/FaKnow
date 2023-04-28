@@ -126,7 +126,7 @@ class BaseTrainer(AbstractTrainer):
             self.optimizer.step()
 
             # set progress bar postfix
-            pbar.set_postfix_str(f"loss={loss.item()}")
+            pbar.set_postfix_str(f"loss={loss.item():.18f}")
 
         # close tqdm objects
         pbar.close()
