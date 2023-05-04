@@ -2,7 +2,6 @@ import os
 from typing import List, Callable, Any
 
 import torch
-from PIL import Image
 
 from faknow.data.dataset.text import TextDataset
 
@@ -10,8 +9,8 @@ from faknow.data.dataset.text import TextDataset
 class MultiModalDataset(TextDataset):
     def __init__(self, path: str, text_features: List[str],
                  tokenize: Callable[[List[str]], Any],
-                 image_features: List[str], transform: Callable[[Image.Image],
-                                                                torch.Tensor]):
+                 image_features: List[str],
+                 transform: Callable[[str], Any]):
         super().__init__(path, text_features, tokenize, False)
 
         self.transform = transform
@@ -25,10 +24,8 @@ class MultiModalDataset(TextDataset):
         item = {}
         for feature_name, feature_values in self.data.items():
             if feature_name in self.image_features:
-                img = self._pil_load(
-                    os.path.join(self.root, feature_values[index]))
-                value = self.transform(img)
-                if type(value) is not torch.Tensor:
+                value = self.transform(os.path.join(self.root, feature_values[index]))
+                if type(value) is not torch.Tensor and type(value) is not dict:
                     raise RuntimeError(
                         'return type of transform function must be tensor')
             elif feature_name in self.text_features and type(
@@ -51,11 +48,6 @@ class MultiModalDataset(TextDataset):
         if name not in self.image_features:
             raise ValueError(f"'{name}' has not been marked as image features")
         self.image_features.remove(name)
-
-    def _pil_load(self, path: str) -> Image.Image:
-        with open(path, "rb") as f:
-            img = Image.open(f)
-            return img.convert("RGB")
 
     def _to_tensor(self):
         for name, values in self.data.items():

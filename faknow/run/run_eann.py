@@ -4,6 +4,7 @@ from typing import Dict, List
 
 import jieba
 import torch
+from PIL import Image
 from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
 
@@ -47,6 +48,18 @@ class EANNTokenizer:
         return {'token_id': torch.tensor(token_ids), 'mask': torch.stack(masks)}
 
 
+def transform(path: str) -> torch.Tensor:
+    with open(path, "rb") as f:
+        img = Image.open(f).convert('RGB')
+        trans = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+        return trans(img)
+
+
 def adjust_lr(epoch: int) -> float:
     return 0.001 / (1. + 10 * (float(epoch) / 100)) ** 0.75
 
@@ -56,12 +69,7 @@ def run_eann(path: str,
              word_idx_map: Dict[str, int],
              max_len: int,
              stop_words: List[str]):
-    transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
+
     tokenizer = EANNTokenizer(word_idx_map, max_len, stop_words)
 
     dataset = MultiModalDataset(path, ['text'], tokenizer, ['image'], transform)

@@ -3,6 +3,7 @@ import pickle
 from typing import List
 
 import torch
+from PIL import Image
 from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
 
@@ -35,6 +36,18 @@ def pad_sequence(token_ids_list: List[List[int]], max_len=50):
     return torch.tensor(padded_tokens)
 
 
+def transform(path: str) -> torch.Tensor:
+    with open(path, "rb") as f:
+        img = Image.open(f).convert('RGB')
+        trans = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+        ])
+        return trans(img)
+
 def load_adj_matrix(path: str, node_num: int):
     with open(path, 'r') as f:
         adj_dict = json.load(f)
@@ -48,13 +61,6 @@ def load_adj_matrix(path: str, node_num: int):
 def run_mfan(path: str, word_vectors: torch.Tensor,
              node_embedding: torch.Tensor, node_num: int,
              adj_matrix: torch.Tensor):
-    transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225])
-    ])
     dataset = MultiModalDataset(path, ['text'], tokenize, ['image'], transform)
     size = int(len(dataset) * 0.001)
     train_data, _ = random_split(dataset, [size, len(dataset) - size])
