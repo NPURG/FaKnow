@@ -4,7 +4,6 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from faknow.train.trainer import BaseTrainer
-from faknow.utils.util import dict2str
 
 
 class MCANTrainer(BaseTrainer):
@@ -20,15 +19,7 @@ class MCANTrainer(BaseTrainer):
 
         loss = others = None
         for batch_id, batch_data in pbar:
-            result = self.model.calculate_loss(batch_data)
-
-            if type(result) is tuple and len(result) == 2 and type(result[1]) is dict:
-                loss = result[0]
-                others = result[1]
-            elif type(result) is torch.Tensor:
-                loss = result
-            else:
-                raise TypeError(f"result type error: {type(result)}")
+            loss = self.model.calculate_loss(batch_data)
 
             # backward
             self.optimizer.zero_grad()
@@ -43,12 +34,5 @@ class MCANTrainer(BaseTrainer):
         pbar.close()
 
         writer.add_scalar("Train/loss", loss.item(), epoch)
-        if others is None:
-            writer.add_scalar("Train/loss", loss.item(), epoch)
-            self.logger.info(f"training loss : loss={loss.item():.8f}")
-            tqdm.write(f"training loss : loss={loss.item():.8f}")
-        else:
-            for metric, value in others.items():
-                writer.add_scalar("Train/" + metric, value, epoch)
-            self.logger.info(f"training loss : loss={loss.item():.8f}    " + dict2str(others))
-            tqdm.write(f"training loss : loss={loss.item():.8f}    " + dict2str(others))
+        self.logger.info(f"training loss : loss={loss.item():.8f}")
+        tqdm.write(f"training loss : loss={loss.item():.8f}")

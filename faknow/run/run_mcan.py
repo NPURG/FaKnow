@@ -1,12 +1,20 @@
+import os.path
 from typing import List, Dict
 
+import numpy as np
 import torch
+import torch.nn.functional as F
+from PIL import Image
+from scipy.fftpack import fft, dct
+from torch.utils.data import random_split, DataLoader
 from torchvision.transforms import transforms
 from transformers import get_linear_schedule_with_warmup, BertTokenizer
 
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.mcan import MCAN
-from faknow.train.trainer import BaseTrainer
+from faknow.data.dataset.multi_modal import MultiModalDataset
+from faknow.data.dataset.mcan_dataset import MultiModalDataset
+from faknow.train.mcan_trainer import MCANTrainer
 
 
 class MCANTokenizer:
@@ -24,15 +32,61 @@ class MCANTokenizer:
         return {'token_id': inputs['input_ids'], 'mask': inputs['attention_mask']}
 
 
-def get_optimizer(model,
+def transform(path: str) -> Dict[str, torch.Tensor]:
+    with open(path, "rb") as f:
+        img = Image.open(f)
+        transform_vgg = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+        ])
+        vgg_feature = transform_vgg(img.convert('RGB'))
+
+        transform_dct = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor()
+        ])
+        dct_feature = process_dct_img(transform_dct(img.convert('L')))
+
+    return {'vgg': vgg_feature, 'dct': dct_feature}
+
+
+def process_dct_img(img: torch.Tensor) -> torch.Tensor:
+    img = img.numpy()  # size = [1, 224, 224]
+    height = img.shape[1]
+    width = img.shape[2]
+    N = 8
+    step = int(height / N)
+
+    dct_img = np.zeros((1, N * N, step * step, 1), dtype=np.float32)
+    fft_img = np.zeros((1, N * N, step * step, 1))
+
+    i = 0
+    for row in np.arange(0, height, step):
+        for col in np.arange(0, width, step):
+            block = np.array(img[:, row:(row + step), col:(col + step)], dtype=np.float32)
+            block1 = block.reshape((-1, step * step, 1))  # [batch_size,784,1]
+            dct_img[:, i, :, :] = dct(block1)  # [batch_size, 64, 784, 1]
+            i += 1
+
+    # for i in range(64):
+    fft_img[:, :, :, :] = fft(dct_img[:, :, :, :]).real  # [batch_size,64, 784,1]
+
+    fft_img = torch.from_numpy(fft_img).float()  # [batch_size, 64, 784, 1]
+    new_img = F.interpolate(fft_img, size=[250, 1])  # [batch_size, 64, 250, 1]
+    new_img = new_img.squeeze(0).squeeze(-1)  # torch.size = [64, 250]
+
+    return new_img
+
+
+def get_optimizer(model: MCAN,
                   lr=0.0001,
                   weight_decay=0.15,
-                  bert_learning_rate=None,
-                  vgg_learning_rate=None,
-                  dtc_conv_learning_rate=None,
-                  fusion_learning_rate=None,
-                  linear_learning_rate=None,
-                  classifier_learning_rate=None):
+                  bert_learning_rate=1e-5,
+                  vgg_learning_rate=1e-5,
+                  dtc_conv_learning_rate=1e-5,
+                  fusion_learning_rate=1e-2,
+                  linear_learning_rate=1e-2,
+                  classifier_learning_rate=1e-2):
     no_decay = [
         "bias",
         "gamma",
@@ -51,7 +105,7 @@ def get_optimizer(model,
     )
     linear_param_optimizer = (
             list(model.linear_text.named_parameters())
-            + list(model.linear_image.named_parameters())
+            + list(model.linear_vgg.named_parameters())
             + list(model.linear_dct.named_parameters())
     )
     classifier_param_optimizer = list(model.linear1.named_parameters()) + list(
@@ -124,23 +178,22 @@ def get_scheduler(batch_num, epoch_num, optimizer, warm_up_percentage=0.1):
     return scheduler
 
 
-def run_mcan():
-
+def run_mcan(root):
     # data preprocess
     tokenizer = MCANTokenizer()
-    transform_vgg = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
-    transform_dct = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor()
-    ])
 
     # dataset
+    train_dataset = MultiModalDataset(os.path.join(root, 'train.json'), ['text'], tokenizer, ['image'], transform)
+    test_dataset = MultiModalDataset(os.path.join(root, 'test.json'), ['text'], tokenizer, ['image'], transform)
+    validation_size = int(len(train_dataset) * 0.1)
+    train_dataset, validation_dataset = random_split(train_dataset,
+                                                     [len(train_dataset) - validation_size, validation_size])
 
     # dataloader
     batch_size = 16
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     epoch_num = 100
     model = MCAN('bert-base-chinese')
@@ -148,5 +201,16 @@ def run_mcan():
     scheduler = get_scheduler(len(train_loader), epoch_num, optimizer)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
-    trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
+    trainer = MCANTrainer(model, evaluator, optimizer, scheduler)
     trainer.fit(train_loader, num_epoch=50, validate_loader=val_loader)
+    test_result = trainer.evaluate(test_loader)
+    print(test_result)
+
+
+def main():
+    root = r'F:\dataset\dataset_example_MCAN'
+    run_mcan(root)
+
+
+if __name__ == '__main__':
+    main()

@@ -127,7 +127,17 @@ class _MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm(model_dim)
 
-    def forward(self, query, key, value, attn_mask=None):
+    def forward(self, query, key, value):
+        """
+        Args:
+            query: (batch_size, model_dim, 1)
+            key: (batch_size, model_dim, 1)
+            value: (batch_size, model_dim, 1)
+            attn_mask: None
+
+        Returns:
+            shape=(batch_size, model_dim)
+        """
         residual = query
         query = query.unsqueeze(-1)
         key = key.unsqueeze(-1)
@@ -160,7 +170,7 @@ class _MultiHeadAttention(nn.Module):
 
         # add&norm
         output = self.dropout(output)
-        output = self.layer_norm(residual + output)
+        output = self.layer_norm(residual.squeeze(-1) + output)
 
         return output
 
@@ -183,24 +193,22 @@ class _CoAttentionLayer(nn.Module):
 
         self.fusion_linear = nn.Linear(model_dim * 2, model_dim)
 
-    def forward(self, image_output, text_output, attn_mask=None):
+    def forward(self, image, text):
         """
         Args:
-            image_output: shape=(batch_size, model_dim)
-            text_output: shape=(batch_size, model_dim)
+            image: shape=(batch_size, model_dim)
+            text: shape=(batch_size, model_dim)
 
         Returns:
             fusion_output: shape=(batch_size, model_dim)
         """
-        image_output = image_output.unsqueeze(-1)
-        text_output = text_output.unsqueeze(-1)
+        image = image.unsqueeze(-1)
+        text = text.unsqueeze(-1)
 
-        output1 = self.attention_1(image_output, text_output, text_output,
-                                   attn_mask)
+        output1 = self.attention_1(image, text, text)
         output1 = self.ffn_addnorm1(output1, self.ffn1(output1))
 
-        output2 = self.attention_2(text_output, image_output, image_output,
-                                   attn_mask)
+        output2 = self.attention_2(text, image, image)
         output2 = self.ffn_addnorm2(output2, self.ffn2(output2))
 
         output = torch.cat([output1, output2], dim=1)
@@ -210,17 +218,32 @@ class _CoAttentionLayer(nn.Module):
 
 
 class MCAN(AbstractModel):
+    """
+    Multimodal Fusion with Co-Attention Networks for Fake News Detection
+    """
+
     def __init__(self,
                  bert: str,
                  kernel_sizes: Optional[List[int]] = None,
                  num_channels: Optional[List[int]] = None,
                  model_dim=256,
-                 drop_and_bn='drop-BN',
-                 num_labels=2,
+                 drop_and_bn='drop-bn',
                  num_layers=1,
                  num_heads=8,
                  ffn_dim=2048,
                  dropout=0.5):
+        """
+        Args:
+            bert (str): bert model name
+            kernel_sizes (List[int]): kernel sizes of DctCNN. Default=[3, 3, 3]
+            num_channels (List[int]): number of channels of DctCNN. Default=[32, 64, 128]
+            model_dim (int): model dimension. Default=256
+            drop_and_bn (str): dropout and batch normalization. 'drop-bn', 'bn-drop', 'drop', 'bn' or None. Default='drop-bn'
+            num_layers (int): number of co-attention layers. Default=1
+            num_heads (int): number of heads in multi-head attention. Default=8
+            ffn_dim (int): dimension of feed forward network. Default=2048
+            dropout (float): dropout rate. Default=0.5
+        """
 
         super(MCAN, self).__init__()
 
@@ -242,11 +265,10 @@ class MCAN(AbstractModel):
         self.model_dim = model_dim
         self.drop_and_bn = drop_and_bn
 
+        # text
         self.bert = BertModel.from_pretrained(bert)
         self.linear_text = nn.Linear(self.bert.config.hidden_size, model_dim)
         self.bn_text = nn.BatchNorm1d(model_dim)
-
-        self.dropout = nn.Dropout(dropout)
 
         # vgg image
         self.vgg = _VGG()
@@ -276,8 +298,8 @@ class MCAN(AbstractModel):
         # classifier
         self.linear1 = nn.Linear(model_dim, 35)
         self.fc_bn = nn.BatchNorm1d(35)
-        self.linear2 = nn.Linear(35, num_labels)
-        self.softmax = nn.Softmax(dim=1)
+        self.linear2 = nn.Linear(35, 2)
+        self.dropout = nn.Dropout(dropout)
 
     def drop_bn_layer(self, x, part='dct'):
         bn = None
@@ -288,28 +310,39 @@ class MCAN(AbstractModel):
         elif part == 'bert':
             bn = self.bn_text
 
-        if self.drop_and_bn == 'drop-BN':
+        if self.drop_and_bn == 'drop-bn':
             x = self.dropout(x)
             x = bn(x)
-        elif self.drop_and_bn == 'BN-drop':
+        elif self.drop_and_bn == 'bn-drop':
             x = bn(x)
             x = self.dropout(x)
-        elif self.drop_and_bn == 'drop-only':
+        elif self.drop_and_bn == 'drop':
             x = self.dropout(x)
-        elif self.drop_and_bn == 'BN-only':
+        elif self.drop_and_bn == 'bn':
             x = bn(x)
-        elif self.drop_and_bn == 'none':
+        elif self.drop_and_bn is None:
             pass
 
         return x
 
-    def forward(self, text_input_ids, token_type_ids, attention_mask, image,
-                dct_img, attn_mask):
+    def forward(self, input_ids: torch.Tensor,
+                mask: torch.Tensor,
+                image: torch.Tensor,
+                dct_img: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            input_ids (Tensor): shape=(batch_size, max_len)
+            mask (Tensor): shape=(batch_size, max_len)
+            image (Tensor): transformed image tensor, shape=(batch_size, 3, width, height)
+            dct_img (Tensor): dtc image tensor, shape=(batch_size, N*N, 250)
+
+        Returns:
+              output (Tensor): shape=(batch_size, 2)
+        """
 
         # textual feature
-        bert_output = self.bert(input_ids=text_input_ids,
-                                token_type_ids=token_type_ids,
-                                attention_mask=attention_mask)
+        bert_output = self.bert(input_ids=input_ids,
+                                attention_mask=mask)
         text_output = bert_output.pooler_output
         text_output = F.relu(self.linear_text(text_output))
         text_output = self.drop_bn_layer(text_output, part='bert')
@@ -320,16 +353,16 @@ class MCAN(AbstractModel):
         vgg_output = self.drop_bn_layer(vgg_output, part='vgg')
 
         # dct feature
-        dct_out = self.dct_img(dct_img)
-        dct_out = F.relu(self.linear_dct(dct_out))
-        dct_out = self.drop_bn_layer(dct_out, part='dct')
+        dct_output = self.dct_img(dct_img)
+        dct_output = F.relu(self.linear_dct(dct_output))
+        dct_output = self.drop_bn_layer(dct_output, part='dct')
 
         output = None
         for fusion_layer in self.fusion_layers:
-            output = fusion_layer(vgg_output, dct_out, attn_mask)
+            output = fusion_layer(vgg_output, dct_output)
 
         for fusion_layer in self.fusion_layers:
-            output = fusion_layer(output, text_output, attn_mask)
+            output = fusion_layer(output, text_output)
 
         output = F.relu(self.linear1(output))
         output = self.dropout(output)
@@ -338,7 +371,17 @@ class MCAN(AbstractModel):
         return output
 
     def calculate_loss(self, data):
-        pass
+        token_id = data['text']['token_id']
+        mask = data['text']['mask']
+        vgg_feature = data['image']['vgg']
+        dct_feature = data['image']['dct']
+        label = data['label']
+        output = self.forward(token_id, mask, vgg_feature, dct_feature)
+        return F.cross_entropy(output, label)
 
     def predict(self, data):
-        pass
+        token_id = data['text']['token_id']
+        mask = data['text']['mask']
+        vgg_feature = data['image']['vgg']
+        dct_feature = data['image']['dct']
+        return torch.softmax(self.forward(token_id, mask, vgg_feature, dct_feature), dim=-1)
