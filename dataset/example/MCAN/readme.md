@@ -1,0 +1,1 @@
+similar to `EANN` dataset example, but without `domain` field.

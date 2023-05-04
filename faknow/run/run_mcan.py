@@ -13,7 +13,6 @@ from transformers import get_linear_schedule_with_warmup, BertTokenizer
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.mcan import MCAN
 from faknow.data.dataset.multi_modal import MultiModalDataset
-from faknow.data.dataset.mcan_dataset import MultiModalDataset
 from faknow.train.mcan_trainer import MCANTrainer
 
 
