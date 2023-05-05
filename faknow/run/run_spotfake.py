@@ -14,6 +14,7 @@ from faknow.model.content_based.multi_modal.spotfake import SpotFake
 from faknow.train.trainer_gpu import BaseTrainer
 
 def run_spotfake(
+        rank,
         root: str,
         pre_trained_bert_name="bert-base-uncased",
         batch_size=8,
@@ -58,7 +59,7 @@ def run_spotfake(
 def main():
     root = "/root/FaKnow/dataset/example/SpotFake/twitter/"
     pre_trained_bert_name = "bert-base-uncased"
-    run_spotfake(root, pre_trained_bert_name)
+    run_spotfake(0, root, pre_trained_bert_name)
 
 
 if __name__ == '__main__':

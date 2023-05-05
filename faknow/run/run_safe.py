@@ -10,7 +10,7 @@ from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
 
-def run_safe(root: str):
+def run_safe(rank, root: str):
     dataset = SAFENumpyDataset(root)
 
     val_size = int(len(dataset) * 0.1)
@@ -39,7 +39,7 @@ def run_safe(root: str):
 
 def main():
     root = Path(r"C:\Users\10749\Desktop\FaKnow\dataset\example\SAFE")
-    run_safe(root)
+    run_safe(0, root)
 
 
 if __name__ == '__main__':
