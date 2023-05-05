@@ -38,7 +38,7 @@ def run_safe(root: str):
 
 
 def main():
-    root = Path(r"C:\Users\10749\Desktop\Template\dataset\example\embedding")
+    root = Path(r"C:\Users\10749\Desktop\FaKnow\dataset\example\SAFE")
     run_safe(root)
 
 

@@ -1,5 +1,6 @@
 import datetime
 import os
+import sys
 from time import time
 from typing import Optional, Callable
 from tqdm import tqdm
@@ -125,7 +126,7 @@ class BaseTrainer(AbstractTrainer):
             self.optimizer.step()
 
             # set progress bar postfix
-            pbar.set_postfix_str(f"loss={loss.item()}")
+            pbar.set_postfix_str(f"loss={loss.item():.18f}")
 
         # close tqdm objects
         pbar.close()
@@ -133,14 +134,13 @@ class BaseTrainer(AbstractTrainer):
         # train visualization(tensorboard + log + console)
         writer.add_scalar("Train/loss", loss.item(), epoch)
         if others is None:
-            writer.add_scalar("Train/loss", loss.item(), epoch)
             self.logger.info(f"training loss : loss={loss.item():.8f}")
-            tqdm.write(f"training loss : loss={loss.item():.8f}")
+            print(f"training loss : loss={loss.item():.8f}", file=sys.stderr)
         else:
             for metric, value in others.items():
                 writer.add_scalar("Train/" + metric, value, epoch)
             self.logger.info(f"training loss : loss={loss.item():.8f}    " + dict2str(others))
-            tqdm.write(f"training loss : loss={loss.item():.8f}    " + dict2str(others))
+            print(f"training loss : loss={loss.item():.8f}    " + dict2str(others), file=sys.stderr)
 
     def _validate_epoch(
             self,
@@ -157,7 +157,7 @@ class BaseTrainer(AbstractTrainer):
         for metric, value in result.items():
             writer.add_scalar("Validation/" + metric, value, epoch)
         self.logger.info("validation result : " + dict2str(result))
-        tqdm.write("validation result : " + dict2str(result))
+        print("validation result : " + dict2str(result), file=sys.stderr)
 
     def save(
             self,
@@ -175,7 +175,7 @@ class BaseTrainer(AbstractTrainer):
 
         # save visualization(log + console)
         self.logger.info(f'\nmodel is saved as {save_path}')
-        tqdm.write(f'\nmodel is saved as {save_path}')
+        print(f'\nmodel is saved as {save_path}', file=sys.stderr)
 
     def fit(
             self,
@@ -208,17 +208,17 @@ class BaseTrainer(AbstractTrainer):
         self.logger.addHandler(fh)
 
         # print some information
-        tqdm.write(f'training data size={len(train_loader.dataset)}')
+        print(f'training data size={len(train_loader.dataset)}', file=sys.stderr)
         self.logger.info(f'training data size={len(train_loader.dataset)}')
         if validation:
-            tqdm.write(f'validation data size={len(validate_loader.dataset)}')
+            print(f'validation data size={len(validate_loader.dataset)}', file=sys.stderr)
             self.logger.info(f'validation data size={len(validate_loader.dataset)}')
         self.logger.info(f'Tensorboard log is saved as {tb_logs_path}')
 
         # training for num_epoch
-        tqdm.write('----start training-----')
+        print('----start training-----', file=sys.stderr)
         for epoch in range(num_epoch):
-            tqdm.write(f'\n--epoch=[{epoch + 1}/{num_epoch}]--')
+            print(f'\n--epoch=[{epoch + 1}/{num_epoch}]--', file=sys.stderr)
 
             # create formatter and add it to the handlers
             formatter = logging.Formatter('')
@@ -242,13 +242,13 @@ class BaseTrainer(AbstractTrainer):
             training_time = training_end_time - training_start_time
             if training_time < 60:
                 self.logger.info(f'training time={training_time:.1f}s')
-                tqdm.write(f'training time={training_time:.1f}s')
+                print(f'training time={training_time:.1f}s', file=sys.stderr)
             else:
                 training_time = int(training_time)
                 minutes = training_time // 60
                 seconds = training_time % 60
                 self.logger.info(f'training time={minutes}m{seconds:02d}s')
-                tqdm.write(f'training time={minutes}m{seconds:02d}s')
+                print(f'training time={minutes}m{seconds:02d}s', file=sys.stderr)
 
             # validate
             if validation:
