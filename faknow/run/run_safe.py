@@ -10,7 +10,7 @@ from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
 
-def run_safe(rank, root: str):
+def run_safe(rank, root):
     dataset = SAFENumpyDataset(root)
 
     val_size = int(len(dataset) * 0.1)
