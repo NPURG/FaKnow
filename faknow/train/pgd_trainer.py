@@ -1,13 +1,14 @@
+from typing import Dict
+
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.pgd import PGD
-from faknow.utils.util import dict2str
 
 
 class MFANTrainer(BaseTrainer):
-    def _train_epoch(self, data: DataLoader, epoch: int):
+    def _train_epoch(self, data: DataLoader, epoch: int) -> Dict[str, float]:
         self.model.train()
 
         pgd_word = PGD(self.model, emb_name='word_embedding', epsilon=6, alpha=1.8)
@@ -34,4 +35,6 @@ class MFANTrainer(BaseTrainer):
             pgd_word.restore()
 
             self.optimizer.step()
-        print(f"loss={loss_defence.item()}  {dict2str(others)}  pgd_loss={loss_adv.item()}", end='  ')
+        others['loss_defence'] = loss_defence.item()
+        others['loss_adv'] = loss_adv.item()
+        return others

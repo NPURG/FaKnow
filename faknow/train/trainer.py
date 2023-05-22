@@ -1,16 +1,16 @@
 import datetime
+import logging
 import os
 import sys
 from time import time
-from typing import Optional, Callable
-from tqdm import tqdm
-import logging
+from typing import Optional, Dict, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.model import AbstractModel
@@ -23,11 +23,9 @@ class AbstractTrainer:
             model: AbstractModel,
             evaluator: Evaluator,
             optimizer: Optimizer,
-            scheduler: Optional[_LRScheduler] = None,
-            loss_func: Optional[Callable] = None
+            scheduler: Optional[_LRScheduler] = None
     ):
         self.model = model
-        self.loss_func = loss_func
         self.optimizer = optimizer
         self.evaluator = evaluator
         self.scheduler = scheduler
@@ -57,10 +55,9 @@ class BaseTrainer(AbstractTrainer):
             model: AbstractModel,
             evaluator: Evaluator,
             optimizer: Optimizer,
-            scheduler: Optional[_LRScheduler] = None,
-            loss_func: Optional[Callable] = None
+            scheduler: Optional[_LRScheduler] = None
     ):
-        super(BaseTrainer, self).__init__(model, evaluator, optimizer, scheduler, loss_func)
+        super(BaseTrainer, self).__init__(model, evaluator, optimizer, scheduler)
 
         # create logger
         self.logger = logging.getLogger(__name__)
@@ -89,75 +86,61 @@ class BaseTrainer(AbstractTrainer):
         labels = []
         for batch_data in loader:
             outputs.append(self.model.predict(batch_data))
+
+            # todo 统一使用dict还是tuple
+            # 是否要区分dict trainer和tuple trainer
             labels.append(batch_data['label'])
         return self.evaluator.evaluate(torch.concat(outputs), torch.concat(labels))
 
     def _train_epoch(
             self,
             loader: DataLoader,
-            epoch: int,
-            writer: SummaryWriter
-    ):
+            epoch: int
+    ) -> Union[float, Dict[str, float]]:
+
         """training for one epoch"""
+
+        # todo 模型返回dict[str, Tensor] or Tuple(Tensor, dict[str, float])
+        # train_epoch 返回值也要统一
+
         # train mode
         self.model.train()
 
-        # initialize tqdm objects
-        pbar = tqdm(enumerate(loader), total=len(loader), ncols=100, desc='Training')
+        with tqdm(enumerate(loader), total=len(loader), ncols=100, desc='Training') as pbar:
+            loss = portion_losses = None
+            for batch_id, batch_data in pbar:
+                result = self.model.calculate_loss(batch_data)
 
-        # start training
-        loss = others = None
-        for batch_id, batch_data in pbar:
-            # calculate loss
-            result = self.model.calculate_loss(batch_data)
+                # check result type
+                if type(result) is tuple and len(result) == 2 and type(result[1]) is dict:
+                    loss = result[0]
+                    portion_losses = result[1]
+                elif type(result) is torch.Tensor:
+                    loss = result
+                else:
+                    raise TypeError(f"result type error: {type(result)}")
 
-            # check result type
-            if type(result) is tuple and len(result) == 2 and type(result[1]) is dict:
-                loss = result[0]
-                others = result[1]
-            elif type(result) is torch.Tensor:
-                loss = result
-            else:
-                raise TypeError(f"result type error: {type(result)}")
+                # backward
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
 
-            # backward
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+        if portion_losses is None:
+            return loss.item()
 
-            # set progress bar postfix
-            pbar.set_postfix_str(f"loss={loss.item():.18f}")
-
-        # close tqdm objects
-        pbar.close()
-
-        # train visualization(tensorboard + log + console)
-        writer.add_scalar("Train/loss", loss.item(), epoch)
-        if others is None:
-            self.logger.info(f"training loss : loss={loss.item():.8f}")
-            print(f"training loss : loss={loss.item():.8f}", file=sys.stderr)
-        else:
-            for metric, value in others.items():
-                writer.add_scalar("Train/" + metric, value, epoch)
-            self.logger.info(f"training loss : loss={loss.item():.8f}    " + dict2str(others))
-            print(f"training loss : loss={loss.item():.8f}    " + dict2str(others), file=sys.stderr)
+        portion_losses['total_loss'] = loss.item()
+        return portion_losses
 
     def _validate_epoch(
             self,
             loader: DataLoader,
-            epoch: int,
-            writer: SummaryWriter
-    ):
+            epoch: int
+    ) -> Dict[str, float]:
         """validation after training for one epoch"""
         # todo 计算best score，作为最佳结果保存
         # evaluate
         result = self.evaluate(loader)
-
-        # validation visualization(tensorboard + log + console)
-        for metric, value in result.items():
-            writer.add_scalar("Validation/" + metric, value, epoch)
-        self.logger.info("validation result : " + dict2str(result))
-        print("validation result : " + dict2str(result), file=sys.stderr)
+        return result
 
     def save(
             self,
@@ -207,7 +190,7 @@ class BaseTrainer(AbstractTrainer):
         # add the handlers to the logger
         self.logger.addHandler(fh)
 
-        # print some information
+        # print config information
         print(f'training data size={len(train_loader.dataset)}', file=sys.stderr)
         self.logger.info(f'training data size={len(train_loader.dataset)}')
         if validation:
@@ -237,9 +220,13 @@ class BaseTrainer(AbstractTrainer):
 
             # train
             training_start_time = time()
-            self._train_epoch(train_loader, epoch, writer)
+            train_result = self._train_epoch(train_loader, epoch)
+
+            # show training time
             training_end_time = time()
             training_time = training_end_time - training_start_time
+
+            # todo 把这一小段写成util函数，将时间输入，返回格式化后的字符串
             if training_time < 60:
                 self.logger.info(f'training time={training_time:.1f}s')
                 print(f'training time={training_time:.1f}s', file=sys.stderr)
@@ -250,14 +237,34 @@ class BaseTrainer(AbstractTrainer):
                 self.logger.info(f'training time={minutes}m{seconds:02d}s')
                 print(f'training time={minutes}m{seconds:02d}s', file=sys.stderr)
 
+            # show training loss
+            if type(train_result) is float:
+                # single loss
+                writer.add_scalar("Train/loss", train_result, epoch)
+                self.logger.info(f"training loss : loss={train_result:.8f}")
+                print(f"training loss : loss={train_result:.8f}", file=sys.stderr)
+            elif type(train_result) is dict:
+                # multiple losses
+                for metric, value in train_result.items():
+                    writer.add_scalar("Train/" + metric, value, epoch)
+                self.logger.info(f"training loss : {dict2str(train_result)}")
+                print(f"training loss : {dict2str(train_result)}", file=sys.stderr)
+
             # validate
             if validation:
-                self._validate_epoch(validate_loader, epoch, writer)
+                validation_result = self._validate_epoch(validate_loader, epoch)
+
+                # show validation result
+                for metric, value in validation_result.items():
+                    writer.add_scalar("Validation/" + metric, value, epoch)
+                self.logger.info("validation result : " + dict2str(validation_result))
+                print("validation result : " + dict2str(validation_result), file=sys.stderr)
 
             # learning rate scheduler
             if self.scheduler is not None:
                 self.scheduler.step()
 
+        writer.flush()
         writer.close()
 
         # save the model
