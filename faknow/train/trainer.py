@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import sys
@@ -15,7 +14,7 @@ from tqdm import tqdm
 
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.model import AbstractModel
-from faknow.utils.util import dict2str
+from faknow.utils.util import dict2str, seconds2str, now2str
 
 
 class AbstractTrainer:
@@ -146,21 +145,24 @@ class BaseTrainer(AbstractTrainer):
 
     def save(
             self,
-            save_path: str
+            save_path: Optional[str] = None
     ):
         """save the model"""
+
+        # default save path: './save/model_name-time.pth'
         if save_path is None:
             save_dir = os.path.join(os.getcwd(), "save")
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-            file_name = f"{self.model.__class__.__name__}-{datetime.datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pth"
+            file_name = f"{self.model.__class__.__name__}-{now2str()}.pth"
             save_path = os.path.join(save_dir, file_name)
+
+        # create save dir if not exists
+        if not os.path.exists(os.path.dirname(save_path)):
+            os.makedirs(os.path.dirname(save_path))
 
         torch.save(self.model.state_dict(), save_path)
 
-        # save visualization(log + console)
-        self.logger.info(f'\nmodel is saved as {save_path}')
-        print(f'\nmodel is saved as {save_path}', file=sys.stderr)
+        self.logger.info(f'\nmodel is saved in {save_path}')
+        print(f'\nmodel is saved in {save_path}', file=sys.stderr)
 
     def fit(
             self,
@@ -170,18 +172,18 @@ class BaseTrainer(AbstractTrainer):
             save=False,
             save_path: Optional[str] = None
     ):
-        validation = True
-        if validate_loader is None:
-            validation = False
+        use_validation = False if validate_loader is None else True
+
+        result_path = f"{self.model.__class__.__name__}-{now2str()}"
 
         # create files(tb_logs + logs)
-        tb_logs_path = f"tb_logs/{self.model.__class__.__name__}-{datetime.datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}"
+        tb_logs_path = f"tb_logs/{result_path}"
         writer = SummaryWriter(tb_logs_path)
 
         logs_dir = os.path.join(os.getcwd(), "logs")
         if not os.path.exists(logs_dir):
             os.makedirs(logs_dir)
-        file_name = f"{self.model.__class__.__name__}-{datetime.datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.log"
+        file_name = f"{result_path}.log"
         logs_path = os.path.join(logs_dir, file_name)
         # create file handler which logs even debug messages
         fh = logging.FileHandler(logs_path)
@@ -195,10 +197,12 @@ class BaseTrainer(AbstractTrainer):
         # print config information
         print(f'training data size={len(train_loader.dataset)}', file=sys.stderr)
         self.logger.info(f'training data size={len(train_loader.dataset)}')
-        if validation:
+        if use_validation:
             print(f'validation data size={len(validate_loader.dataset)}', file=sys.stderr)
             self.logger.info(f'validation data size={len(validate_loader.dataset)}')
-        self.logger.info(f'Tensorboard log is saved as {tb_logs_path}')
+
+        print(f'Tensorboard log is saved in {tb_logs_path}', file=sys.stderr)
+        self.logger.info(f'Tensorboard log is saved in {tb_logs_path}')
 
         # training for num_epoch
         print('----start training-----', file=sys.stderr)
@@ -225,19 +229,9 @@ class BaseTrainer(AbstractTrainer):
             train_result = self._train_epoch(train_loader, epoch)
 
             # show training time
-            training_end_time = time()
-            training_time = training_end_time - training_start_time
-
-            # todo 把这一小段写成util函数，将时间输入，返回格式化后的字符串
-            if training_time < 60:
-                self.logger.info(f'training time={training_time:.1f}s')
-                print(f'training time={training_time:.1f}s', file=sys.stderr)
-            else:
-                training_time = int(training_time)
-                minutes = training_time // 60
-                seconds = training_time % 60
-                self.logger.info(f'training time={minutes}m{seconds:02d}s')
-                print(f'training time={minutes}m{seconds:02d}s', file=sys.stderr)
+            cost_time_str = seconds2str(int(time() - training_start_time))
+            self.logger.info(f'training time={cost_time_str}')
+            print(f'training time={cost_time_str}', file=sys.stderr)
 
             # show training loss
             if type(train_result) is float:
@@ -253,7 +247,7 @@ class BaseTrainer(AbstractTrainer):
                 print(f"training loss : {dict2str(train_result)}", file=sys.stderr)
 
             # validate
-            if validation:
+            if use_validation:
                 validation_result = self._validate_epoch(validate_loader, epoch)
 
                 # show validation result
@@ -271,4 +265,6 @@ class BaseTrainer(AbstractTrainer):
 
         # save the model
         if save:
+            if save_path is None:
+                save_path = os.path.join(os.getcwd(), "save", f"{result_path}.pth")
             self.save(save_path)

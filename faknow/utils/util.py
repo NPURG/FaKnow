@@ -30,16 +30,34 @@ def dict2str(result_dict: Dict[str, float]) -> str:
     ])
 
 
-def get_local_time():
-    r"""Get current time
+def now2str() -> str:
+    r"""convert current time to str
 
     Returns:
-        str: current time
+        str: current time, %Y-%m-%d-%H_%M_%S
     """
     cur = datetime.datetime.now()
-    cur = cur.strftime("%b-%d-%Y_%H-%M-%S")
+    cur = cur.strftime("%Y-%m-%d-%H_%M_%S")
 
     return cur
+
+
+def seconds2str(seconds: int) -> str:
+    r"""Convert seconds to time format
+
+    Args:
+        seconds (int): seconds
+
+    Returns:
+        str: time format
+    """
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    if m == 0:
+        return f'{s}s'
+    elif h == 0:
+        return f'{m}m{s}s'
+    return f'{h}h{m}m{s}s'
 
 
 def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, hash_dimension=10) -> List[int]:
