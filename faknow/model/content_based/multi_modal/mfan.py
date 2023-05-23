@@ -1,12 +1,13 @@
-from typing import Dict, Tuple
+from typing import Dict
 
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torchvision import models
 
+from faknow.model.layers.layer import SignedGAT, TextCNNLayer
 from faknow.model.layers.transformer import (FFN,
                                              ScaledDotProductAttention, transpose_qkv, transpose_output)
-from faknow.model.layers.layer import SignedGAT, TextCNNLayer
 from faknow.model.model import AbstractModel
 from faknow.utils.util import calculate_cos_matrix
 
@@ -220,7 +221,7 @@ class MFAN(AbstractModel):
 
         return class_output, dist
 
-    def calculate_loss(self, data) -> Tuple[torch.Tensor, Dict[str, float]]:
+    def calculate_loss(self, data) -> Dict[str, Tensor]:
         post_id = data['post_id']
         text = data['text']
         image = data['image']
@@ -231,7 +232,7 @@ class MFAN(AbstractModel):
 
         loss = class_loss + dis_loss
 
-        return loss, {'class_loss': class_loss.item(), 'dis_loss': dis_loss.item()}
+        return {'total_loss': loss, 'class_loss': class_loss, 'dis_loss': dis_loss}
 
     def predict(self, data_without_label):
         post_id = data_without_label['post_id']

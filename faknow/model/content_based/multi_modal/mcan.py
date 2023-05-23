@@ -1,10 +1,10 @@
 from typing import Optional, List
 
 import torch
-from torch import nn
+import torch.nn.functional as F
+from torch import nn, Tensor
 from torchvision.models import vgg19, VGG19_Weights
 from transformers import BertModel
-import torch.nn.functional as F
 
 from faknow.model.layers.dct import DctStem, DctInceptionBlock, conv2d_bn_relu
 from faknow.model.layers.transformer import FFN, AddNorm
@@ -370,7 +370,7 @@ class MCAN(AbstractModel):
 
         return output
 
-    def calculate_loss(self, data):
+    def calculate_loss(self, data) -> Tensor:
         token_id = data['text']['token_id']
         mask = data['text']['mask']
         vgg_feature = data['image']['vgg']

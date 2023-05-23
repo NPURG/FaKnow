@@ -1,10 +1,10 @@
-from collections import OrderedDict
-from typing import Tuple, Dict
+from typing import Dict
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+from torch import Tensor
 
 from faknow.model.layers.layer import GradientReverseLayer, TextCNNLayer
 from faknow.model.model import AbstractModel
@@ -105,7 +105,7 @@ class EANN(AbstractModel):
 
         return class_output, domain_output
 
-    def calculate_loss(self, data) -> Tuple[torch.Tensor, Dict[str, float]]:
+    def calculate_loss(self, data) -> Dict[str, Tensor]:
         token_id = data['text']['token_id']
         mask = data['text']['mask']
         image = data['image']
@@ -118,7 +118,7 @@ class EANN(AbstractModel):
                                          event_label) * self.loss_weights[1]
         loss = class_loss + domain_loss
 
-        return loss, {'class_loss': class_loss.item(), 'domain_loss': domain_loss.item()}
+        return {'total_loss': loss, 'class_loss': class_loss, 'domain_loss': domain_loss}
 
     def predict(self, data_without_label) -> torch.Tensor:
         token_id = data_without_label['text']['token_id']

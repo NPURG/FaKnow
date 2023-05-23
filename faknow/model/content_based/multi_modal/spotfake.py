@@ -1,7 +1,9 @@
 import torch
-from torchvision import models
 import torch.nn as nn
+from torch import Tensor
+from torchvision import models
 from transformers import BertModel
+
 from faknow.model.model import AbstractModel
 
 device = torch.device("cuda")
@@ -31,7 +33,7 @@ class _TextEncoder(nn.Module):
         self.text_enc_fc2 = torch.nn.Linear(text_fc1_out, text_fc2_out)
         self.dropout = nn.Dropout(dropout_p)
         self.fine_tune()
-        
+
     def forward(self, input_ids, attention_mask):
         """
         输入Bert和分类器，计算logis
@@ -51,14 +53,14 @@ class _TextEncoder(nn.Module):
                 self.text_enc_fc2(x))
         )
         return x
-    
+
     def fine_tune(self):
         """
         固定参数
         """
         for p in self.bert.parameters():
             p.requires_grad = self.fine_tune_module
-            
+
 
 # 视觉vgg19预训练模型
 class _VisionEncoder(nn.Module):
@@ -79,7 +81,7 @@ class _VisionEncoder(nn.Module):
         self.vis_enc_fc2 = torch.nn.Linear(img_fc1_out, img_fc2_out)
         self.dropout = nn.Dropout(dropout_p)
         self.fine_tune()
-        
+
     def forward(self, images):
         """
         :参数: images, tensor (batch_size, 3, image_size, image_size)
@@ -96,7 +98,7 @@ class _VisionEncoder(nn.Module):
                 self.vis_enc_fc2(x))
         )
         return x
-    
+
     def fine_tune(self):
         """
         允许或阻止vgg的卷积块2到4的梯度计算。
@@ -108,46 +110,51 @@ class _VisionEncoder(nn.Module):
             for p in c.parameters():
                 p.requires_grad = self.fine_tune_module
 
-#LanguageAndVisionConcat
-class _Text_Concat_Vision(torch.nn.Module):
+
+# LanguageAndVisionConcat
+class _TextConcatVision(nn.Module):
     def __init__(
             self,
             model_params
     ):
-        super(_Text_Concat_Vision, self).__init__()
-        self.text_encoder = _TextEncoder(model_params['text_fc2_out'], model_params['text_fc1_out'], model_params['dropout_p'], model_params['fine_tune_text_module'], model_params['pre_trained_bert_name'])
-        self.vision_encoder = _VisionEncoder(model_params['img_fc1_out'], model_params['img_fc2_out'], model_params['dropout_p'], model_params['fine_tune_vis_module'])
+        super(_TextConcatVision, self).__init__()
+        self.text_encoder = _TextEncoder(model_params['text_fc2_out'], model_params['text_fc1_out'],
+                                         model_params['dropout_p'], model_params['fine_tune_text_module'],
+                                         model_params['pre_trained_bert_name'])
+        self.vision_encoder = _VisionEncoder(model_params['img_fc1_out'], model_params['img_fc2_out'],
+                                             model_params['dropout_p'], model_params['fine_tune_vis_module'])
         self.fusion = torch.nn.Linear(
-            in_features=(model_params['text_fc2_out'] + model_params['img_fc2_out']), 
+            in_features=(model_params['text_fc2_out'] + model_params['img_fc2_out']),
             out_features=model_params['fusion_output_size']
         )
         self.fc = torch.nn.Linear(
-            in_features=model_params['fusion_output_size'], 
+            in_features=model_params['fusion_output_size'],
             out_features=1
         )
         self.dropout = torch.nn.Dropout(model_params['dropout_p'])
 
-    #def forward(self, text, image, label=None):
-    def forward(self, text, image, label=None):
-        ## text to Bert
+    # def forward(self, text, image):
+    def forward(self, text, image):
+        # text to Bert
         text_features = self.text_encoder(text[0], text[1])
-        ## image to vgg
+        # image to vgg
         image_features = self.vision_encoder(image)
-        ## 连接image & text 
+        # 连接image & text
         combined_features = torch.cat(
-            [text_features, image_features], dim = 1
+            [text_features, image_features], dim=1
         )
         combined_features = self.dropout(combined_features)
         fused = self.dropout(
             torch.relu(
-            self.fusion(combined_features)
+                self.fusion(combined_features)
             )
         )
-        # prediction = torch.nn.functional.sigmoid(self.fc(fused))
+
         prediction = torch.sigmoid(self.fc(fused))
         prediction = prediction.squeeze(-1)
         prediction = prediction.float()
         return prediction
+
 
 class SpotFake(AbstractModel):
     def __init__(
@@ -184,7 +191,7 @@ class SpotFake(AbstractModel):
             "fusion_output_size": fusion_output_size,
             "pre_trained_bert_name": pre_trained_bert_name
         }
-        self.model = _Text_Concat_Vision(model_params).to(device)
+        self.model = _TextConcatVision(model_params).to(device)
         if loss_func is None:
             self.loss_func = nn.BCELoss()
         else:
@@ -193,8 +200,8 @@ class SpotFake(AbstractModel):
     def forward(self, text: torch.Tensor, mask: torch.Tensor, domain: torch.Tensor):
         return self.model([text, mask], image=domain)
 
-    def calculate_loss(self, data):
-        img_ip , text_ip, label = data["image_id"], data["BERT_ip"], data['label']
+    def calculate_loss(self, data) -> Tensor:
+        img_ip, text_ip, label = data["image_id"], data["BERT_ip"], data['label']
         b_input_ids, b_attn_mask = tuple(t.to(device) for t in text_ip)
         imgs_ip = img_ip.to(device)
         b_labels = label.to(device)
@@ -203,14 +210,12 @@ class SpotFake(AbstractModel):
 
     @torch.no_grad()
     def predict(self, data_without_label):
-        img_ip , text_ip, label = data_without_label["image_id"], data_without_label["BERT_ip"], data_without_label['label']
+        img_ip, text_ip = data_without_label["image_id"], data_without_label["BERT_ip"]
         b_input_ids, b_attn_mask = tuple(t.to(device) for t in text_ip)
         imgs_ip = img_ip.to(device)
-        b_labels = label.to(device)
+
         # shape=(n,), data = 1 or 0
         round_pred = self.forward(b_input_ids, b_attn_mask, imgs_ip)
-        # round_pred[round_pred<0.5] = 0
-        # round_pred[round_pred>=0.5] = 1
 
         new_outputs = torch.zeros((round_pred.shape[0], 2)).to(round_pred.device)
 

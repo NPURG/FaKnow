@@ -3,9 +3,11 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 from transformers import BertModel
 
 from faknow.model.model import AbstractModel
+
 """
 Zoom Out and Observe: News Environment Perception for Fake News Detection
 paper: https://aclanthology.org/2022.acl-long.311/
@@ -334,7 +336,7 @@ class NEP(AbstractModel):
         output = torch.cat([detector_output, v_p], dim=-1)
         return output
 
-    def calculate_loss(self, data):
+    def calculate_loss(self, data) -> Tensor:
         post_simcse, avg_mac, avg_mic, p_mac, p_mic, avg_mic_mic, token, label = data.values(
         )
         output = self(post_simcse,

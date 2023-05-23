@@ -1,11 +1,11 @@
 import datetime
 import random
 from collections import defaultdict
-from typing import List
+from typing import List, Dict
 
+import numpy as np
 import torch
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
 
 def calculate_cos_matrix(matrix1: torch.Tensor, matrix2: torch.Tensor):
@@ -14,7 +14,7 @@ def calculate_cos_matrix(matrix1: torch.Tensor, matrix2: torch.Tensor):
                                               matrix2.numpy()))
 
 
-def dict2str(result_dict):
+def dict2str(result_dict: Dict[str, float]) -> str:
     r"""convert result dict to str
 
     Args:
@@ -25,7 +25,7 @@ def dict2str(result_dict):
     """
 
     return "    ".join([
-        str(metric) + "=" + f"{value:.4f}"
+        str(metric) + "=" + f"{value:.6f}"
         for metric, value in result_dict.items()
     ])
 

@@ -5,8 +5,8 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch import nn
 
-from faknow.model.model import AbstractModel
 from faknow.model.layers.transformer import FFN
+from faknow.model.model import AbstractModel
 
 """
 Embracing Domain Differences in Fake News Cross-domain Fake News Detection using Multi-modal Data
@@ -85,7 +85,7 @@ class EDDFN(AbstractModel):
 
         return class_out, decoder_out, specific_domain, shared_domain
 
-    def calculate_loss(self, data) -> Tuple[torch.Tensor, Dict[str, float]]:
+    def calculate_loss(self, data) -> Dict[str, Tensor]:
         input_representation, domain, label = data
         class_out, decoder_out, specific_domain, shared_domain = self.forward(input_representation)
 
@@ -96,9 +96,9 @@ class EDDFN(AbstractModel):
 
         loss = class_loss + decoder_loss + specific_domain_loss + shared_domain_loss
 
-        return loss, {'class_loss': class_loss.item(), 'decoder_loss': decoder_loss.item(),
-                      'specific_domain_loss': specific_domain_loss.item(),
-                      'shared_domain_loss': shared_domain_loss.item()}
+        return {'total_loss': loss, 'class_loss': class_loss, 'decoder_loss': decoder_loss,
+                'specific_domain_loss': specific_domain_loss,
+                'shared_domain_loss': shared_domain_loss}
 
     def predict(self, data_without_label):
         if type(data_without_label) is tuple:

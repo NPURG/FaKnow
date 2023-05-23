@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import sys
+import warnings
 from time import time
 from typing import Optional, Dict, Union
 
@@ -100,36 +101,37 @@ class BaseTrainer(AbstractTrainer):
 
         """training for one epoch"""
 
-        # todo 模型返回dict[str, Tensor] or Tuple(Tensor, dict[str, float])
-        # train_epoch 返回值也要统一
-
-        # train mode
+        # switch model to train mode
         self.model.train()
 
         with tqdm(enumerate(loader), total=len(loader), ncols=100, desc='Training') as pbar:
-            loss = portion_losses = None
+            loss = None
+            result_is_dict = False
             for batch_id, batch_data in pbar:
                 result = self.model.calculate_loss(batch_data)
 
                 # check result type
-                if type(result) is tuple and len(result) == 2 and type(result[1]) is dict:
-                    loss = result[0]
-                    portion_losses = result[1]
+                if type(result) is dict:
+                    result_is_dict = True
+                    if 'total_loss' in result.keys():
+                        loss = result['total_loss']
+                    else:
+                        # todo 是否允许没有total_loss，采用所有loss的和作为total_loss
+                        warnings.warn(f"no total_loss in result: {result}, use sum of all losses as total_loss")
+                        loss = torch.sum(torch.stack(list(result.values())))
                 elif type(result) is torch.Tensor:
                     loss = result
                 else:
-                    raise TypeError(f"result type error: {type(result)}")
+                    raise TypeError(f"result type error: {result}")
 
                 # backward
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
 
-        if portion_losses is None:
+            if result_is_dict:
+                return {k: v.item() for k, v in result.items()}
             return loss.item()
-
-        portion_losses['total_loss'] = loss.item()
-        return portion_losses
 
     def _validate_epoch(
             self,
@@ -241,8 +243,8 @@ class BaseTrainer(AbstractTrainer):
             if type(train_result) is float:
                 # single loss
                 writer.add_scalar("Train/loss", train_result, epoch)
-                self.logger.info(f"training loss : loss={train_result:.8f}")
-                print(f"training loss : loss={train_result:.8f}", file=sys.stderr)
+                self.logger.info(f"training loss : loss={train_result:.6f}")
+                print(f"training loss : loss={train_result:.6f}", file=sys.stderr)
             elif type(train_result) is dict:
                 # multiple losses
                 for metric, value in train_result.items():

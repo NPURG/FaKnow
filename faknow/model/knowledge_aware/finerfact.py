@@ -606,7 +606,7 @@ class FinerFact(AbstractModel):
 
         return logits
 
-    def calculate_loss(self, data):
+    def calculate_loss(self, data) -> Tensor:
         # token_id, mask, type_id, label, post_rank, user_rank, keyword_rank, user_metadata = data
         """get item from batch dict"""
         token_id = data['token_id']

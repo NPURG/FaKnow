@@ -51,7 +51,7 @@ class TextCNN(AbstractModel):
         out = self.classifier(text)
         return out
 
-    def calculate_loss(self, data):
+    def calculate_loss(self, data) -> Tensor:
         text, label = data
         out = self.forward(text)
         loss = self.loss_func(out, label)

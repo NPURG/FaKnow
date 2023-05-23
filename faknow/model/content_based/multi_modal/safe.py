@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, List, Dict
 
 import torch
 import torch.nn.functional as F
@@ -133,7 +133,7 @@ class SAFE(AbstractModel):
 
         return class_output, cos_dis_sim
 
-    def calculate_loss(self, data) -> Tuple[torch.Tensor, Dict[str, float]]:
+    def calculate_loss(self, data) -> Dict[str, Tensor]:
         headline = data['head']
         body = data['body']
         image = data['image']
@@ -144,7 +144,7 @@ class SAFE(AbstractModel):
         cos_dis_sim_loss = self.loss_funcs[1](cos_dis_sim, label) * self.loss_weights[1]
 
         loss = class_loss + cos_dis_sim_loss
-        return loss, {'class_loss': class_loss.item(), 'cos_dis_sim_loss': cos_dis_sim_loss.item()}
+        return {'total_loss': loss, 'class_loss': class_loss, 'cos_dis_sim_loss': cos_dis_sim_loss}
 
     def predict(self, data_without_label) -> torch.Tensor:
         head = data_without_label['head']

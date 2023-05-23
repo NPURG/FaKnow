@@ -12,11 +12,12 @@ class MFANTrainer(BaseTrainer):
         self.model.train()
 
         pgd_word = PGD(self.model, emb_name='word_embedding', epsilon=6, alpha=1.8)
-        loss_defence = others = loss_adv = None
+        losses = loss_defence = loss_adv = None
 
         for batch_id, batch_data in enumerate(data):
             # common loss
-            loss_defence, others = self.model.calculate_loss(batch_data)
+            losses = self.model.calculate_loss(batch_data)
+            loss_defence = losses['total_loss']
             self.optimizer.zero_grad()
             loss_defence.backward()
 
@@ -35,6 +36,5 @@ class MFANTrainer(BaseTrainer):
             pgd_word.restore()
 
             self.optimizer.step()
-        others['loss_defence'] = loss_defence.item()
-        others['loss_adv'] = loss_adv.item()
-        return others
+
+        return {k: v.item() for k, v in losses.items()}
