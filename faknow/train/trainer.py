@@ -18,46 +18,38 @@ from faknow.utils.util import dict2str, seconds2str, now2str
 
 
 class AbstractTrainer:
-    def __init__(
-            self,
-            model: AbstractModel,
-            evaluator: Evaluator,
-            optimizer: Optimizer,
-            scheduler: Optional[_LRScheduler] = None
-    ):
+    def __init__(self,
+                 model: AbstractModel,
+                 evaluator: Evaluator,
+                 optimizer: Optimizer,
+                 scheduler: Optional[_LRScheduler] = None):
         self.model = model
         self.optimizer = optimizer
         self.evaluator = evaluator
         self.scheduler = scheduler
 
     @torch.no_grad()
-    def evaluate(
-            self,
-            data: DataLoader
-    ):
+    def evaluate(self, data: DataLoader):
         """evaluate after training"""
         raise NotImplementedError
 
-    def fit(
-            self,
-            train_data: DataLoader,
-            num_epoch: int,
-            validate_data=None,
+    def fit(self,
+            train_loader: DataLoader,
+            num_epochs: int,
+            validate_loader=None,
             save=False,
-            save_path=None
-    ):
+            save_path=None):
         raise NotImplementedError
 
 
 class BaseTrainer(AbstractTrainer):
-    def __init__(
-            self,
-            model: AbstractModel,
-            evaluator: Evaluator,
-            optimizer: Optimizer,
-            scheduler: Optional[_LRScheduler] = None
-    ):
-        super(BaseTrainer, self).__init__(model, evaluator, optimizer, scheduler)
+    def __init__(self,
+                 model: AbstractModel,
+                 evaluator: Evaluator,
+                 optimizer: Optimizer,
+                 scheduler: Optional[_LRScheduler] = None):
+        super(BaseTrainer, self).__init__(model, evaluator, optimizer,
+                                          scheduler)
 
         # create logger
         self.logger = logging.getLogger(__name__)
@@ -74,10 +66,7 @@ class BaseTrainer(AbstractTrainer):
         """
 
     @torch.no_grad()
-    def evaluate(
-            self,
-            loader: DataLoader
-    ):
+    def evaluate(self, loader: DataLoader):
         # evaluation mode
         self.model.eval()
 
@@ -90,20 +79,20 @@ class BaseTrainer(AbstractTrainer):
             # todo 统一使用dict还是tuple
             # 是否要区分dict trainer和tuple trainer
             labels.append(batch_data['label'])
-        return self.evaluator.evaluate(torch.concat(outputs), torch.concat(labels))
+        return self.evaluator.evaluate(torch.concat(outputs),
+                                       torch.concat(labels))
 
-    def _train_epoch(
-            self,
-            loader: DataLoader,
-            epoch: int
-    ) -> Union[float, Dict[str, float]]:
-
+    def _train_epoch(self, loader: DataLoader,
+                     epoch: int) -> Union[float, Dict[str, float]]:
         """training for one epoch"""
 
         # switch model to train mode
         self.model.train()
 
-        with tqdm(enumerate(loader), total=len(loader), ncols=100, desc='Training') as pbar:
+        with tqdm(enumerate(loader),
+                  total=len(loader),
+                  ncols=100,
+                  desc='Training') as pbar:
             loss = None
             result_is_dict = False
             for batch_id, batch_data in pbar:
@@ -116,7 +105,9 @@ class BaseTrainer(AbstractTrainer):
                         loss = result['total_loss']
                     else:
                         # todo 是否允许没有total_loss，采用所有loss的和作为total_loss
-                        warnings.warn(f"no total_loss in result: {result}, use sum of all losses as total_loss")
+                        warnings.warn(
+                            f"no total_loss in result: {result}, use sum of all losses as total_loss"
+                        )
                         loss = torch.sum(torch.stack(list(result.values())))
                 elif type(result) is torch.Tensor:
                     loss = result
@@ -132,21 +123,15 @@ class BaseTrainer(AbstractTrainer):
                 return {k: v.item() for k, v in result.items()}
             return loss.item()
 
-    def _validate_epoch(
-            self,
-            loader: DataLoader,
-            epoch: int
-    ) -> Dict[str, float]:
+    def _validate_epoch(self, loader: DataLoader,
+                        epoch: int) -> Dict[str, float]:
         """validation after training for one epoch"""
         # todo 计算best score，作为最佳结果保存
         # evaluate
         result = self.evaluate(loader)
         return result
 
-    def save(
-            self,
-            save_path: Optional[str] = None
-    ):
+    def save(self, save_path: Optional[str] = None):
         """save the model"""
 
         # default save path: './save/model_name-time.pth'
@@ -164,14 +149,12 @@ class BaseTrainer(AbstractTrainer):
         self.logger.info(f'\nmodel is saved in {save_path}')
         print(f'\nmodel is saved in {save_path}', file=sys.stderr)
 
-    def fit(
-            self,
+    def fit(self,
             train_loader: DataLoader,
-            num_epoch: int,
+            num_epochs: int,
             validate_loader: Optional[DataLoader] = None,
             save=False,
-            save_path: Optional[str] = None
-    ):
+            save_path: Optional[str] = None):
         use_validation = False if validate_loader is None else True
 
         result_path = f"{self.model.__class__.__name__}-{now2str()}"
@@ -195,19 +178,21 @@ class BaseTrainer(AbstractTrainer):
         self.logger.addHandler(fh)
 
         # print config information
-        print(f'training data size={len(train_loader.dataset)}', file=sys.stderr)
-        self.logger.info(f'training data size={len(train_loader.dataset)}')
+        train_set_size = len(train_loader.dataset)
+        print(f'training data size={train_set_size}', file=sys.stderr)
+        self.logger.info(f'training data size={train_set_size}')
         if use_validation:
-            print(f'validation data size={len(validate_loader.dataset)}', file=sys.stderr)
-            self.logger.info(f'validation data size={len(validate_loader.dataset)}')
+            validate_set_size = len(validate_loader.dataset)
+            print(f'validation data size={validate_set_size}', file=sys.stderr)
+            self.logger.info(f'validation data size={validate_set_size}')
 
         print(f'Tensorboard log is saved in {tb_logs_path}', file=sys.stderr)
         self.logger.info(f'Tensorboard log is saved in {tb_logs_path}')
 
-        # training for num_epoch
+        # training for num_epochs
         print('----start training-----', file=sys.stderr)
-        for epoch in range(num_epoch):
-            print(f'\n--epoch=[{epoch + 1}/{num_epoch}]--', file=sys.stderr)
+        for epoch in range(num_epochs):
+            print(f'\n--epoch=[{epoch + 1}/{num_epochs}]--', file=sys.stderr)
 
             # create formatter and add it to the handlers
             formatter = logging.Formatter('')
@@ -215,10 +200,11 @@ class BaseTrainer(AbstractTrainer):
 
             # add the handlers to the logger
             self.logger.addHandler(fh)
-            self.logger.info(f'\n--epoch=[{epoch + 1}/{num_epoch}]--')
+            self.logger.info(f'\n--epoch=[{epoch + 1}/{num_epochs}]--')
 
             # create formatter and add it to the handlers
-            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+            formatter = logging.Formatter(
+                '%(asctime)s - %(levelname)s - %(message)s')
             fh.setFormatter(formatter)
 
             # add the handlers to the logger
@@ -238,23 +224,28 @@ class BaseTrainer(AbstractTrainer):
                 # single loss
                 writer.add_scalar("Train/loss", train_result, epoch)
                 self.logger.info(f"training loss : loss={train_result:.6f}")
-                print(f"training loss : loss={train_result:.6f}", file=sys.stderr)
+                print(f"training loss : loss={train_result:.6f}",
+                      file=sys.stderr)
             elif type(train_result) is dict:
                 # multiple losses
                 for metric, value in train_result.items():
                     writer.add_scalar("Train/" + metric, value, epoch)
                 self.logger.info(f"training loss : {dict2str(train_result)}")
-                print(f"training loss : {dict2str(train_result)}", file=sys.stderr)
+                print(f"training loss : {dict2str(train_result)}",
+                      file=sys.stderr)
 
             # validate
             if use_validation:
-                validation_result = self._validate_epoch(validate_loader, epoch)
+                validation_result = self._validate_epoch(
+                    validate_loader, epoch)
 
                 # show validation result
                 for metric, value in validation_result.items():
                     writer.add_scalar("Validation/" + metric, value, epoch)
-                self.logger.info("validation result : " + dict2str(validation_result))
-                print("validation result : " + dict2str(validation_result), file=sys.stderr)
+                self.logger.info("validation result : " +
+                                 dict2str(validation_result))
+                print("validation result : " + dict2str(validation_result),
+                      file=sys.stderr)
 
             # learning rate scheduler
             if self.scheduler is not None:
@@ -266,5 +257,5 @@ class BaseTrainer(AbstractTrainer):
         # save the model
         if save:
             if save_path is None:
-                save_path = os.path.join(os.getcwd(), "save", f"{result_path}.pth")
+                save_path = os.path.join(os.getcwd(), f"save{result_path}.pth")
             self.save(save_path)
