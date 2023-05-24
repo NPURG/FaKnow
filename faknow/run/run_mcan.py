@@ -13,6 +13,7 @@ from transformers import get_linear_schedule_with_warmup, BertTokenizer
 from faknow.data.dataset.multi_modal import MultiModalDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.mcan import MCAN
+from faknow.train.trainer import BaseTrainer
 
 
 class MCANTokenizer:
@@ -198,6 +199,7 @@ def run_mcan(root):
     optimizer = get_optimizer(model)
     scheduler = get_scheduler(len(train_loader), epoch_num, optimizer)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
+    clip_grad_norm = {'max_norm': 1.0}
 
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler, clip_grad_norm)
     trainer.fit(train_loader, num_epochs=50, validate_loader=val_loader)

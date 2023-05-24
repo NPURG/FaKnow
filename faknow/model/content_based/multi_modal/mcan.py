@@ -259,8 +259,8 @@ class MCAN(AbstractModel):
         elif len(num_channels) != 3 or not all(type(x) == int for x in num_channels) or not all(
                 x > 0 for x in num_channels):
             raise ValueError("num_channels must be a list of 3 positive integers")
-        assert drop_and_bn in ['drop-BN', 'BN-drop', 'drop-only', 'BN-only', 'none'], \
-            "drop_and_bn must be one of 'drop-BN', 'BN-drop', 'drop-only', 'BN-only', 'none'"
+        assert drop_and_bn in ['drop-bn', 'bn-drop', 'drop-only', 'bn-only', 'none'], \
+            "drop_and_bn must be one of 'drop-bn', 'bn-drop', 'drop-only', 'BN-only', 'none'"
 
         self.model_dim = model_dim
         self.drop_and_bn = drop_and_bn

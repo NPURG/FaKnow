@@ -3,7 +3,7 @@ import os
 import sys
 import warnings
 from time import time
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, Any
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -22,11 +22,13 @@ class AbstractTrainer:
                  model: AbstractModel,
                  evaluator: Evaluator,
                  optimizer: Optimizer,
-                 scheduler: Optional[_LRScheduler] = None):
+                 scheduler: Optional[_LRScheduler] = None,
+                 clip_grad_norm: Optional[Dict[str, Any]] = None):
         self.model = model
         self.optimizer = optimizer
         self.evaluator = evaluator
         self.scheduler = scheduler
+        self.clip_grad_norm = clip_grad_norm
 
     @torch.no_grad()
     def evaluate(self, data: DataLoader):
@@ -47,9 +49,10 @@ class BaseTrainer(AbstractTrainer):
                  model: AbstractModel,
                  evaluator: Evaluator,
                  optimizer: Optimizer,
-                 scheduler: Optional[_LRScheduler] = None):
+                 scheduler: Optional[_LRScheduler] = None,
+                 clip_grad_norm: Optional[Dict[str, Any]] = None):
         super(BaseTrainer, self).__init__(model, evaluator, optimizer,
-                                          scheduler)
+                                          scheduler, clip_grad_norm)
 
         # create logger
         self.logger = logging.getLogger(__name__)
@@ -117,6 +120,12 @@ class BaseTrainer(AbstractTrainer):
                 # backward
                 self.optimizer.zero_grad()
                 loss.backward()
+
+                # gradient clipping
+                if self.clip_grad_norm is not None:
+                    torch.nn.utils.clip_grad_norm_(
+                        parameters=self.model.parameters(),
+                        **self.clip_grad_norm)
                 self.optimizer.step()
 
             if result_is_dict:
