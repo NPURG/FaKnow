@@ -22,12 +22,15 @@ class AbstractTrainer:
                  evaluator: Evaluator,
                  optimizer: Optimizer,
                  scheduler: Optional[_LRScheduler] = None,
-                 clip_grad_norm: Optional[Dict[str, Any]] = None):
+                 clip_grad_norm: Optional[Dict[str, Any]] = None,
+                 device='cpu'):
         self.model = model
         self.optimizer = optimizer
         self.evaluator = evaluator
         self.scheduler = scheduler
         self.clip_grad_norm = clip_grad_norm
+        self.device = torch.device(device)
+        self.model.to(self.device)
 
     @torch.no_grad()
     def evaluate(self, data: DataLoader):
@@ -49,23 +52,14 @@ class BaseTrainer(AbstractTrainer):
                  evaluator: Evaluator,
                  optimizer: Optimizer,
                  scheduler: Optional[_LRScheduler] = None,
-                 clip_grad_norm: Optional[Dict[str, Any]] = None):
+                 clip_grad_norm: Optional[Dict[str, Any]] = None,
+                 device='cpu'):
         super(BaseTrainer, self).__init__(model, evaluator, optimizer,
-                                          scheduler, clip_grad_norm)
+                                          scheduler, clip_grad_norm, device)
 
         # create logger
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
-        """
-        # create file handler which logs even debug messages
-        fh = logging.FileHandler(logs_path)
-        fh.setLevel(logging.DEBUG)
-        # create formatter and add it to the handlers
-        formatter = logging.Formatter('')
-        fh.setFormatter(formatter)
-        # add the handlers to the logger
-        logger.addHandler(fh)
-        """
 
     def _train_epoch(self, loader: DataLoader,
                      epoch: int) -> Union[float, Dict[str, float]]:
@@ -118,10 +112,10 @@ class BaseTrainer(AbstractTrainer):
         outputs = []
         labels = []
         for batch_data in loader:
+            batch_data = self._move_data_to_device(batch_data)
             outputs.append(self.model.predict(batch_data))
 
-            # todo 统一使用dict还是tuple
-            # 是否要区分dict trainer和tuple trainer
+            # todo 统一使用dict还是tuple 是否要区分dict trainer和tuple trainer
             labels.append(batch_data['label'])
         return self.evaluator.evaluate(torch.concat(outputs),
                                        torch.concat(labels))
@@ -226,7 +220,25 @@ class BaseTrainer(AbstractTrainer):
         self.logger.info(f'\nmodel is saved in {save_path}')
         print(f'\nmodel is saved in {save_path}', file=sys.stderr)
 
-    def _show_train_result(self, train_result: Union[float, Dict[str, float]], cost_time_str: str, writer, epoch: int):
+    def _move_data_to_device(self, batch_data) -> Any:
+        if type(batch_data) is dict:
+            for k, v in batch_data.items():
+                if type(v) is torch.Tensor:
+                    batch_data[k] = v.to(self.device)
+                else:
+                    # todo 递归字典的情况
+                    batch_data[k] = self._move_data_to_device(v)
+        elif type(batch_data) is tuple:
+            batch_data = tuple(value.to(self.device) for value in batch_data)
+        else:
+            batch_data = batch_data.to(self.device)
+        return batch_data
+
+    def _show_train_result(self,
+                           train_result: Union[float, Dict[str, float]],
+                           cost_time_str: str,
+                           writer,
+                           epoch: int):
 
         self.logger.info(f'training time={cost_time_str}')
         print(f'training time={cost_time_str}', file=sys.stderr)
@@ -236,28 +248,32 @@ class BaseTrainer(AbstractTrainer):
             # single loss
             writer.add_scalar("Train/loss", train_result, epoch)
             self.logger.info(f"training loss : loss={train_result:.6f}")
-            print(f"training loss : loss={train_result:.6f}",
-                  file=sys.stderr)
+            print(f"training loss : loss={train_result:.6f}", file=sys.stderr)
         elif type(train_result) is dict:
             # multiple losses
             for metric, value in train_result.items():
                 writer.add_scalar("Train/" + metric, value, epoch)
             self.logger.info(f"training loss : {dict2str(train_result)}")
-            print(f"training loss : {dict2str(train_result)}",
-                  file=sys.stderr)
+            print(f"training loss : {dict2str(train_result)}", file=sys.stderr)
         else:
-            raise TypeError(f"train_result type error: must be float or Dict[str, float], but got {type(train_result)}")
+            raise TypeError(
+                f"train_result type error: must be float or Dict[str, float], but got {type(train_result)}"
+            )
 
-    def _show_validation_result(self, validation_result: Dict[str, float], writer, epoch: int):
+    def _show_validation_result(self,
+                                validation_result: Dict[str, float],
+                                writer,
+                                epoch: int):
         # todo 以后这里不要传入writer参数，而是直接调用self.writer
         for metric, value in validation_result.items():
             writer.add_scalar("Validation/" + metric, value, epoch)
-        self.logger.info("validation result : " +
-                         dict2str(validation_result))
+        self.logger.info("validation result : " + dict2str(validation_result))
         print("validation result : " + dict2str(validation_result),
               file=sys.stderr)
 
-    def _show_data_size(self, train_loader: DataLoader, validate_loader: Optional[DataLoader] = None):
+    def _show_data_size(self,
+                        train_loader: DataLoader,
+                        validate_loader: Optional[DataLoader] = None):
         train_set_size = len(train_loader.dataset)
         print(f'training data size={train_set_size}', file=sys.stderr)
         self.logger.info(f'training data size={train_set_size}')

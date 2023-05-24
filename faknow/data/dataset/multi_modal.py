@@ -28,6 +28,8 @@ class MultiModalDataset(TextDataset):
                 if type(value) is not torch.Tensor and type(value) is not dict:
                     raise RuntimeError(
                         'return type of transform function must be tensor')
+                # todo 递归字典的情况，是否需要展开
+                # self.data.update(new_text)
             elif feature_name in self.text_features and type(
                     feature_values) is dict:
                 value = {k: v[index] for k, v in feature_values.items()}

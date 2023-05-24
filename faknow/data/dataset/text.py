@@ -56,6 +56,8 @@ class TextDataset(Dataset):
                     raise TypeError(
                         f"the value of '{k}' returned by tokenize must be tensor"
                     )
+            # todo 递归字典的情况，是否需要展开
+            # self.data.update(new_text)
         elif type(new_text) is not torch.Tensor:
             raise TypeError("return type of tokenize function must be tensor")
 
