@@ -1,5 +1,6 @@
 import datetime
 import random
+import warnings
 from collections import defaultdict
 from typing import List, Dict
 
@@ -58,6 +59,27 @@ def seconds2str(seconds: int) -> str:
     elif h == 0:
         return f'{m}m{s}s'
     return f'{h}h{m}m{s}s'
+
+
+def check_loss_type(result):
+    result_is_dict = False
+
+    if type(result) is dict:
+        result_is_dict = True
+        if 'total_loss' in result.keys():
+            loss = result['total_loss']
+        else:
+            # todo 是否允许没有total_loss，采用所有loss的和作为total_loss
+            warnings.warn(
+                f"no total_loss in result: {result}, use sum of all losses as total_loss"
+            )
+            loss = torch.sum(torch.stack(list(result.values())))
+    elif type(result) is torch.Tensor:
+        loss = result
+    else:
+        raise TypeError(f"result type error: {result}")
+
+    return loss, result_is_dict
 
 
 def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, hash_dimension=10) -> List[int]:
