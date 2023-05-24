@@ -72,7 +72,7 @@ def run_mfan(path: str, word_vectors: torch.Tensor,
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-3)
     evaluator = Evaluator()
     trainer = MFANTrainer(model, evaluator, optimizer)
-    trainer.fit(train_loader, num_epoch=20)
+    trainer.fit(train_loader, num_epochs=20)
 
 
 def main():

@@ -59,8 +59,8 @@ def run_finerfact(train_path, test_path, bert_name):
     optimizer = AdamW(optimizer_grouped_parameters, lr=5e-5)
 
     # scheduler
-    num_epoch, batch_size, gradient_accumulation_steps = 20, 8, 8
-    t_total = int(len(train_loader) / gradient_accumulation_steps * num_epoch)
+    num_epochs, batch_size, gradient_accumulation_steps = 20, 8, 8
+    t_total = int(len(train_loader) / gradient_accumulation_steps * num_epochs)
     warmup_ratio = 0.6
     warmup_steps = math.ceil(t_total * warmup_ratio)
     scheduler = get_linear_schedule_with_warmup(optimizer,
@@ -69,7 +69,7 @@ def run_finerfact(train_path, test_path, bert_name):
 
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
-    trainer.fit(train_loader, num_epoch=num_epoch, validate_loader=val_loader)
+    trainer.fit(train_loader, num_epochs=num_epochs, validate_loader=val_loader)
     test_result = trainer.evaluate(test_loader)
     print(f"test result: {dict2str(test_result)}")
 

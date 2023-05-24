@@ -3,10 +3,10 @@ import pickle
 import torch.optim
 from torch.utils.data import TensorDataset, DataLoader
 
-from faknow.utils.util import lsh_data_selection
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.eddfn import EDDFN
 from faknow.train.trainer import BaseTrainer
+from faknow.utils.util import lsh_data_selection
 
 
 def run_eddf():
@@ -29,7 +29,7 @@ def run_eddf():
     optimizer = torch.optim.Adam(model.parameters(), lr=0.02)
 
     trainer = BaseTrainer(model, evaluator, optimizer)
-    trainer.fit(train_loader, num_epoch=100)
+    trainer.fit(train_loader, num_epochs=100)
 
 
 if __name__ == '__main__':

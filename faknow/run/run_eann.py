@@ -92,7 +92,7 @@ def run_eann(path: str,
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
                                                   lr_lambda=adjust_lr)
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
-    trainer.fit(train_loader, num_epoch=100, validate_loader=val_loader)
+    trainer.fit(train_loader, num_epochs=100, validate_loader=val_loader)
     test_result = trainer.evaluate(test_loader)
     print(f"test result: {dict2str(test_result)}")
 

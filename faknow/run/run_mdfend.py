@@ -50,7 +50,7 @@ def run_mdfend(path: str):
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
-    trainer.fit(train_loader, num_epoch=50, validate_loader=val_loader)
+    trainer.fit(train_loader, num_epochs=50, validate_loader=val_loader)
     test_result = trainer.evaluate(test_loader)
     print('test result: ', dict2str(test_result))
 

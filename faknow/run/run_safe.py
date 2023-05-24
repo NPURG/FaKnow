@@ -3,9 +3,9 @@ from pathlib import Path
 import torch
 from torch.utils.data import random_split, DataLoader
 
-from faknow.model.content_based.multi_modal.safe import SAFE
 from faknow.data.dataset.safe_dataset import SAFENumpyDataset
 from faknow.evaluate.evaluator import Evaluator
+from faknow.model.content_based.multi_modal.safe import SAFE
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
@@ -32,7 +32,7 @@ def run_safe(rank, root):
     evaluator = Evaluator(["accuracy", "precision", "recall", "f1"])
 
     trainer = BaseTrainer(model, evaluator, optimizer)
-    trainer.fit(train_loader=train_loader, num_epoch=100, validate_loader=val_loader, save=True)
+    trainer.fit(train_loader=train_loader, num_epochs=100, validate_loader=val_loader, save=True)
     test_result = trainer.evaluate(test_loader)
     print("test result: ", {dict2str(test_result)})
 

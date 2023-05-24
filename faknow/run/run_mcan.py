@@ -10,10 +10,9 @@ from torch.utils.data import random_split, DataLoader
 from torchvision.transforms import transforms
 from transformers import get_linear_schedule_with_warmup, BertTokenizer
 
+from faknow.data.dataset.multi_modal import MultiModalDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.mcan import MCAN
-from faknow.data.dataset.multi_modal import MultiModalDataset
-from faknow.train.mcan_trainer import MCANTrainer
 
 
 class MCANTokenizer:
@@ -200,8 +199,8 @@ def run_mcan(root):
     scheduler = get_scheduler(len(train_loader), epoch_num, optimizer)
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
-    trainer = MCANTrainer(model, evaluator, optimizer, scheduler)
-    trainer.fit(train_loader, num_epoch=50, validate_loader=val_loader)
+    trainer = BaseTrainer(model, evaluator, optimizer, scheduler, clip_grad_norm)
+    trainer.fit(train_loader, num_epochs=50, validate_loader=val_loader)
     test_result = trainer.evaluate(test_loader)
     print(test_result)
 

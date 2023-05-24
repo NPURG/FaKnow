@@ -1,16 +1,16 @@
 import datetime
+import logging
 import os
 import sys
 from time import time
 from typing import Optional, Callable
-from tqdm import tqdm
-import logging
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.model import AbstractModel
@@ -43,7 +43,7 @@ class AbstractTrainer:
     def fit(
             self,
             train_data: DataLoader,
-            num_epoch: int,
+            num_epochs: int,
             validate_data=None,
             save=False,
             save_path=None
@@ -180,7 +180,7 @@ class BaseTrainer(AbstractTrainer):
     def fit(
             self,
             train_loader: DataLoader,
-            num_epoch: int,
+            num_epochs: int,
             validate_loader: Optional[DataLoader] = None,
             save=False,
             save_path: Optional[str] = None
@@ -215,10 +215,10 @@ class BaseTrainer(AbstractTrainer):
             self.logger.info(f'validation data size={len(validate_loader.dataset)}')
         self.logger.info(f'Tensorboard log is saved as {tb_logs_path}')
 
-        # training for num_epoch
+        # training for num_epochs
         print('----start training-----', file=sys.stderr)
-        for epoch in range(num_epoch):
-            print(f'\n--epoch=[{epoch + 1}/{num_epoch}]--', file=sys.stderr)
+        for epoch in range(num_epochs):
+            print(f'\n--epoch=[{epoch + 1}/{num_epochs}]--', file=sys.stderr)
 
             # create formatter and add it to the handlers
             formatter = logging.Formatter('')
@@ -226,7 +226,7 @@ class BaseTrainer(AbstractTrainer):
 
             # add the handlers to the logger
             self.logger.addHandler(fh)
-            self.logger.info(f'\n--epoch=[{epoch + 1}/{num_epoch}]--')
+            self.logger.info(f'\n--epoch=[{epoch + 1}/{num_epochs}]--')
 
             # create formatter and add it to the handlers
             formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
