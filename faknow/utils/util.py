@@ -43,16 +43,12 @@ def now2str() -> str:
     return cur
 
 
-def seconds2str(seconds: int) -> str:
-    r"""Convert seconds to time format
+def seconds2str(seconds: float) -> str:
+    r"""Convert seconds to time format"""
+    if seconds < 60:
+        return f'{seconds:.6f}s'
 
-    Args:
-        seconds (int): seconds
-
-    Returns:
-        str: time format
-    """
-    m, s = divmod(seconds, 60)
+    m, s = divmod(int(seconds), 60)
     h, m = divmod(m, 60)
     if m == 0:
         return f'{s}s'

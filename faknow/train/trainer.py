@@ -1,8 +1,9 @@
 import logging
 import os
 import sys
+import warnings
 from time import time
-from typing import Optional, Dict, Union, Any
+from typing import Optional, Dict, Union, Any, Tuple
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -57,6 +58,10 @@ class BaseTrainer(AbstractTrainer):
         super(BaseTrainer, self).__init__(model, evaluator, optimizer,
                                           scheduler, clip_grad_norm, device)
 
+        # best validation score
+        self.best_score = 0.0
+        self.best_epoch = 0
+
         # create logger
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -96,19 +101,26 @@ class BaseTrainer(AbstractTrainer):
             return loss.item()
 
     def _validate_epoch(self, loader: DataLoader,
-                        epoch: int) -> Dict[str, float]:
+                        epoch: int) -> Tuple[float, Dict[str, float]]:
         """validation after training for one epoch"""
-        # todo 计算best score，作为最佳结果保存
         # evaluate
         result = self.evaluate(loader)
-        return result
+
+        # get the first metric as the validation score if accuracy is not in result
+        if 'accuracy' in result:
+            score = result['accuracy']
+        else:
+            if epoch == 0:
+                warnings.warn(
+                    'no accuracy in result, use the first metric as the validation score'
+                )
+            score = list(result.values())[0]
+        return score, result
 
     @torch.no_grad()
     def evaluate(self, loader: DataLoader):
-        # evaluation mode
         self.model.eval()
 
-        # start evaluating
         outputs = []
         labels = []
         for batch_data in loader:
@@ -124,12 +136,16 @@ class BaseTrainer(AbstractTrainer):
             train_loader: DataLoader,
             num_epochs: int,
             validate_loader: Optional[DataLoader] = None,
-            save=False,
+            save_best: Optional[bool] = None,
             save_path: Optional[str] = None):
 
         result_path = f"{self.model.__class__.__name__}-{now2str()}"
 
-        # todo 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
+        # 未指定保存路径时，取fit开始时刻作为文件名
+        if save_best is None and save_path is None:
+            save_path = os.path.join(os.getcwd(), f"save/{result_path}.pth")
+
+        # todo wjl 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
         # create files(tb_logs + logs)
         tb_logs_path = f"tb_logs/{result_path}"
         writer = SummaryWriter(tb_logs_path)
@@ -156,16 +172,16 @@ class BaseTrainer(AbstractTrainer):
         # training for num_epochs
         print('----start training-----', file=sys.stderr)
         for epoch in range(num_epochs):
-            print(f'\n--epoch=[{epoch + 1}/{num_epochs}]--', file=sys.stderr)
+            print(f'\n--epoch=[{epoch}/{num_epochs}]--', file=sys.stderr)
 
-            # todo 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
+            # todo wlj 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
             # create formatter and add it to the handlers
             formatter = logging.Formatter('')
             fh.setFormatter(formatter)
 
             # add the handlers to the logger
             self.logger.addHandler(fh)
-            self.logger.info(f'\n--epoch=[{epoch + 1}/{num_epochs}]--')
+            self.logger.info(f'\n--epoch=[{epoch}/{num_epochs}]--')
 
             # create formatter and add it to the handlers
             formatter = logging.Formatter(
@@ -180,14 +196,25 @@ class BaseTrainer(AbstractTrainer):
             train_result = self._train_epoch(train_loader, epoch)
 
             # show training result
-            cost_time_str = seconds2str(int(time() - training_start_time))
+            cost_time_str = seconds2str(time() - training_start_time)
             self._show_train_result(train_result, cost_time_str, writer, epoch)
 
             # validate
             if validate_loader is not None:
-                validation_result = self._validate_epoch(
+                validation_score, validation_result = self._validate_epoch(
                     validate_loader, epoch)
-                self._show_validation_result(validation_result, writer, epoch)
+
+                # save_best best model
+                if save_best and validation_score > self.best_score:
+                    self.best_score = validation_score
+                    self.best_epoch = epoch
+                    self.save(save_path)
+
+                self._show_validation_result(validation_result,
+                                             validation_score,
+                                             writer,
+                                             epoch,
+                                             save_best)
 
             # learning rate scheduler
             if self.scheduler is not None:
@@ -196,16 +223,14 @@ class BaseTrainer(AbstractTrainer):
         writer.flush()
         writer.close()
 
-        # save the model
-        if save:
-            if save_path is None:
-                save_path = os.path.join(os.getcwd(), f"save{result_path}.pth")
+        # save last epoch model
+        # do not use bool condition like `if not save_best`
+        if save_best is False:
             self.save(save_path)
 
     def save(self, save_path: Optional[str] = None):
-        """save the model"""
 
-        # default save path: './save/model_name-time.pth'
+        # default save path: './save/model_name-current_time.pth'
         if save_path is None:
             save_dir = os.path.join(os.getcwd(), "save")
             file_name = f"{self.model.__class__.__name__}-{now2str()}.pth"
@@ -243,7 +268,7 @@ class BaseTrainer(AbstractTrainer):
         self.logger.info(f'training time={cost_time_str}')
         print(f'training time={cost_time_str}', file=sys.stderr)
 
-        # todo 以后这里不要传入writer参数，而是直接调用self.writer
+        # todo wjl 以后这里不要传入writer参数，而是直接调用self.writer
         if type(train_result) is float:
             # single loss
             writer.add_scalar("Train/loss", train_result, epoch)
@@ -262,14 +287,22 @@ class BaseTrainer(AbstractTrainer):
 
     def _show_validation_result(self,
                                 validation_result: Dict[str, float],
+                                validation_score: float,
                                 writer,
-                                epoch: int):
-        # todo 以后这里不要传入writer参数，而是直接调用self.writer
+                                epoch: int,
+                                save_best: Optional[bool] = None):
+        # todo wjl 以后这里不要传入writer参数，而是直接调用self.writer
         for metric, value in validation_result.items():
             writer.add_scalar("Validation/" + metric, value, epoch)
         self.logger.info("validation result : " + dict2str(validation_result))
         print("validation result : " + dict2str(validation_result),
               file=sys.stderr)
+
+        score_info = f"validation score : {validation_score:.6f}"
+        if save_best:
+            score_info = score_info + f", best score : {self.best_score:.6f}, best epoch : {str(self.best_epoch)}"
+        self.logger.info(score_info)
+        print(score_info, file=sys.stderr)
 
     def _show_data_size(self,
                         train_loader: DataLoader,

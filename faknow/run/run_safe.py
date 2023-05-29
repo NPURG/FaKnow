@@ -32,7 +32,7 @@ def run_safe(rank, root):
     evaluator = Evaluator(["accuracy", "precision", "recall", "f1"])
 
     trainer = BaseTrainer(model, evaluator, optimizer)
-    trainer.fit(train_loader=train_loader, num_epochs=100, validate_loader=val_loader, save=True)
+    trainer.fit(train_loader=train_loader, num_epochs=100, validate_loader=val_loader)
     test_result = trainer.evaluate(test_loader)
     print("test result: ", {dict2str(test_result)})
 

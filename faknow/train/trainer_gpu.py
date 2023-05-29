@@ -260,6 +260,6 @@ class BaseTrainer(AbstractTrainer):
 
         writer.close()
 
-        # save the model
+        # save_best the model
         if save:
             self.save(save_path)
