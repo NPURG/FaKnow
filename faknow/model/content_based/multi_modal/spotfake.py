@@ -6,6 +6,9 @@ from transformers import BertModel
 
 from faknow.model.model import AbstractModel
 
+# todo wjl 去除多余的device参数，统一使用trainer中的device
+# todo wjl 将spotfake的注释改为与其他模型一致的注释风格，在pycharm中设置Google风格
+# todo wjl 改为使用最新的MultiModalDataset，不要单独开一个spotfakedataset
 device = torch.device("cuda")
 """
 SpotFake: Multi-Modal Fake News Detection
