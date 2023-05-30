@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.model import AbstractModel
-from faknow.utils.util import dict2str, seconds2str, now2str, check_loss_type
+from faknow.utils.util import dict2str, seconds2str, now2str, check_loss_type, EarlyStopping
 
 
 class AbstractTrainer:
@@ -54,11 +54,13 @@ class BaseTrainer(AbstractTrainer):
                  optimizer: Optimizer,
                  scheduler: Optional[_LRScheduler] = None,
                  clip_grad_norm: Optional[Dict[str, Any]] = None,
-                 device='cpu'):
+                 device='cpu',
+                 early_stopping: Optional[EarlyStopping] = None):
         super(BaseTrainer, self).__init__(model, evaluator, optimizer,
                                           scheduler, clip_grad_norm, device)
 
         # best validation score
+        self.early_stopping = early_stopping
         self.best_score = 0.0
         self.best_epoch = 0
 
@@ -139,21 +141,21 @@ class BaseTrainer(AbstractTrainer):
             save_best: Optional[bool] = None,
             save_path: Optional[str] = None):
 
-        result_path = f"{self.model.__class__.__name__}-{now2str()}"
+        result_file_name = f"{self.model.__class__.__name__}-{now2str()}"
 
         # 未指定保存路径时，取fit开始时刻作为文件名
-        if save_best is None and save_path is None:
-            save_path = os.path.join(os.getcwd(), f"save/{result_path}.pth")
+        if save_best is not None and save_path is None:
+            save_path = os.path.join(os.getcwd(), f"save/{result_file_name}.pth")
 
         # todo wjl 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
         # create files(tb_logs + logs)
-        tb_logs_path = f"tb_logs/{result_path}"
+        tb_logs_path = f"tb_logs/{result_file_name}"
         writer = SummaryWriter(tb_logs_path)
 
         logs_dir = os.path.join(os.getcwd(), "logs")
         if not os.path.exists(logs_dir):
             os.makedirs(logs_dir)
-        file_name = f"{result_path}.log"
+        file_name = f"{result_file_name}.log"
         logs_path = os.path.join(logs_dir, file_name)
         # create file handler which logs even debug messages
         fh = logging.FileHandler(logs_path)
@@ -172,7 +174,7 @@ class BaseTrainer(AbstractTrainer):
         # training for num_epochs
         print('----start training-----', file=sys.stderr)
         for epoch in range(num_epochs):
-            print(f'\n--epoch=[{epoch}/{num_epochs}]--', file=sys.stderr)
+            print(f'\n--epoch=[{epoch}/{num_epochs - 1}]--', file=sys.stderr)
 
             # todo wlj 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
             # create formatter and add it to the handlers
@@ -181,7 +183,7 @@ class BaseTrainer(AbstractTrainer):
 
             # add the handlers to the logger
             self.logger.addHandler(fh)
-            self.logger.info(f'\n--epoch=[{epoch}/{num_epochs}]--')
+            self.logger.info(f'\n--epoch=[{epoch}/{num_epochs - 1}]--')
 
             # create formatter and add it to the handlers
             formatter = logging.Formatter(
@@ -204,17 +206,16 @@ class BaseTrainer(AbstractTrainer):
                 validation_score, validation_result = self._validate_epoch(
                     validate_loader, epoch)
 
-                # save_best best model
-                if save_best and validation_score > self.best_score:
-                    self.best_score = validation_score
-                    self.best_epoch = epoch
-                    self.save(save_path)
+                save_best = self._find_best_score(epoch, validation_score, save_best, save_path)
 
                 self._show_validation_result(validation_result,
                                              validation_score,
                                              writer,
                                              epoch,
                                              save_best)
+
+                if self.early_stopping is not None and self.early_stopping.early_stop:
+                    break
 
             # learning rate scheduler
             if self.scheduler is not None:
@@ -244,6 +245,23 @@ class BaseTrainer(AbstractTrainer):
 
         self.logger.info(f'\nmodel is saved in {save_path}')
         print(f'\nmodel is saved in {save_path}', file=sys.stderr)
+
+    def _find_best_score(self, epoch: int, validation_score: float, save_best: bool, save_path: str) -> bool:
+
+        improvement = False
+        if self.early_stopping is not None:
+            save_best = True
+            improvement = self.early_stopping(validation_score)
+        elif save_best:
+            improvement = validation_score > self.best_score
+
+        # save best model
+        if save_best and improvement:
+            self.best_score = validation_score
+            self.best_epoch = epoch
+            self.save(save_path)
+
+        return save_best
 
     def _move_data_to_device(self, batch_data) -> Any:
         if type(batch_data) is dict:
@@ -298,7 +316,11 @@ class BaseTrainer(AbstractTrainer):
         print("validation result : " + dict2str(validation_result),
               file=sys.stderr)
 
-        score_info = f"validation score : {validation_score:.6f}"
+        score_info = f"current score : {validation_score:.6f}"
+        # todo
+        # if self.early_stopping.early_stop:
+        #     self.logger.info(score_info + ", early stopping")
+        #     print(score_info + ", early stopping", file=sys.stderr)
         if save_best:
             score_info = score_info + f", best score : {self.best_score:.6f}, best epoch : {str(self.best_epoch)}"
         self.logger.info(score_info)

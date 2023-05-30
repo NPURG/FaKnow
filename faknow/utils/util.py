@@ -148,6 +148,58 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
     return final_selected_ids
 
 
+class EarlyStopping:
+    """
+    Early stopping to stop the training when the score does not improve after
+    certain epochs.
+    """
+
+    def __init__(self, patience=10, delta=0.000001, mode='max'):
+        """
+        Args:
+            patience (int): number of epochs to wait for improvement, default=10
+            delta (float): minimum change in the monitored quantity to qualify as an improvement, default=0.000001
+            mode (str): minimize or maximize score, one of {min, max}, default=max
+        """
+
+        assert mode in ['min', 'max'], "mode must be either 'min' or 'max'"
+
+        self.patience = patience
+        self.delta = delta
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.mode = mode
+
+    def __call__(self, current_score: float) -> bool:
+        """
+        Args:
+            current_score (float): current score to check if it is the best score
+
+        Returns:
+            bool: whether the current score is the best score
+        """
+        improvement = False
+        if self.best_score is None:
+            improvement = True
+        elif self.mode == 'min':
+            if current_score < self.best_score - self.delta:
+                improvement = True
+        elif self.mode == 'max':
+            if current_score > self.best_score + self.delta:
+                improvement = True
+
+        if improvement:
+            self.best_score = current_score
+            self.counter = 0
+        else:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+
+        return improvement
+
+
 class DropEdge:
     def __init__(self, td_drop_rate, bu_drop_rate):
         """
