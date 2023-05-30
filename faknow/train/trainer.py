@@ -317,12 +317,10 @@ class BaseTrainer(AbstractTrainer):
               file=sys.stderr)
 
         score_info = f"current score : {validation_score:.6f}"
-        # todo
-        # if self.early_stopping.early_stop:
-        #     self.logger.info(score_info + ", early stopping")
-        #     print(score_info + ", early stopping", file=sys.stderr)
         if save_best:
             score_info = score_info + f", best score : {self.best_score:.6f}, best epoch : {str(self.best_epoch)}"
+        if self.early_stopping is not None and self.early_stopping.early_stop:
+            score_info = score_info + f"\nearly stopping at epoch {epoch}!"
         self.logger.info(score_info)
         print(score_info, file=sys.stderr)
 
