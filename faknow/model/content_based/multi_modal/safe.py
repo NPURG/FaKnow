@@ -46,7 +46,7 @@ class SAFE(AbstractModel):
             embedding_size: int = 300,
             conv_in_size: int = 32,
             filter_num: int = 128,
-            conv_out_size: int = 200,
+            cnn_out_size: int = 200,
             dropout: float = 0.,
             loss_weights: Optional[List[float]] = None,
     ):
@@ -54,9 +54,9 @@ class SAFE(AbstractModel):
 
         Args:
             embedding_size (int): embedding size of text.
-            conv_in_size (int): number of in channels in TextCNNLayer. Default=32
-            filter_num (int): number of filters in TextCNNLayer. Default=128
-            conv_out_size (int): number of out channels in TextCNNLayer. Default=200
+            conv_in_size (int): number of in channels in TextCNN. Default=32
+            filter_num (int): number of filters in TextCNN. Default=128
+            cnn_out_size (int): output size of FC layer in TextCNN. Default=200
             dropout (float): drop out rate. Default=0.0
             loss_weights (List[float]): list of loss weights. Default=[1.0, 1.0]
         """
@@ -72,11 +72,11 @@ class SAFE(AbstractModel):
         self.reduce = nn.Linear(embedding_size, conv_in_size)
 
         filter_sizes = [3, 4]
-        self.head_block = _TextCNN(conv_in_size, filter_num, filter_sizes, dropout, conv_out_size)
-        self.body_block = _TextCNN(conv_in_size, filter_num, filter_sizes, dropout, conv_out_size)
-        self.image_block = _TextCNN(conv_in_size, filter_num, filter_sizes, dropout, conv_out_size)
+        self.head_block = _TextCNN(conv_in_size, filter_num, filter_sizes, dropout, cnn_out_size)
+        self.body_block = _TextCNN(conv_in_size, filter_num, filter_sizes, dropout, cnn_out_size)
+        self.image_block = _TextCNN(conv_in_size, filter_num, filter_sizes, dropout, cnn_out_size)
 
-        self.predictor = nn.Linear(conv_out_size * 3, 2)
+        self.predictor = nn.Linear(cnn_out_size * 3, 2)
 
         self.__init_weights__()
 
