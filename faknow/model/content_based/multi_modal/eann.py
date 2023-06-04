@@ -109,8 +109,8 @@ class EANN(AbstractModel):
         token_id = data['text']['token_id']
         mask = data['text']['mask']
         image = data['image']
-        event_label = data['domain'].long()
-        label = data['label'].long()
+        event_label = data['domain']
+        label = data['label']
         class_output, domain_output = self.forward(token_id, mask, image)
         class_loss = self.loss_funcs[0](class_output,
                                         label) * self.loss_weights[0]

@@ -1,4 +1,4 @@
-from typing import Optional, Callable, List, Union, Dict
+from typing import Union, Dict
 
 import torch.nn as nn
 from torch import Tensor
@@ -7,13 +7,13 @@ from torch import Tensor
 class AbstractModel(nn.Module):
     """abstract class for all models"""
 
-    def __init__(self, loss_funcs: Optional[List[Callable]] = None, loss_weights: Optional[List[float]] = None):
+    def __init__(self):
         super(AbstractModel, self).__init__()
 
     def calculate_loss(self, data) -> Union[Tensor, Dict[str, Tensor]]:
         raise NotImplementedError
 
-    def predict(self, data_without_label):
+    def predict(self, data_without_label) -> Tensor:
         raise NotImplementedError
 
     # todo 如果用val loss进行early stopping
