@@ -148,10 +148,11 @@ class BaseTrainer(AbstractTrainer):
             save_path = os.path.join(os.getcwd(), f"save/{result_file_name}.pth")
 
         # todo wjl 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
-        # create files(tb_logs + logs)
+        # tb_logs
         tb_logs_path = f"tb_logs/{result_file_name}"
         writer = SummaryWriter(tb_logs_path)
 
+        # logs
         logs_dir = os.path.join(os.getcwd(), "logs")
         if not os.path.exists(logs_dir):
             os.makedirs(logs_dir)
@@ -169,29 +170,23 @@ class BaseTrainer(AbstractTrainer):
         self._show_data_size(train_loader, validate_loader)
 
         print(f'Tensorboard log is saved in {tb_logs_path}', file=sys.stderr)
-        self.logger.info(f'Tensorboard log is saved in {tb_logs_path}')
+        self.logger.info(f'Tensorboard log is saved in {tb_logs_path}\n')
 
         # training for num_epochs
         print('----start training-----', file=sys.stderr)
+
+        # create formatter and add it to the handlers
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+
+        self.logger.addHandler(fh)
+
         for epoch in range(num_epochs):
             print(f'\n--epoch=[{epoch}/{num_epochs - 1}]--', file=sys.stderr)
 
             # todo wlj 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
-            # create formatter and add it to the handlers
-            formatter = logging.Formatter('')
-            fh.setFormatter(formatter)
-
-            # add the handlers to the logger
-            self.logger.addHandler(fh)
-            self.logger.info(f'\n--epoch=[{epoch}/{num_epochs - 1}]--')
-
-            # create formatter and add it to the handlers
-            formatter = logging.Formatter(
-                '%(asctime)s - %(levelname)s - %(message)s')
-            fh.setFormatter(formatter)
-
-            # add the handlers to the logger
-            self.logger.addHandler(fh)
+            self.logger.info(f'epoch=[{epoch}/{num_epochs - 1}]')
 
             # train
             training_start_time = time()
@@ -316,7 +311,7 @@ class BaseTrainer(AbstractTrainer):
         print("validation result : " + dict2str(validation_result),
               file=sys.stderr)
 
-        score_info = f"current score : {validation_score:.6f}"
+        score_info = f"current score : {validation_score:.6f}\n"
         if save_best:
             score_info = score_info + f", best score : {self.best_score:.6f}, best epoch : {str(self.best_epoch)}"
         if self.early_stopping is not None and self.early_stopping.early_stop:
