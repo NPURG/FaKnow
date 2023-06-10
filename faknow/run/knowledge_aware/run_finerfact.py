@@ -2,7 +2,7 @@ import math
 
 import torch
 from torch.optim import AdamW
-from torch.utils.data import TensorDataset, random_split
+from torch.utils.data import TensorDataset
 from transformers import get_linear_schedule_with_warmup
 
 from faknow.data.dataset.finerfact_dataset import FinerFactDataset
@@ -12,33 +12,28 @@ from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
 
-def run_finerfact(train_path, test_path, bert_name):
-    # data
-    token_ids_train, masks_train, type_ids_train, labels_train, R_p_train, R_u_train, R_k_train, user_metadata_train, user_embeds_train = torch.load(
-        train_path)
-    token_ids_test, masks_test, type_ids_test, labels_test, R_p_test, R_u_test, R_k_test, user_metadata_test, user_embeds_test = torch.load(
-        test_path)
-
-    data_set = FinerFactDataset(token_ids_train, masks_train, type_ids_train,
-                                labels_train, R_p_train, R_u_train, R_k_train,
-                                user_metadata_train)
-    train_set, val_set = random_split(
-        data_set,
-        [int(len(data_set) * 0.8),
-         len(data_set) - int(len(data_set) * 0.8)])
-    test_set = TensorDataset(token_ids_test, masks_test, type_ids_test,
-                             labels_test, R_p_test, R_u_test, R_k_test,
-                             user_metadata_test)
+def run_finerfact(train_data,
+                  bert_name='bert-base-uncased',
+                  test_data=None,
+                  val_data=None,
+                  lr=5e-5,
+                  batch_size=8,
+                  num_epochs=20,
+                  gradient_accumulation_steps=8,
+                  warmup_ratio=0.6,
+                  metrics=None):
+    train_set = FinerFactDataset(*train_data)
 
     train_loader = torch.utils.data.DataLoader(train_set,
-                                               batch_size=8,
+                                               batch_size=batch_size,
                                                shuffle=True)
-    val_loader = torch.utils.data.DataLoader(val_set,
-                                             batch_size=8,
-                                             shuffle=False)
-    test_loader = torch.utils.data.DataLoader(test_set,
-                                              batch_size=8,
-                                              shuffle=False)
+    if val_data is not None:
+        val_set = FinerFactDataset(*val_data)
+        val_loader = torch.utils.data.DataLoader(val_set,
+                                                 batch_size=batch_size,
+                                                 shuffle=False)
+    else:
+        val_loader = None
 
     model = FinerFact(bert_name)
 
@@ -56,29 +51,41 @@ def run_finerfact(train_path, test_path, bert_name):
         'weight_decay':
             0.0
     }]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=5e-5)
+    optimizer = AdamW(optimizer_grouped_parameters, lr=lr)
 
     # scheduler
-    num_epochs, batch_size, gradient_accumulation_steps = 20, 8, 8
     t_total = int(len(train_loader) / gradient_accumulation_steps * num_epochs)
-    warmup_ratio = 0.6
     warmup_steps = math.ceil(t_total * warmup_ratio)
     scheduler = get_linear_schedule_with_warmup(optimizer,
                                                 num_warmup_steps=warmup_steps,
                                                 num_training_steps=t_total)
 
-    evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
+    evaluator = Evaluator(metrics)
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
     trainer.fit(train_loader, num_epochs=num_epochs, validate_loader=val_loader)
-    test_result = trainer.evaluate(test_loader)
-    print(f"test result: {dict2str(test_result)}")
+
+    if test_data is not None:
+        test_set = FinerFactDataset(*test_data)
+        test_loader = torch.utils.data.DataLoader(test_set,
+                                                  batch_size=batch_size,
+                                                  shuffle=False)
+        test_result = trainer.evaluate(test_loader)
+        print(f"test result: {dict2str(test_result)}")
+
+
+def load_data(path: str):
+    token_ids, masks, type_ids, labels, R_p, R_u, R_k, user_metadata, user_embeds = torch.load(
+        path)
+    return token_ids, masks, type_ids, labels, R_p, R_u, R_k, user_metadata, user_embeds
 
 
 def main():
     bert_name = r'F:\code\python\FinerFact_CPU\bert_base'
     train_path = r'F:\dataset\FinerFact\Trainset_bert-base-cased_politifact_130_5.pt'
+    train_data = load_data(train_path)
     test_path = r'F:\dataset\FinerFact\Testset_bert-base-cased_politifact_130_5.pt'
-    run_finerfact(train_path, test_path, bert_name)
+    test_data = load_data(test_path)
+    run_finerfact(train_data, test_data, bert_name)
 
 
 if __name__ == '__main__':

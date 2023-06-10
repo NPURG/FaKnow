@@ -1,4 +1,3 @@
-import os.path
 from typing import List, Dict
 
 import numpy as np
@@ -6,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 from scipy.fftpack import fft, dct
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 from transformers import get_linear_schedule_with_warmup, BertTokenizer
 
@@ -80,12 +79,12 @@ def process_dct_img(img: torch.Tensor) -> torch.Tensor:
 def get_optimizer(model: MCAN,
                   lr=0.0001,
                   weight_decay=0.15,
-                  bert_learning_rate=1e-5,
-                  vgg_learning_rate=1e-5,
-                  dtc_conv_learning_rate=1e-5,
-                  fusion_learning_rate=1e-2,
-                  linear_learning_rate=1e-2,
-                  classifier_learning_rate=1e-2):
+                  bert_lr=1e-5,
+                  vgg_lr=1e-5,
+                  dtc_lr=1e-5,
+                  fusion_lr=1e-2,
+                  linear_lr=1e-2,
+                  classifier_lr=1e-2):
     no_decay = [
         "bias",
         "gamma",
@@ -96,64 +95,69 @@ def get_optimizer(model: MCAN,
         "bn_1.weight",
     ]
 
-    bert_param_optimizer = list(model.bert.named_parameters())
-    vgg_param_optimizer = list(model.vgg.named_parameters())
-    dtc_conv_param_optimizer = list(model.dct_img.named_parameters())
-    fusion_param_optimizer = list(
+    bert_params = list(model.bert.named_parameters())
+    vgg_params = list(model.vgg.named_parameters())
+    dtc_params = list(model.dct_img.named_parameters())
+    fusion_params = list(
         model.fusion_layers.named_parameters()
     )
-    linear_param_optimizer = (
+    linear_params = (
             list(model.linear_text.named_parameters())
             + list(model.linear_vgg.named_parameters())
             + list(model.linear_dct.named_parameters())
     )
-    classifier_param_optimizer = list(model.linear1.named_parameters()) + list(
+    classifier_params = list(model.linear1.named_parameters()) + list(
         model.linear2.named_parameters()
     )
 
     optimizer_grouped_parameters = [
         # bert_param_optimizer
-        {"params": [p for n, p in bert_param_optimizer if not any(nd in n for nd in no_decay)],
+        {"params": [p for n, p in bert_params if not any(nd in n for nd in no_decay)],
          "weight_decay": weight_decay,
-         "lr": bert_learning_rate, },
-        {"params": [p for n, p in bert_param_optimizer if any(nd in n for nd in no_decay)],
+         "lr": bert_lr, },
+        {"params": [p for n, p in bert_params if any(nd in n for nd in no_decay)],
          "weight_decay": 0.0,
-         "lr": bert_learning_rate, },
+         "lr": bert_lr, },
+
         # vgg_param_optimizer
-        {"params": [p for n, p in vgg_param_optimizer if not any(nd in n for nd in no_decay)],
+        {"params": [p for n, p in vgg_params if not any(nd in n for nd in no_decay)],
          "weight_decay": weight_decay,
-         "lr": vgg_learning_rate, },
-        {"params": [p for n, p in vgg_param_optimizer if any(nd in n for nd in no_decay)],
+         "lr": vgg_lr, },
+        {"params": [p for n, p in vgg_params if any(nd in n for nd in no_decay)],
          "weight_decay": 0.0,
-         "lr": vgg_learning_rate, },
+         "lr": vgg_lr, },
+
         # dtc_conv_param_optimizer
-        {"params": [p for n, p in dtc_conv_param_optimizer if not any(nd in n for nd in no_decay)],
+        {"params": [p for n, p in dtc_params if not any(nd in n for nd in no_decay)],
          "weight_decay": weight_decay,
-         "lr": dtc_conv_learning_rate, },
-        {"params": [p for n, p in dtc_conv_param_optimizer if any(nd in n for nd in no_decay)],
+         "lr": dtc_lr, },
+        {"params": [p for n, p in dtc_params if any(nd in n for nd in no_decay)],
          "weight_decay": 0.0,
-         "lr": dtc_conv_learning_rate, },
+         "lr": dtc_lr, },
+
         # fusion_param_optimizer
-        {"params": [p for n, p in fusion_param_optimizer if not any(nd in n for nd in no_decay)],
+        {"params": [p for n, p in fusion_params if not any(nd in n for nd in no_decay)],
          "weight_decay": weight_decay,
-         "lr": fusion_learning_rate, },
-        {"params": [p for n, p in fusion_param_optimizer if any(nd in n for nd in no_decay)],
+         "lr": fusion_lr, },
+        {"params": [p for n, p in fusion_params if any(nd in n for nd in no_decay)],
          "weight_decay": 0.0,
-         "lr": fusion_learning_rate, },
+         "lr": fusion_lr, },
+
         # linear_param_optimizer
-        {"params": [p for n, p in linear_param_optimizer if not any(nd in n for nd in no_decay)],
+        {"params": [p for n, p in linear_params if not any(nd in n for nd in no_decay)],
          "weight_decay": weight_decay,
-         "lr": linear_learning_rate, },
-        {"params": [p for n, p in linear_param_optimizer if any(nd in n for nd in no_decay)],
+         "lr": linear_lr, },
+        {"params": [p for n, p in linear_params if any(nd in n for nd in no_decay)],
          "weight_decay": 0.0,
-         "lr": linear_learning_rate, },
+         "lr": linear_lr, },
+
         # classifier_param_optimizer
-        {"params": [p for n, p in classifier_param_optimizer if not any(nd in n for nd in no_decay)],
+        {"params": [p for n, p in classifier_params if not any(nd in n for nd in no_decay)],
          "weight_decay": weight_decay,
-         "lr": classifier_learning_rate, },
-        {"params": [p for n, p in classifier_param_optimizer if any(nd in n for nd in no_decay)],
+         "lr": classifier_lr, },
+        {"params": [p for n, p in classifier_params if any(nd in n for nd in no_decay)],
          "weight_decay": 0.0,
-         "lr": classifier_learning_rate, },
+         "lr": classifier_lr, },
     ]
 
     optimizer = torch.optim.AdamW(
@@ -177,34 +181,40 @@ def get_scheduler(batch_num, epoch_num, optimizer, warm_up_percentage=0.1):
     return scheduler
 
 
-def run_mcan(root):
-    # data preprocess
-    tokenizer = MCANTokenizer()
+def run_mcan(train_path: str,
+             bert='bert-base-chinese',
+             max_len=255,
+             batch_size=16,
+             num_epochs=100,
+             metrics: List = None,
+             validate_path: str = None,
+             test_path: str = None,
+             **optimizer_kargs):
+    tokenizer = MCANTokenizer(max_len, bert)
 
-    # dataset
-    train_dataset = MultiModalDataset(os.path.join(root, 'train.json'), ['text'], tokenizer, ['image'], transform)
-    test_dataset = MultiModalDataset(os.path.join(root, 'test.json'), ['text'], tokenizer, ['image'], transform)
-    validation_size = int(len(train_dataset) * 0.1)
-    train_dataset, validation_dataset = random_split(train_dataset,
-                                                     [len(train_dataset) - validation_size, validation_size])
-
-    # dataloader
-    batch_size = 16
+    train_dataset = MultiModalDataset(train_path, ['text'], tokenizer, ['image'], transform)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    epoch_num = 100
-    model = MCAN('bert-base-chinese')
-    optimizer = get_optimizer(model)
-    scheduler = get_scheduler(len(train_loader), epoch_num, optimizer)
-    evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
+    if validate_path:
+        validation_dataset = MultiModalDataset(validate_path, ['text'], tokenizer, ['image'], transform)
+        val_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
+    else:
+        val_loader = None
+
+    model = MCAN(bert)
+    optimizer = get_optimizer(model, **optimizer_kargs)
+    scheduler = get_scheduler(len(train_loader), num_epochs, optimizer)
+    evaluator = Evaluator(metrics)
     clip_grad_norm = {'max_norm': 1.0}
 
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler, clip_grad_norm)
-    trainer.fit(train_loader, num_epochs=50, validate_loader=val_loader)
-    test_result = trainer.evaluate(test_loader)
-    print(test_result)
+    trainer.fit(train_loader, num_epochs=num_epochs, validate_loader=val_loader)
+
+    if test_path:
+        test_dataset = MultiModalDataset(test_path, ['text'], tokenizer, ['image'], transform)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+        test_result = trainer.evaluate(test_loader)
+        print(test_result)
 
 
 def main():
