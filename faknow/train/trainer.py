@@ -64,6 +64,10 @@ class BaseTrainer(AbstractTrainer):
         self.best_score = 0.0
         self.best_epoch = 0
 
+        # tb_logs
+        tb_logs_path = ""
+        self.writer = SummaryWriter(tb_logs_path)
+
         # create logger
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -148,10 +152,12 @@ class BaseTrainer(AbstractTrainer):
             save_path = os.path.join(os.getcwd(), f"save/{result_file_name}.pth")
 
         # todo wjl 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
-        # create files(tb_logs + logs)
+        # tb_logs
         tb_logs_path = f"tb_logs/{result_file_name}"
-        writer = SummaryWriter(tb_logs_path)
+        self.writer = SummaryWriter(tb_logs_path)
 
+
+        # logs
         logs_dir = os.path.join(os.getcwd(), "logs")
         if not os.path.exists(logs_dir):
             os.makedirs(logs_dir)
@@ -169,29 +175,23 @@ class BaseTrainer(AbstractTrainer):
         self._show_data_size(train_loader, validate_loader)
 
         print(f'Tensorboard log is saved in {tb_logs_path}', file=sys.stderr)
-        self.logger.info(f'Tensorboard log is saved in {tb_logs_path}')
+        self.logger.info(f'Tensorboard log is saved in {tb_logs_path}\n')
 
         # training for num_epochs
         print('----start training-----', file=sys.stderr)
+
+        # create formatter and add it to the handlers
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+
+        self.logger.addHandler(fh)
+
         for epoch in range(num_epochs):
             print(f'\n--epoch=[{epoch}/{num_epochs - 1}]--', file=sys.stderr)
 
             # todo wlj 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
-            # create formatter and add it to the handlers
-            formatter = logging.Formatter('')
-            fh.setFormatter(formatter)
-
-            # add the handlers to the logger
-            self.logger.addHandler(fh)
-            self.logger.info(f'\n--epoch=[{epoch}/{num_epochs - 1}]--')
-
-            # create formatter and add it to the handlers
-            formatter = logging.Formatter(
-                '%(asctime)s - %(levelname)s - %(message)s')
-            fh.setFormatter(formatter)
-
-            # add the handlers to the logger
-            self.logger.addHandler(fh)
+            self.logger.info(f'epoch=[{epoch}/{num_epochs - 1}]')
 
             # train
             training_start_time = time()
@@ -199,7 +199,7 @@ class BaseTrainer(AbstractTrainer):
 
             # show training result
             cost_time_str = seconds2str(time() - training_start_time)
-            self._show_train_result(train_result, cost_time_str, writer, epoch)
+            self._show_train_result(train_result, cost_time_str, epoch)
 
             # validate
             if validate_loader is not None:
@@ -210,7 +210,6 @@ class BaseTrainer(AbstractTrainer):
 
                 self._show_validation_result(validation_result,
                                              validation_score,
-                                             writer,
                                              epoch,
                                              save_best)
 
@@ -221,8 +220,8 @@ class BaseTrainer(AbstractTrainer):
             if self.scheduler is not None:
                 self.scheduler.step()
 
-        writer.flush()
-        writer.close()
+        self.writer.flush()
+        self.writer.close()
 
         # save last epoch model
         # do not use bool condition like `if not save_best`
@@ -280,7 +279,6 @@ class BaseTrainer(AbstractTrainer):
     def _show_train_result(self,
                            train_result: Union[float, Dict[str, float]],
                            cost_time_str: str,
-                           writer,
                            epoch: int):
 
         self.logger.info(f'training time={cost_time_str}')
@@ -289,13 +287,13 @@ class BaseTrainer(AbstractTrainer):
         # todo wjl 以后这里不要传入writer参数，而是直接调用self.writer
         if type(train_result) is float:
             # single loss
-            writer.add_scalar("Train/loss", train_result, epoch)
+            self.writer.add_scalar("Train/loss", train_result, epoch)
             self.logger.info(f"training loss : loss={train_result:.6f}")
             print(f"training loss : loss={train_result:.6f}", file=sys.stderr)
         elif type(train_result) is dict:
             # multiple losses
             for metric, value in train_result.items():
-                writer.add_scalar("Train/" + metric, value, epoch)
+                self.writer.add_scalar("Train/" + metric, value, epoch)
             self.logger.info(f"training loss : {dict2str(train_result)}")
             print(f"training loss : {dict2str(train_result)}", file=sys.stderr)
         else:
@@ -306,17 +304,16 @@ class BaseTrainer(AbstractTrainer):
     def _show_validation_result(self,
                                 validation_result: Dict[str, float],
                                 validation_score: float,
-                                writer,
                                 epoch: int,
                                 save_best: Optional[bool] = None):
         # todo wjl 以后这里不要传入writer参数，而是直接调用self.writer
         for metric, value in validation_result.items():
-            writer.add_scalar("Validation/" + metric, value, epoch)
+            self.writer.add_scalar("Validation/" + metric, value, epoch)
         self.logger.info("validation result : " + dict2str(validation_result))
         print("validation result : " + dict2str(validation_result),
               file=sys.stderr)
 
-        score_info = f"current score : {validation_score:.6f}"
+        score_info = f"current score : {validation_score:.6f}\n"
         if save_best:
             score_info = score_info + f", best score : {self.best_score:.6f}, best epoch : {str(self.best_epoch)}"
         if self.early_stopping is not None and self.early_stopping.early_stop:
