@@ -46,6 +46,30 @@ class AbstractTrainer:
             save_path=None):
         raise NotImplementedError
 
+    def to(self, device: str, **kwargs):
+        self.device = torch.device(device)
+        self.model.to(self.device, **kwargs)
+
+    def cuda(self, device='cuda:0', **kwargs):
+        self.to(device, **kwargs)
+
+    def cpu(self, **kwargs):
+        self.to('cpu', **kwargs)
+
+    def _move_data_to_device(self, batch_data) -> Any:
+        if type(batch_data) is dict:
+            for k, v in batch_data.items():
+                if type(v) is torch.Tensor:
+                    batch_data[k] = v.to(self.device)
+                else:
+                    # todo 递归字典的情况
+                    batch_data[k] = self._move_data_to_device(v)
+        elif type(batch_data) is tuple:
+            batch_data = tuple(value.to(self.device) for value in batch_data)
+        else:
+            batch_data = batch_data.to(self.device)
+        return batch_data
+
 
 class BaseTrainer(AbstractTrainer):
     def __init__(self,
@@ -86,6 +110,7 @@ class BaseTrainer(AbstractTrainer):
             loss = None
             result_is_dict = False
             for batch_id, batch_data in pbar:
+                batch_data = self._move_data_to_device(batch_data)
                 result = self.model.calculate_loss(batch_data)
 
                 # check result type
@@ -151,7 +176,6 @@ class BaseTrainer(AbstractTrainer):
         if save_best is not None and save_path is None:
             save_path = os.path.join(os.getcwd(), f"save/{result_file_name}.pth")
 
-        # todo wjl 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
         # tb_logs
         tb_logs_path = f"tb_logs/{result_file_name}"
         self.writer = SummaryWriter(tb_logs_path)
@@ -189,8 +213,6 @@ class BaseTrainer(AbstractTrainer):
 
         for epoch in range(num_epochs):
             print(f'\n--epoch=[{epoch}/{num_epochs - 1}]--', file=sys.stderr)
-
-            # todo wlj 这一块logging的代码太臃肿了，优化然后提取出来作为一个函数
             self.logger.info(f'epoch=[{epoch}/{num_epochs - 1}]')
 
             # train
@@ -262,20 +284,6 @@ class BaseTrainer(AbstractTrainer):
 
         return save_best
 
-    def _move_data_to_device(self, batch_data) -> Any:
-        if type(batch_data) is dict:
-            for k, v in batch_data.items():
-                if type(v) is torch.Tensor:
-                    batch_data[k] = v.to(self.device)
-                else:
-                    # todo 递归字典的情况
-                    batch_data[k] = self._move_data_to_device(v)
-        elif type(batch_data) is tuple:
-            batch_data = tuple(value.to(self.device) for value in batch_data)
-        else:
-            batch_data = batch_data.to(self.device)
-        return batch_data
-
     def _show_train_result(self,
                            train_result: Union[float, Dict[str, float]],
                            cost_time_str: str,
@@ -284,7 +292,6 @@ class BaseTrainer(AbstractTrainer):
         self.logger.info(f'training time={cost_time_str}')
         print(f'training time={cost_time_str}', file=sys.stderr)
 
-        # todo wjl 以后这里不要传入writer参数，而是直接调用self.writer
         if type(train_result) is float:
             # single loss
             self.writer.add_scalar("Train/loss", train_result, epoch)
@@ -306,7 +313,6 @@ class BaseTrainer(AbstractTrainer):
                                 validation_score: float,
                                 epoch: int,
                                 save_best: Optional[bool] = None):
-        # todo wjl 以后这里不要传入writer参数，而是直接调用self.writer
         for metric, value in validation_result.items():
             self.writer.add_scalar("Validation/" + metric, value, epoch)
         self.logger.info("validation result : " + dict2str(validation_result))
