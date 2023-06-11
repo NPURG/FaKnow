@@ -11,7 +11,7 @@ from transformers import BertTokenizer
 from faknow.data.dataset.spotfake_dataset import FakeNewsDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.spotfake import SpotFake
-from faknow.train.trainer_gpu import BaseTrainer
+from faknow.train.trainer import BaseTrainer
 
 def run_spotfake(
         rank,
@@ -52,7 +52,7 @@ def run_spotfake(
 
     evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
 
-    trainer = BaseTrainer(model, evaluator, optimizer)
+    trainer = BaseTrainer(model, evaluator, optimizer, device='cuda:0')
     trainer.fit(train_loader, epochs, validation_loader)
 
 

@@ -9,7 +9,7 @@ from faknow.model.model import AbstractModel
 # todo wjl 去除多余的device参数，统一使用trainer中的device
 # todo wjl 将spotfake的注释改为与其他模型一致的注释风格，在pycharm中设置Google风格
 # todo wjl 改为使用最新的MultiModalDataset，不要单独开一个spotfakedataset
-device = torch.device("cuda")
+
 """
 SpotFake: Multi-Modal Fake News Detection
 paper: https://ieeexplore.ieee.org/document/8919302
@@ -194,7 +194,7 @@ class SpotFake(AbstractModel):
             "fusion_output_size": fusion_output_size,
             "pre_trained_bert_name": pre_trained_bert_name
         }
-        self.model = _TextConcatVision(model_params).to(device)
+        self.model = _TextConcatVision(model_params)
         if loss_func is None:
             self.loss_func = nn.BCELoss()
         else:
@@ -205,17 +205,17 @@ class SpotFake(AbstractModel):
 
     def calculate_loss(self, data) -> Tensor:
         img_ip, text_ip, label = data["image_id"], data["BERT_ip"], data['label']
-        b_input_ids, b_attn_mask = tuple(t.to(device) for t in text_ip)
-        imgs_ip = img_ip.to(device)
-        b_labels = label.to(device)
+        b_input_ids, b_attn_mask = tuple(t for t in text_ip)
+        imgs_ip = img_ip
+        b_labels = label
         output = self.forward(b_input_ids, b_attn_mask, imgs_ip)
         return self.loss_func(output, b_labels.float())
 
     @torch.no_grad()
     def predict(self, data_without_label):
         img_ip, text_ip = data_without_label["image_id"], data_without_label["BERT_ip"]
-        b_input_ids, b_attn_mask = tuple(t.to(device) for t in text_ip)
-        imgs_ip = img_ip.to(device)
+        b_input_ids, b_attn_mask = tuple(t for t in text_ip)
+        imgs_ip = img_ip
 
         # shape=(n,), data = 1 or 0
         round_pred = self.forward(b_input_ids, b_attn_mask, imgs_ip)
