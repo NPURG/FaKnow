@@ -1,6 +1,7 @@
-from typing import List
+import pickle
+from typing import List, Any, Dict
 
-import torch
+import yaml
 from torch.optim import AdamW
 from torch.utils.data import random_split, DataLoader
 
@@ -40,10 +41,14 @@ def run_nep(post_simcse, avg_mac, avg_mic, p_mac, p_mic, avg_mic_mic, token, lab
     print(f"test result: {dict2str(test_result)}")
 
 
-def main():
-    data = torch.load(r'F:\code\python\News-Environment-Perception\test\val_dataset.pt')
-    run_nep(*data, bert='bert-base-chinese')
+def run_nep_from_yaml(config: Dict[str, Any]):
+    with open(config['data'], 'rb') as f:
+        config.update(pickle.load(f))
+        del config['data']
+    run_nep(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\..\properties\nep.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_nep_from_yaml(_config)

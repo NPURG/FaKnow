@@ -1,6 +1,7 @@
-from typing import List
+from typing import List, Dict, Any
 
 import torch
+import yaml
 from torch_geometric.datasets import UPFD
 from torch_geometric.loader import DataLoader
 
@@ -68,12 +69,11 @@ def run_bigcn(root: str,
         print(f'test result={test_result}')
 
 
-def main():
-    root = "F:\\dataset\\UPFD_Dataset"
-    name = "politifact"
-    feature = "profile"
-    run_bigcn(root, name, feature)
+def run_bigcn_from_yaml(config: Dict[str, Any]):
+    run_bigcn(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\..\properties\upfd.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_bigcn_from_yaml(_config)

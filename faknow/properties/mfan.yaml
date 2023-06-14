@@ -1,0 +1,6 @@
+train_path: F:\dataset\dataset_example_MFAN\mfan.json
+vocab: F:\dataset\dataset_example_MFAN\vocab.pickle
+word_vectors: F:\dataset\dataset_example_MFAN\w2v.pickle
+node_embedding: F:\dataset\dataset_example_MFAN\node_embedding.pickle
+adj_matrix: F:\dataset\dataset_example_MFAN\original_adj
+node_num: 6963

@@ -1,6 +1,7 @@
-from typing import List
+from typing import List, Dict, Any
 
 import torch
+import yaml
 from torch_geometric.datasets import UPFD
 from torch_geometric.loader import DataLoader
 from torch_geometric.transforms import ToUndirected
@@ -10,15 +11,15 @@ from faknow.model.social_context.upfd import UPFDSAGE
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
 
 
-def run_gnn(root: str,
-            name: str,
-            feature: str,
-            splits=None,
-            batch_size=128,
-            epochs=75,
-            lr=0.01,
-            weight_decay=0.01,
-            metrics: List = None):
+def run_upfd(root: str,
+             name: str,
+             feature: str,
+             splits=None,
+             batch_size=128,
+             epochs=75,
+             lr=0.01,
+             weight_decay=0.01,
+             metrics: List = None):
     if splits is None:
         splits = ['train', 'val', 'test']
 
@@ -52,12 +53,11 @@ def run_gnn(root: str,
         print(f'test result={test_result}')
 
 
-def main():
-    root = "F:\\dataset\\UPFD_Dataset"
-    name = "politifact"
-    feature = "profile"
-    run_gnn(root, name, feature)
+def run_upfd_from_yaml(config: Dict[str, Any]):
+    run_upfd(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\..\properties\upfd.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_upfd_from_yaml(_config)

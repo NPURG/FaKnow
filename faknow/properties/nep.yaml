@@ -1,0 +1,2 @@
+bert: bert-base-chinese
+data: F:\dataset\dataset_example_NEP\data.pickle

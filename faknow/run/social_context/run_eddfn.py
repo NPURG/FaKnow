@@ -1,8 +1,9 @@
 import pickle
-from typing import List
+from typing import List, Dict, Any
 
 import torch
 import torch.optim
+import yaml
 from torch import Tensor
 from torch.utils.data import TensorDataset, DataLoader
 
@@ -40,16 +41,17 @@ def run_eddfn(train_pool_input: Tensor,
     trainer.fit(train_loader, num_epochs=num_epochs)
 
 
-def main():
-    train_pool_input, train_pool_label, train_pool_domain_embedding, _ = pickle.load(
-        open(
-            'F:\\code\\python\\cross-domain-fake-news-detection-aaai2021\\test\\train_pool.pkl',
-            'rb'))
-    train_pool_input = torch.from_numpy(train_pool_input).float()
-    train_pool_label = torch.from_numpy(train_pool_label).float()
-    domain_embedding = torch.from_numpy(train_pool_domain_embedding).float()
-    run_eddfn(train_pool_input, train_pool_label, domain_embedding)
+def run_eddfn_from_yaml(config: Dict[str, Any]):
+    with open(config['train_pool_input'], 'rb') as f:
+        config['train_pool_input'] = pickle.load(f)
+    with open(config['train_pool_label'], 'rb') as f:
+        config['train_pool_label'] = pickle.load(f)
+    with open(config['domain_embedding'], 'rb') as f:
+        config['domain_embedding'] = pickle.load(f)
+    run_eddfn(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\..\..\properties\eddfn.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_eddfn_from_yaml(_config)

@@ -1,0 +1,3 @@
+train_pool_input: F:\dataset\dataset_example_EDDFN\train_pool_input.pickle
+train_pool_label: F:\dataset\dataset_example_EDDFN\train_pool_label.pickle
+domain_embedding: F:\dataset\dataset_example_EDDFN\domain_embedding.pickle

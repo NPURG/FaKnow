@@ -1,9 +1,10 @@
 import pickle
 import re
-from typing import Dict, List
+from typing import Dict, List, Any
 
 import jieba
 import torch
+import yaml
 from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -16,11 +17,13 @@ from faknow.utils.util import dict2str, read_stop_words
 
 
 class EANNTokenizer:
-    def __init__(self, vocab: Dict[str, int], max_len: int, stop_words: List[str], language='zh') -> None:
+    def __init__(self, vocab: Dict[str, int], max_len=255, stop_words: List[str] = None, language='zh') -> None:
         assert language in ['zh', 'en'], "language must be one of {zh, en}"
         self.language = language
         self.vocab = vocab
         self.max_len = max_len
+        if stop_words is None:
+            stop_words = []
         self.stop_words = stop_words
 
     def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
@@ -86,6 +89,7 @@ def run_eann(train_path: str,
 
     tokenizer = EANNTokenizer(vocab, max_len, stop_words, language)
 
+    # todo 是否在函数中加入validation_size，允许从train_path中划分出一部分作为validation set
     train_set = MultiModalDataset(train_path, ['text'], tokenizer, ['image'], transform)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
     if event_num is None:
@@ -114,17 +118,16 @@ def run_eann(train_path: str,
         print(f"test result: {dict2str(test_result)}")
 
 
-def main():
-    train_path = "F:\\dataset\\dataset_example_EANN\\all\\train.json"
-    test_path = "F:\\dataset\\dataset_example_EANN\\all\\test.json"
-    val_path = "F:\\dataset\\dataset_example_EANN\\all\\val.json"
-    word_vector_path = "F:\\code\\python\EANN-KDD18-degugged11.2\\Data\\weibo\\word_embedding.pickle"
-    with open(word_vector_path, 'rb') as f:
-        w2v, _, vocab, _, max_len = pickle.load(f)
-    stop_words = read_stop_words("/faknow/data/process/stop_words/stop_words.txt")
-    run_eann(train_path, vocab, stop_words, torch.from_numpy(w2v), max_len=max_len, validate_path=val_path,
-             test_path=test_path)
+def run_eann_from_yaml(config: Dict[str, Any]):
+    with open(config['vocab'], 'rb') as f:
+        config['vocab'] = pickle.load(f)
+    with open(config['word_vectors'], 'rb') as f:
+        config['word_vectors'] = pickle.load(f)
+    config['stop_words'] = read_stop_words(config['stop_words'])
+    run_eann(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\..\..\properties\eann.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_eann_from_yaml(_config)

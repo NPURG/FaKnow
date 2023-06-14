@@ -1,8 +1,11 @@
 import json
 import pickle
-from typing import List, Dict
+import re
+from typing import List, Dict, Any
 
+import jieba
 import torch
+import yaml
 from PIL import Image
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -16,15 +19,30 @@ from faknow.utils.util import dict2str
 
 
 class MFANTokenizer:
-    def __init__(self, vocab: Dict[str, int], max_len=50) -> None:
+    def __init__(self, vocab: Dict[str, int], max_len=50, stop_words: List[str] = None, language='zh') -> None:
         self.vocab = vocab
         self.max_len = max_len
+        self.language = language
+        if stop_words is None:
+            stop_words = []
+        self.stop_words = stop_words
 
     def __call__(self, texts: List[str]) -> Tensor:
         token_ids = []
         for text in texts:
+            text = re.sub(r",", " , ", text)
+            text = re.sub(r"!", " ! ", text)
+            text = re.sub(r"\(", " \( ", text)
+            text = re.sub(r"\)", " \) ", text)
+            text = re.sub(r"\?", " \? ", text)
+            text = re.sub(r"\s{2,}", " ", text).strip().lower()
 
-            token_id = [self.vocab[word] for word in text]
+            if self.language == 'zh':
+                words = [word for word in jieba.cut(text) if word not in self.stop_words]
+            else:
+                words = [word for word in text.split() if word not in self.stop_words]
+
+            token_id = [self.vocab[word] for word in words]
             real_len = len(token_id)
             if real_len < self.max_len:
                 # padding zero in the front
@@ -97,23 +115,19 @@ def run_mfan(train_path: str,
         print('test result: ', dict2str(test_result))
 
 
-def main():
-    path = "F:\\code\\python\\MFAN\\new_data\\mfan.json"
-    pre = "F:\\code\\python\\MFAN\\dataset/weibo/weibo_files"
+def run_mcan_from_yaml(config: Dict[str, Any]):
+    with open(config['vocab'], 'rb') as f:
+        config['vocab'] = pickle.load(f)
+    with open(config['word_vectors'], 'rb') as f:
+        config['word_vectors'] = pickle.load(f)
+    with open(config['node_embedding'], 'rb') as f:
+        config['node_embedding'] = pickle.load(f)
+    config['adj_matrix'] = load_adj_matrix(config['adj_matrix'], config['node_num'])
 
-    adj_path = "F:\\code\\python\\MFAN\\dataset\\weibo\\weibo_files\\original_adj"
-    node_num = 6963
-    adj_matrix = load_adj_matrix(adj_path, node_num)
-    node_embedding = pickle.load(open(pre + "\\node_embedding.pkl", 'rb'))[0]
-    print('loading adj matrix')
-
-    _, _, _, word_embeddings, _ = pickle.load(open(pre + "\\train.pkl", 'rb'))
-    vocab = pickle.load(open(pre + "\\vocab.pkl", 'rb'))
-    print('loading embedding')
-
-    run_mfan(path, torch.from_numpy(node_embedding), node_num, adj_matrix,
-             vocab, torch.from_numpy(word_embeddings))
+    run_mfan(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\..\..\properties\mfan.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_mcan_from_yaml(_config)

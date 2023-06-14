@@ -1,8 +1,9 @@
-from typing import List, Dict
+from typing import List, Dict, Any
 
 import numpy as np
 import torch
 import torch.nn.functional as F
+import yaml
 from PIL import Image
 from scipy.fftpack import fft, dct
 from torch.utils.data import DataLoader
@@ -217,10 +218,11 @@ def run_mcan(train_path: str,
         print(test_result)
 
 
-def main():
-    root = r'F:\dataset\dataset_example_MCAN'
-    run_mcan(root)
+def run_mcan_from_yaml(config: Dict[str, Any]):
+    run_mcan(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\..\..\properties\mcan.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_mcan_from_yaml(_config)

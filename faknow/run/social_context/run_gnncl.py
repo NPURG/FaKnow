@@ -1,6 +1,7 @@
-from typing import List
+from typing import List, Dict, Any
 
 import torch
+import yaml
 from torch_geometric.datasets import UPFD
 from torch_geometric.loader import DenseDataLoader
 from torch_geometric.transforms import ToUndirected, ToDense
@@ -66,12 +67,11 @@ def run_gnncl(root: str,
         print(f'test result={test_result}')
 
 
-def main():
-    root = "F:\\dataset\\UPFD_Dataset"
-    name = "politifact"
-    feature = "profile"
-    run_gnncl(root, name, feature)
+def run_gnncl_from_yaml(config: Dict[str, Any]):
+    run_gnncl(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\..\properties\upfd.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_gnncl_from_yaml(_config)

@@ -1,6 +1,7 @@
-from typing import List, Dict
+from typing import List, Dict, Any
 
 import torch
+import yaml
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer
 
@@ -67,10 +68,11 @@ def run_mdfend(train_path: str,
         print('test result: ', dict2str(test_result))
 
 
-def main():
-    path = "F:\\dataset\\weibo21\\all.json"
-    run_mdfend(path)
+def run_mdfend_from_yaml(config: Dict[str, Any]):
+    run_mdfend(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\..\properties\mdfend.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_mdfend_from_yaml(_config)

@@ -1,0 +1,7 @@
+language: zh
+train_path: F:\dataset\dataset_example_EANN\all\train.json
+test_path: F:\dataset\dataset_example_EANN\all\test.json
+validate_path: F:\dataset\dataset_example_EANN\all\val.json
+vocab: F:\dataset\dataset_example_EANN\all\vocab.pickle
+word_vectors: F:\dataset\dataset_example_EANN\all\w2v.pickle
+stop_words: F:\code\python\FaKnow\faknow\data\process\stop_words\stop_words.txt
