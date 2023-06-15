@@ -1,0 +1,3 @@
+train_data: F:\dataset\FinerFact\Trainset_bert-base-cased_politifact_130_5.pt
+test_data: F:\dataset\FinerFact\Testset_bert-base-cased_politifact_130_5.pt
+bert: F:\code\python\FinerFact_CPU\bert_base

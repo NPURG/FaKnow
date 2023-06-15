@@ -62,7 +62,7 @@ class FinerFact(AbstractModel):
     """
 
     def __init__(self,
-                 bert_name: str,
+                 bert: str,
                  evidence_num=5,
                  sigma=0.1,
                  kernel_num=11,
@@ -80,7 +80,7 @@ class FinerFact(AbstractModel):
         """
 
         Args:
-            bert_name (str): name or local path of the bert model
+            bert (str): name or local path of the bert model
             evidence_num (int): number of evidences. Default=5
             sigma (float): sigma value for gaussian kernel. Default=0.1
             kernel_num (int): number of kernels. Default=11
@@ -98,7 +98,7 @@ class FinerFact(AbstractModel):
         """
         super(FinerFact, self).__init__()
 
-        self.bert_extractor = _BertExtractor(bert_name)
+        self.bert_extractor = _BertExtractor(bert)
         self.dropout = nn.Dropout(dropout)
         self.evidence_num = evidence_num
         self.kernel_num = kernel_num
