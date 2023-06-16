@@ -10,6 +10,8 @@ from faknow.model.social_context.bigcn import BiGCN
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
 from faknow.utils.util import DropEdge
 
+__all__ = ['run_bigcn', 'run_bigcn_from_yaml']
+
 
 def run_bigcn(root: str,
               name: str,

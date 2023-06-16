@@ -10,6 +10,8 @@ from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.upfd import UPFDSAGE
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
 
+__all__ = ['run_upfd', 'run_upfd_from_yaml']
+
 
 def run_upfd(root: str,
              name: str,

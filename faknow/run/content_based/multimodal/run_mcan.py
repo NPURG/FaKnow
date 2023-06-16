@@ -15,8 +15,11 @@ from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.mcan import MCAN
 from faknow.train.trainer import BaseTrainer
 
+__all__ = ['TokenizerMCAN', 'transform_mcan', 'process_dct_mcan', 'get_optimizer_mcan', 'run_mcan',
+           'run_mcan_from_yaml']
 
-class MCANTokenizer:
+
+class TokenizerMCAN:
     def __init__(self, max_len=160, bert="bert-base-chinese"):
         self.max_len = max_len
         self.tokenizer = BertTokenizer.from_pretrained(bert)
@@ -31,7 +34,7 @@ class MCANTokenizer:
         return {'token_id': inputs['input_ids'], 'mask': inputs['attention_mask']}
 
 
-def transform(path: str) -> Dict[str, torch.Tensor]:
+def transform_mcan(path: str) -> Dict[str, torch.Tensor]:
     with open(path, "rb") as f:
         img = Image.open(f)
         transform_vgg = transforms.Compose([
@@ -44,12 +47,12 @@ def transform(path: str) -> Dict[str, torch.Tensor]:
             transforms.Resize((224, 224)),
             transforms.ToTensor()
         ])
-        dct_feature = process_dct_img(transform_dct(img.convert('L')))
+        dct_feature = process_dct_mcan(transform_dct(img.convert('L')))
 
     return {'vgg': vgg_feature, 'dct': dct_feature}
 
 
-def process_dct_img(img: torch.Tensor) -> torch.Tensor:
+def process_dct_mcan(img: torch.Tensor) -> torch.Tensor:
     img = img.numpy()  # size = [1, 224, 224]
     height = img.shape[1]
     width = img.shape[2]
@@ -77,15 +80,15 @@ def process_dct_img(img: torch.Tensor) -> torch.Tensor:
     return new_img
 
 
-def get_optimizer(model: MCAN,
-                  lr=0.0001,
-                  weight_decay=0.15,
-                  bert_lr=1e-5,
-                  vgg_lr=1e-5,
-                  dtc_lr=1e-5,
-                  fusion_lr=1e-2,
-                  linear_lr=1e-2,
-                  classifier_lr=1e-2):
+def get_optimizer_mcan(model: MCAN,
+                       lr=0.0001,
+                       weight_decay=0.15,
+                       bert_lr=1e-5,
+                       vgg_lr=1e-5,
+                       dtc_lr=1e-5,
+                       fusion_lr=1e-2,
+                       linear_lr=1e-2,
+                       classifier_lr=1e-2):
     no_decay = [
         "bias",
         "gamma",
@@ -191,19 +194,19 @@ def run_mcan(train_path: str,
              validate_path: str = None,
              test_path: str = None,
              **optimizer_kargs):
-    tokenizer = MCANTokenizer(max_len, bert)
+    tokenizer = TokenizerMCAN(max_len, bert)
 
-    train_dataset = MultiModalDataset(train_path, ['text'], tokenizer, ['image'], transform)
+    train_dataset = MultiModalDataset(train_path, ['text'], tokenizer, ['image'], transform_mcan)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
     if validate_path:
-        validation_dataset = MultiModalDataset(validate_path, ['text'], tokenizer, ['image'], transform)
+        validation_dataset = MultiModalDataset(validate_path, ['text'], tokenizer, ['image'], transform_mcan)
         val_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
     else:
         val_loader = None
 
     model = MCAN(bert)
-    optimizer = get_optimizer(model, **optimizer_kargs)
+    optimizer = get_optimizer_mcan(model, **optimizer_kargs)
     scheduler = get_scheduler(len(train_loader), num_epochs, optimizer)
     evaluator = Evaluator(metrics)
     clip_grad_norm = {'max_norm': 1.0}
@@ -212,7 +215,7 @@ def run_mcan(train_path: str,
     trainer.fit(train_loader, num_epochs=num_epochs, validate_loader=val_loader)
 
     if test_path:
-        test_dataset = MultiModalDataset(test_path, ['text'], tokenizer, ['image'], transform)
+        test_dataset = MultiModalDataset(test_path, ['text'], tokenizer, ['image'], transform_mcan)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
         print(test_result)

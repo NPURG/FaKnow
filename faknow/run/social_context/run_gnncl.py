@@ -10,6 +10,8 @@ from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.gnncl import GNNCL
 from faknow.train.dense_gnn_trainer import DenseGNNTrainer
 
+__all__ = ['run_gnncl', 'run_gnncl_from_yaml']
+
 
 def run_gnncl(root: str,
               name: str,

@@ -11,6 +11,8 @@ from faknow.model.content_based.mdfend import MDFEND
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
+__all__ = ['MDFENDTokenizer', 'run_mdfend', 'run_mdfend_from_yaml']
+
 
 class MDFENDTokenizer:
     def __init__(self, max_len=170, bert="hfl/chinese-roberta-wwm-ext"):

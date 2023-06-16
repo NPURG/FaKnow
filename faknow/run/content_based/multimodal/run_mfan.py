@@ -17,8 +17,10 @@ from faknow.model.content_based.multi_modal.mfan import MFAN
 from faknow.train.pgd_trainer import MFANTrainer
 from faknow.utils.util import dict2str
 
+__all__ = ['TokenizerMFAN', 'transform_mfan', 'load_adj_matrix_mfan', 'run_mfan', 'run_mfan_from_yaml']
 
-class MFANTokenizer:
+
+class TokenizerMFAN:
     def __init__(self, vocab: Dict[str, int], max_len=50, stop_words: List[str] = None, language='zh') -> None:
         self.vocab = vocab
         self.max_len = max_len
@@ -54,7 +56,7 @@ class MFANTokenizer:
         return torch.tensor(token_ids)
 
 
-def transform(path: str) -> torch.Tensor:
+def transform_mfan(path: str) -> torch.Tensor:
     with open(path, "rb") as f:
         img = Image.open(f).convert('RGB')
         trans = transforms.Compose([
@@ -67,7 +69,7 @@ def transform(path: str) -> torch.Tensor:
         return trans(img)
 
 
-def load_adj_matrix(path: str, node_num: int):
+def load_adj_matrix_mfan(path: str, node_num: int):
     with open(path, 'r') as f:
         adj_dict = json.load(f)
 
@@ -91,13 +93,13 @@ def run_mfan(train_path: str,
              validate_path: str = None,
              test_path: str = None
              ):
-    tokenize = MFANTokenizer(vocab, max_len)
+    tokenize = TokenizerMFAN(vocab, max_len)
 
-    train_data = MultiModalDataset(train_path, ['text'], tokenize, ['image'], transform)
+    train_data = MultiModalDataset(train_path, ['text'], tokenize, ['image'], transform_mfan)
     train_loader = DataLoader(train_data, batch_size, True)
 
     if validate_path:
-        validate_data = MultiModalDataset(validate_path, ['text'], tokenize, ['image'], transform)
+        validate_data = MultiModalDataset(validate_path, ['text'], tokenize, ['image'], transform_mfan)
         validate_loader = DataLoader(validate_data, batch_size, True)
     else:
         validate_loader = None
@@ -109,20 +111,20 @@ def run_mfan(train_path: str,
     trainer.fit(train_loader, num_epochs, validate_loader)
 
     if test_path is not None:
-        test_data = MultiModalDataset(test_path, ['text'], tokenize, ['image'], transform)
+        test_data = MultiModalDataset(test_path, ['text'], tokenize, ['image'], transform_mfan)
         test_loader = DataLoader(test_data, batch_size, True)
         test_result = trainer.evaluate(test_loader)
         print('test result: ', dict2str(test_result))
 
 
-def run_mcan_from_yaml(config: Dict[str, Any]):
+def run_mfan_from_yaml(config: Dict[str, Any]):
     with open(config['vocab'], 'rb') as f:
         config['vocab'] = pickle.load(f)
     with open(config['word_vectors'], 'rb') as f:
         config['word_vectors'] = pickle.load(f)
     with open(config['node_embedding'], 'rb') as f:
         config['node_embedding'] = pickle.load(f)
-    config['adj_matrix'] = load_adj_matrix(config['adj_matrix'], config['node_num'])
+    config['adj_matrix'] = load_adj_matrix_mfan(config['adj_matrix'], config['node_num'])
 
     run_mfan(**config)
 
@@ -130,4 +132,4 @@ def run_mcan_from_yaml(config: Dict[str, Any]):
 if __name__ == '__main__':
     with open(r'..\..\..\properties\mfan.yaml', 'r') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_mcan_from_yaml(_config)
+        run_mfan_from_yaml(_config)

@@ -11,6 +11,8 @@ from faknow.model.social_context.nep import NEP
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
+__all__ = ['run_nep', 'run_nep_from_yaml']
+
 
 def run_nep(post_simcse, avg_mac, avg_mic, p_mac, p_mic, avg_mic_mic, token, label,
             data_ratio: List[float] = None, batch_size=8, num_epochs=10, lr=5e-4, metrics=None, **kwargs):

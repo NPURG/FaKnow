@@ -15,8 +15,10 @@ from faknow.model.content_based.multi_modal.eann import EANN
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str, read_stop_words
 
+__all__ = ['TokenizerEANN', 'transform_eann', 'adjust_lr_eann', 'run_eann', 'run_eann_from_yaml']
 
-class EANNTokenizer:
+
+class TokenizerEANN:
     def __init__(self, vocab: Dict[str, int], max_len=255, stop_words: List[str] = None, language='zh') -> None:
         assert language in ['zh', 'en'], "language must be one of {zh, en}"
         self.language = language
@@ -53,7 +55,7 @@ class EANNTokenizer:
         return {'token_id': torch.tensor(token_ids), 'mask': torch.stack(masks)}
 
 
-def transform(path: str) -> torch.Tensor:
+def transform_eann(path: str) -> torch.Tensor:
     with open(path, "rb") as f:
         img = Image.open(f).convert('RGB')
         trans = transforms.Compose([
@@ -65,7 +67,7 @@ def transform(path: str) -> torch.Tensor:
         return trans(img)
 
 
-def adjust_lr(epoch: int) -> float:
+def adjust_lr_eann(epoch: int) -> float:
     return 0.001 / (1. + 10 * (float(epoch) / 100)) ** 0.75
 
 
@@ -87,16 +89,16 @@ def run_eann(train_path: str,
     直接传入数据
     """
 
-    tokenizer = EANNTokenizer(vocab, max_len, stop_words, language)
+    tokenizer = TokenizerEANN(vocab, max_len, stop_words, language)
 
     # todo 是否在函数中加入validation_size，允许从train_path中划分出一部分作为validation set
-    train_set = MultiModalDataset(train_path, ['text'], tokenizer, ['image'], transform)
+    train_set = MultiModalDataset(train_path, ['text'], tokenizer, ['image'], transform_eann)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
     if event_num is None:
         event_num = torch.max(train_set.data['domain']).item() + 1
 
     if validate_path is not None:
-        val_set = MultiModalDataset(validate_path, ['text'], tokenizer, ['image'], transform)
+        val_set = MultiModalDataset(validate_path, ['text'], tokenizer, ['image'], transform_eann)
         val_loader = DataLoader(val_set, batch_size, shuffle=False)
     else:
         val_loader = None
@@ -106,13 +108,13 @@ def run_eann(train_path: str,
                                         list(model.parameters())),
                                  lr)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
-                                                  lr_lambda=adjust_lr)
+                                                  lr_lambda=adjust_lr_eann)
     evaluator = Evaluator(metrics)
     trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
     trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 
     if test_path is not None:
-        test_set = MultiModalDataset(test_path, ['text'], tokenizer, ['image'], transform)
+        test_set = MultiModalDataset(test_path, ['text'], tokenizer, ['image'], transform_eann)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
         print(f"test result: {dict2str(test_result)}")

@@ -12,6 +12,8 @@ from faknow.model.social_context.eddfn import EDDFN
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import lsh_data_selection
 
+__all__ = ['run_eddfn', 'run_eddfn_from_yaml']
+
 
 def run_eddfn(train_pool_input: Tensor,
               train_pool_label: Tensor,

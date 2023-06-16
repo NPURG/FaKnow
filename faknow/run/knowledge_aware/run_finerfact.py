@@ -1,6 +1,8 @@
 import math
+from typing import Dict, Any
 
 import torch
+import yaml
 from torch.optim import AdamW
 from torch.utils.data import TensorDataset
 from transformers import get_linear_schedule_with_warmup
@@ -11,9 +13,11 @@ from faknow.model.knowledge_aware.finerfact import FinerFact
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
+__all__ = ['run_finerfact', 'run_finerfact_from_yaml']
+
 
 def run_finerfact(train_data,
-                  bert_name='bert-base-uncased',
+                  bert='bert-base-uncased',
                   test_data=None,
                   val_data=None,
                   lr=5e-5,
@@ -35,7 +39,7 @@ def run_finerfact(train_data,
     else:
         val_loader = None
 
-    model = FinerFact(bert_name)
+    model = FinerFact(bert)
 
     # optimizer
     named_params = list(model.named_parameters())
@@ -73,20 +77,19 @@ def run_finerfact(train_data,
         print(f"test result: {dict2str(test_result)}")
 
 
-def load_data(path: str):
+def _load_data(path: str):
     token_ids, masks, type_ids, labels, R_p, R_u, R_k, user_metadata, user_embeds = torch.load(
         path)
     return token_ids, masks, type_ids, labels, R_p, R_u, R_k, user_metadata, user_embeds
 
 
-def main():
-    bert_name = r'F:\code\python\FinerFact_CPU\bert_base'
-    train_path = r'F:\dataset\FinerFact\Trainset_bert-base-cased_politifact_130_5.pt'
-    train_data = load_data(train_path)
-    test_path = r'F:\dataset\FinerFact\Testset_bert-base-cased_politifact_130_5.pt'
-    test_data = load_data(test_path)
-    run_finerfact(train_data, test_data, bert_name)
+def run_finerfact_from_yaml(config: Dict[str, Any]):
+    config['train_data'] = _load_data('train_data')
+    config['test_data'] = _load_data('test_data')
+    run_finerfact(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\..\properties\finerfact.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_finerfact_from_yaml(_config)

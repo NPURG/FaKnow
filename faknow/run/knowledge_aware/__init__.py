@@ -1,0 +1,1 @@
+from faknow.run.knowledge_aware.run_finerfact import run_finerfact, run_finerfact_from_yaml

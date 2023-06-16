@@ -10,6 +10,8 @@ from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.gcnfn import GCNFN
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
 
+__all__ = ['run_gcnfn', 'run_gcnfn_from_yaml']
+
 
 def run_gcnfn(root: str,
               name: str,
