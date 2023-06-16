@@ -204,8 +204,10 @@ class SpotFake(AbstractModel):
         return self.model([text, mask], image=domain)
 
     def calculate_loss(self, data) -> Tensor:
-        img_ip, text_ip, label = data["image_id"], data["BERT_ip"], data['label']
-        b_input_ids, b_attn_mask = tuple(t for t in text_ip)
+        img_ip, text_ip, label = data["image_id"], data["post_text"], data['label']
+        # b_input_ids, b_attn_mask = tuple(t for t in text_ip)
+        b_input_ids = text_ip['input_ids']
+        b_attn_mask = text_ip['attention_mask']
         imgs_ip = img_ip
         b_labels = label
         output = self.forward(b_input_ids, b_attn_mask, imgs_ip)
@@ -213,8 +215,10 @@ class SpotFake(AbstractModel):
 
     @torch.no_grad()
     def predict(self, data_without_label):
-        img_ip, text_ip = data_without_label["image_id"], data_without_label["BERT_ip"]
-        b_input_ids, b_attn_mask = tuple(t for t in text_ip)
+        img_ip, text_ip = data_without_label["image_id"], data_without_label["post_text"]
+        # b_input_ids, b_attn_mask = tuple(t for t in text_ip)
+        b_input_ids = text_ip['input_ids']
+        b_attn_mask = text_ip['attention_mask']
         imgs_ip = img_ip
 
         # shape=(n,), data = 1 or 0

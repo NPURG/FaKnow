@@ -7,7 +7,9 @@ from faknow.data.dataset.text import TextDataset
 
 
 class MultiModalDataset(TextDataset):
-    def __init__(self, path: str, text_features: List[str],
+    def __init__(self,
+                 path: str,
+                 text_features: List[str],
                  tokenize: Callable[[List[str]], Any],
                  image_features: List[str],
                  transform: Callable[[str], Any]):
@@ -24,7 +26,7 @@ class MultiModalDataset(TextDataset):
         item = {}
         for feature_name, feature_values in self.data.items():
             if feature_name in self.image_features:
-                value = self.transform(os.path.join(self.root, feature_values[index]))
+                value = self.transform(os.path.join(self.root, feature_values[index] + '.jpg'))
                 if type(value) is not torch.Tensor and type(value) is not dict:
                     raise RuntimeError(
                         'return type of transform function must be tensor')
