@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import warnings
 from time import time
 from typing import Optional, Dict, Union, Any, Tuple
@@ -88,13 +87,13 @@ class BaseTrainer(AbstractTrainer):
         self.best_score = 0.0
         self.best_epoch = 0
 
-        # tb_logs
-        tb_logs_path = ""
-        self.writer = SummaryWriter(tb_logs_path)
-
-        # create logger
+        self.writer = None
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        sh = logging.StreamHandler()
+        sh.setFormatter(formatter)
+        self.logger.addHandler(sh)
 
     def _train_epoch(self, loader: DataLoader,
                      epoch: int) -> Union[float, Dict[str, float]]:
@@ -176,43 +175,17 @@ class BaseTrainer(AbstractTrainer):
         if save_best is not None and save_path is None:
             save_path = os.path.join(os.getcwd(), f"save/{result_file_name}.pth")
 
-        # tb_logs
+        # log
         tb_logs_path = f"tb_logs/{result_file_name}"
         self.writer = SummaryWriter(tb_logs_path)
+        self.__add_file_log(result_file_name)
 
-
-        # logs
-        logs_dir = os.path.join(os.getcwd(), "logs")
-        if not os.path.exists(logs_dir):
-            os.makedirs(logs_dir)
-        file_name = f"{result_file_name}.log"
-        logs_path = os.path.join(logs_dir, file_name)
-        # create file handler which logs even debug messages
-        fh = logging.FileHandler(logs_path)
-        fh.setLevel(logging.DEBUG)
-        # create formatter and add it to the handlers
-        formatter = logging.Formatter('')
-        fh.setFormatter(formatter)
-        # add the handlers to the logger
-        self.logger.addHandler(fh)
-
+        self.logger.info(f'Tensorboard log is saved in {tb_logs_path}')
+        self.logger.info(f'log file is saved in logs/{tb_logs_path}.log\n')
         self._show_data_size(train_loader, validate_loader)
-
-        print(f'Tensorboard log is saved in {tb_logs_path}', file=sys.stderr)
-        self.logger.info(f'Tensorboard log is saved in {tb_logs_path}\n')
-
-        # training for num_epochs
-        print('----start training-----', file=sys.stderr)
-
-        # create formatter and add it to the handlers
-        formatter = logging.Formatter(
-            '%(asctime)s - %(levelname)s - %(message)s')
-        fh.setFormatter(formatter)
-
-        self.logger.addHandler(fh)
+        self.logger.info('----start training-----\n')
 
         for epoch in range(num_epochs):
-            print(f'\n--epoch=[{epoch}/{num_epochs - 1}]--', file=sys.stderr)
             self.logger.info(f'epoch=[{epoch}/{num_epochs - 1}]')
 
             # train
@@ -265,7 +238,6 @@ class BaseTrainer(AbstractTrainer):
         torch.save(self.model.state_dict(), save_path)
 
         self.logger.info(f'\nmodel is saved in {save_path}')
-        print(f'\nmodel is saved in {save_path}', file=sys.stderr)
 
     def _find_best_score(self, epoch: int, validation_score: float, save_best: bool, save_path: str) -> bool:
 
@@ -290,19 +262,16 @@ class BaseTrainer(AbstractTrainer):
                            epoch: int):
 
         self.logger.info(f'training time={cost_time_str}')
-        print(f'training time={cost_time_str}', file=sys.stderr)
 
         if type(train_result) is float:
             # single loss
             self.writer.add_scalar("Train/loss", train_result, epoch)
             self.logger.info(f"training loss : loss={train_result:.6f}")
-            print(f"training loss : loss={train_result:.6f}", file=sys.stderr)
         elif type(train_result) is dict:
             # multiple losses
             for metric, value in train_result.items():
                 self.writer.add_scalar("Train/" + metric, value, epoch)
             self.logger.info(f"training loss : {dict2str(train_result)}")
-            print(f"training loss : {dict2str(train_result)}", file=sys.stderr)
         else:
             raise TypeError(
                 f"train_result type error: must be float or Dict[str, float], but got {type(train_result)}"
@@ -316,8 +285,6 @@ class BaseTrainer(AbstractTrainer):
         for metric, value in validation_result.items():
             self.writer.add_scalar("Validation/" + metric, value, epoch)
         self.logger.info("validation result : " + dict2str(validation_result))
-        print("validation result : " + dict2str(validation_result),
-              file=sys.stderr)
 
         score_info = f"current score : {validation_score:.6f}\n"
         if save_best:
@@ -325,15 +292,24 @@ class BaseTrainer(AbstractTrainer):
         if self.early_stopping is not None and self.early_stopping.early_stop:
             score_info = score_info + f"\nearly stopping at epoch {epoch}!"
         self.logger.info(score_info)
-        print(score_info, file=sys.stderr)
 
     def _show_data_size(self,
                         train_loader: DataLoader,
                         validate_loader: Optional[DataLoader] = None):
         train_set_size = len(train_loader.dataset)
-        print(f'training data size={train_set_size}', file=sys.stderr)
         self.logger.info(f'training data size={train_set_size}')
         if validate_loader is not None:
             validate_set_size = len(validate_loader.dataset)
-            print(f'validation data size={validate_set_size}', file=sys.stderr)
             self.logger.info(f'validation data size={validate_set_size}')
+
+    def __add_file_log(self, file_name: str):
+        logs_dir = os.path.join(os.getcwd(), "logs")
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir)
+        log_file_path = os.path.join(logs_dir, f"{file_name}.log")
+
+        fh = logging.FileHandler(log_file_path)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        self.logger.addHandler(fh)
