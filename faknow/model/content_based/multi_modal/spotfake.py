@@ -6,10 +6,6 @@ from transformers import BertModel
 
 from faknow.model.model import AbstractModel
 
-# todo wjl 去除多余的device参数，统一使用trainer中的device
-# todo wjl 将spotfake的注释改为与其他模型一致的注释风格，在pycharm中设置Google风格
-# todo wjl 改为使用最新的MultiModalDataset，不要单独开一个spotfakedataset
-device = torch.device("cuda")
 """
 SpotFake: Multi-Modal Fake News Detection
 paper: https://ieeexplore.ieee.org/document/8919302
@@ -39,10 +35,12 @@ class _TextEncoder(nn.Module):
 
     def forward(self, input_ids, attention_mask):
         """
-        输入Bert和分类器，计算logis
-        @参数    input_ids (torch.Tensor): 输入 (batch_size,max_length)
-        @参数    attention_mask (torch.Tensor): attention mask information (batch_size, max_length)
-        @返回    logits (torch.Tensor): 输出 (batch_size, num_labels)
+        Args:
+            input_ids (Tensor): text as input. shape=(batch_size, max_len)
+            attention_mask (Tensor): attention mask information. shape=(batch_size, max_len)
+
+        Returns:
+            x (Tensor): encoded text. shape=(batch_size, text_fc2_out)
         """
 
         # 输入BERT
@@ -87,8 +85,11 @@ class _VisionEncoder(nn.Module):
 
     def forward(self, images):
         """
-        :参数: images, tensor (batch_size, 3, image_size, image_size)
-        :返回: encoded images
+        Args:
+            images (Tensor): images as input. shape=(batch_size, 3, image_size, image_size)
+
+        Returns:
+            x (Tensor): encoded images. shape=(batch_size ,img_fc2_out)
         """
 
         x = self.vis_encoder(images)
@@ -136,8 +137,15 @@ class _TextConcatVision(nn.Module):
         )
         self.dropout = torch.nn.Dropout(model_params['dropout_p'])
 
-    # def forward(self, text, image):
     def forward(self, text, image):
+        """
+        Args:
+            text (Tensor): text as input. shape=[(batch_size, max_len), (batch_size, max_len)]
+            image(Tensor): image as input. shape=(batch_size, 3, 224, 224)
+
+        Returns:
+            prediction (Tensor): prediction as output. shape=(8,)
+        """
         # text to Bert
         text_features = self.text_encoder(text[0], text[1])
         # image to vgg
@@ -160,6 +168,9 @@ class _TextConcatVision(nn.Module):
 
 
 class SpotFake(AbstractModel):
+    """
+    SpotFake: A Multi-modal Framework for Fake News Detection
+    """
     def __init__(
             self,
             text_fc2_out: int = 32,
@@ -173,6 +184,20 @@ class SpotFake(AbstractModel):
             loss_func=nn.BCELoss(),
             pre_trained_bert_name="bert-base-uncased"
     ):
+        """
+        Args:
+            text_fc2_out (int): size of the second fully connected layer of the text module. Default=32
+            text_fc1_out (int): size of the first fully connected layer of the text module. Default=2742
+            dropout_p (float): drop out rate. Default=0.4
+            fine_tune_text_module (bool): text model fine-tuning or not. Default=False
+            img_fc1_out (int): size of the first fully connected layer of the visual module. Default=2742
+            img_fc2_out (int): size of the second fully connected layer of the visual module. Default=32
+            fine_tune_vis_module (bool): visual model fine-tuning or not. Default=False
+            fusion_output_size (int): size of the output layer after multimodal fusion. Default=35
+            loss_func: loss function. Default=nn.BCELoss()
+            pre_trained_bert_name: pretrained bert name. Default="bert-base-uncased"
+        """
+
         super(SpotFake, self).__init__()
         self.text_fc2_out = text_fc2_out
         self.text_fc1_out = text_fc1_out
@@ -194,28 +219,39 @@ class SpotFake(AbstractModel):
             "fusion_output_size": fusion_output_size,
             "pre_trained_bert_name": pre_trained_bert_name
         }
-        self.model = _TextConcatVision(model_params).to(device)
+        self.model = _TextConcatVision(model_params)
         if loss_func is None:
             self.loss_func = nn.BCELoss()
         else:
             self.loss_func = loss_func
 
     def forward(self, text: torch.Tensor, mask: torch.Tensor, domain: torch.Tensor):
+        """
+        Args:
+            text (Tensor): shape=(batch_size, max_len)
+            mask (Tensor): shape=(batch_size, max_len)
+            domain (Tensor): shape=(batch_size, 3, 224, 224)
+
+        Returns:
+            self.model([text, mask], image=domain) (Tensor): shape=(8,)
+        """
         return self.model([text, mask], image=domain)
 
     def calculate_loss(self, data) -> Tensor:
-        img_ip, text_ip, label = data["image_id"], data["BERT_ip"], data['label']
-        b_input_ids, b_attn_mask = tuple(t.to(device) for t in text_ip)
-        imgs_ip = img_ip.to(device)
-        b_labels = label.to(device)
+        img_ip, text_ip, label = data["image_id"], data["post_text"], data['label']
+        b_input_ids = text_ip['input_ids']
+        b_attn_mask = text_ip['attention_mask']
+        imgs_ip = img_ip
+        b_labels = label
         output = self.forward(b_input_ids, b_attn_mask, imgs_ip)
         return self.loss_func(output, b_labels.float())
 
     @torch.no_grad()
     def predict(self, data_without_label):
-        img_ip, text_ip = data_without_label["image_id"], data_without_label["BERT_ip"]
-        b_input_ids, b_attn_mask = tuple(t.to(device) for t in text_ip)
-        imgs_ip = img_ip.to(device)
+        img_ip, text_ip = data_without_label["image_id"], data_without_label["post_text"]
+        b_input_ids = text_ip['input_ids']
+        b_attn_mask = text_ip['attention_mask']
+        imgs_ip = img_ip
 
         # shape=(n,), data = 1 or 0
         round_pred = self.forward(b_input_ids, b_attn_mask, imgs_ip)
