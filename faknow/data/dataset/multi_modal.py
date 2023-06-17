@@ -7,7 +7,9 @@ from faknow.data.dataset.text import TextDataset
 
 
 class MultiModalDataset(TextDataset):
-    def __init__(self, path: str, text_features: List[str],
+    def __init__(self,
+                 path: str,
+                 text_features: List[str],
                  tokenize: Callable[[List[str]], Any],
                  image_features: List[str],
                  transform: Callable[[str], Any]):

@@ -55,10 +55,6 @@ class FakeNewsDataset(Dataset):
         return self.csv_data.shape[0]
     
     def pre_processing_BERT(self, sent):
-
-        # 创建空列表储存输出
-        input_ids = []
-        attention_mask = []
         
         encoded_sent = self.tokenizer_bert.encode_plus(
             text=text_preprocessing(sent),  # 预处理
