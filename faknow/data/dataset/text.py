@@ -1,5 +1,5 @@
 import os
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Dict
 
 import pandas as pd
 import torch
@@ -26,7 +26,7 @@ class TextDataset(Dataset):
         if to_tensor:
             self._to_tensor()
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> Dict[str, Any]:
         item = {}
         for feature_name, feature_values in self.data.items():
             if feature_name in self.text_features and type(
