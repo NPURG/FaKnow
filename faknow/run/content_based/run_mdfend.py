@@ -41,7 +41,8 @@ def run_mdfend(train_path: str,
                gamma=0.98,
                metrics: List = None,
                validate_path: str = None,
-               test_path: str = None):
+               test_path: str = None,
+               device='cpu'):
     tokenizer = MDFENDTokenizer(max_len, bert)
     train_set = TextDataset(train_path, ['text'], tokenizer)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
@@ -60,7 +61,7 @@ def run_mdfend(train_path: str,
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size, gamma)
     evaluator = Evaluator(metrics)
 
-    trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
+    trainer = BaseTrainer(model, evaluator, optimizer, scheduler, device=device)
     trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 
     if test_path is not None:

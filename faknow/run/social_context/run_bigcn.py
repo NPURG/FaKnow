@@ -24,7 +24,8 @@ def run_bigcn(root: str,
               bu_drop_rate=0.2,
               lr=0.01,
               weight_decay=0.001,
-              metrics: List = None):
+              metrics: List = None,
+              device='cpu'):
     if splits is None:
         splits = ['train', 'val', 'test']
 
@@ -58,7 +59,7 @@ def run_bigcn(root: str,
         weight_decay=weight_decay)
     evaluator = Evaluator(metrics)
 
-    trainer = BaseGNNTrainer(model, evaluator, optimizer)
+    trainer = BaseGNNTrainer(model, evaluator, optimizer, device=device)
     trainer.fit(train_loader, epochs, val_loader)
 
     if 'test' in splits:

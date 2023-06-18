@@ -23,7 +23,8 @@ def run_eddfn(train_pool_input: Tensor,
               batch_size=32,
               num_epochs=100,
               lr=0.02,
-              metrics: List = None):
+              metrics: List = None,
+              device='cpu'):
     input_size = train_pool_input.shape[-1]
     domain_size = domain_embedding.shape[-1]
 
@@ -39,7 +40,7 @@ def run_eddfn(train_pool_input: Tensor,
     evaluator = Evaluator(metrics)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-    trainer = BaseTrainer(model, evaluator, optimizer)
+    trainer = BaseTrainer(model, evaluator, optimizer, device=device)
     trainer.fit(train_loader, num_epochs=num_epochs)
 
 

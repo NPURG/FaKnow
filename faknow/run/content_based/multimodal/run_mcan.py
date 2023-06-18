@@ -193,6 +193,7 @@ def run_mcan(train_path: str,
              metrics: List = None,
              validate_path: str = None,
              test_path: str = None,
+             device='cpu',
              **optimizer_kargs):
     tokenizer = TokenizerMCAN(max_len, bert)
 
@@ -211,7 +212,7 @@ def run_mcan(train_path: str,
     evaluator = Evaluator(metrics)
     clip_grad_norm = {'max_norm': 1.0}
 
-    trainer = BaseTrainer(model, evaluator, optimizer, scheduler, clip_grad_norm)
+    trainer = BaseTrainer(model, evaluator, optimizer, scheduler, clip_grad_norm, device=device)
     trainer.fit(train_loader, num_epochs=num_epochs, validate_loader=val_loader)
 
     if test_path:

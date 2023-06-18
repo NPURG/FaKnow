@@ -83,7 +83,8 @@ def run_eann(train_path: str,
              num_epochs=100,
              metrics: List = None,
              validate_path: str = None,
-             test_path: str = None) -> None:
+             test_path: str = None,
+             device='cpu') -> None:
     """
     todo run函数是否不要加过多参数，直接最基础最原始的几个参数就可以了，不需要很复杂，对于复杂功能就让用户自己写代码
     直接传入数据
@@ -110,7 +111,7 @@ def run_eann(train_path: str,
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
                                                   lr_lambda=adjust_lr_eann)
     evaluator = Evaluator(metrics)
-    trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
+    trainer = BaseTrainer(model, evaluator, optimizer, scheduler, device=device)
     trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 
     if test_path is not None:

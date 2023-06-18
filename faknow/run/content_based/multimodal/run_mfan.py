@@ -91,7 +91,8 @@ def run_mfan(train_path: str,
              lr=2e-3,
              metrics: List = None,
              validate_path: str = None,
-             test_path: str = None
+             test_path: str = None,
+             device='cpu'
              ):
     tokenize = TokenizerMFAN(vocab, max_len)
 
@@ -104,7 +105,7 @@ def run_mfan(train_path: str,
     else:
         validate_loader = None
 
-    model = MFAN(word_vectors, node_num, node_embedding, adj_matrix)
+    model = MFAN(word_vectors, node_num, node_embedding, adj_matrix, device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr)
     evaluator = Evaluator(metrics)
     trainer = MFANTrainer(model, evaluator, optimizer)

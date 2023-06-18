@@ -21,7 +21,8 @@ def run_gnncl(root: str,
               max_nodes=500,
               lr=0.1,
               epochs=70,
-              metrics: List = None):
+              metrics: List = None,
+              device='cpu'):
     if splits is None:
         splits = ['train', 'val', 'test']
 
@@ -52,7 +53,7 @@ def run_gnncl(root: str,
     optimizer = torch.optim.Adam(model.parameters(), lr)
     evaluator = Evaluator(metrics)
 
-    trainer = DenseGNNTrainer(model, evaluator, optimizer)
+    trainer = DenseGNNTrainer(model, evaluator, optimizer, device=device)
     trainer.fit(train_loader, epochs, val_loader)
 
     if 'test' in splits:

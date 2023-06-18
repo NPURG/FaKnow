@@ -15,7 +15,8 @@ __all__ = ['run_nep', 'run_nep_from_yaml']
 
 
 def run_nep(post_simcse, avg_mac, avg_mic, p_mac, p_mic, avg_mic_mic, token, label,
-            data_ratio: List[float] = None, batch_size=8, num_epochs=10, lr=5e-4, metrics=None, **kwargs):
+            data_ratio: List[float] = None, batch_size=8, num_epochs=10, lr=5e-4, metrics=None,
+            device='cpu', **kwargs):
     dataset = NEPDataset(post_simcse, avg_mac, avg_mic, p_mac, p_mic, avg_mic_mic, token, label)
 
     # split dataset
@@ -36,7 +37,7 @@ def run_nep(post_simcse, avg_mac, avg_mic, p_mac, p_mic, avg_mic_mic, token, lab
                              model.parameters()), lr)
     evaluator = Evaluator(metrics)
 
-    trainer = BaseTrainer(model, evaluator, optimizer)
+    trainer = BaseTrainer(model, evaluator, optimizer, device=device)
     trainer.fit(train_loader, num_epochs, val_loader)
 
     test_result = trainer.evaluate(test_loader)

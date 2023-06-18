@@ -22,7 +22,8 @@ def run_gcnfn(root: str,
               hidden_size=128,
               lr=0.001,
               weight_decay=0.01,
-              metrics: List = None):
+              metrics: List = None,
+              device='cpu'):
     if splits is None:
         splits = ['train', 'val', 'test']
 
@@ -43,7 +44,7 @@ def run_gcnfn(root: str,
     optimizer = torch.optim.Adam(model.parameters(), lr, weight_decay=weight_decay)
     evaluator = Evaluator(metrics)
 
-    trainer = BaseGNNTrainer(model, evaluator, optimizer)
+    trainer = BaseGNNTrainer(model, evaluator, optimizer, device=device)
     trainer.fit(train_loader, epochs, val_loader)
 
     if 'test' in splits:

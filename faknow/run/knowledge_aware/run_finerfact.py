@@ -25,7 +25,8 @@ def run_finerfact(train_data,
                   num_epochs=20,
                   gradient_accumulation_steps=8,
                   warmup_ratio=0.6,
-                  metrics=None):
+                  metrics=None,
+                  device='cpu'):
     train_set = FinerFactDataset(*train_data)
 
     train_loader = torch.utils.data.DataLoader(train_set,
@@ -65,7 +66,7 @@ def run_finerfact(train_data,
                                                 num_training_steps=t_total)
 
     evaluator = Evaluator(metrics)
-    trainer = BaseTrainer(model, evaluator, optimizer, scheduler)
+    trainer = BaseTrainer(model, evaluator, optimizer, scheduler, device=device)
     trainer.fit(train_loader, num_epochs=num_epochs, validate_loader=val_loader)
 
     if test_data is not None:
