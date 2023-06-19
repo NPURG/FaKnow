@@ -19,21 +19,24 @@ class TextCNN(AbstractModel):
 
         Args:
             word_vectors (torch.Tensor): weights of word embedding layer, shape=(vocab_size, embedding_size)
-            filter_num (int): number of filters in conv layer
-            kernel_sizes (List[int]): list of different kernel_num sizes for TextCNNLayer
+            filter_num (int): number of filters in conv layer. Default=100
+            kernel_sizes (List[int]): list of different kernel_num sizes for TextCNNLayer. Default=[3, 4, 5]
             activate_func (Callable): activate function for TextCNNLayer. Default=relu
             dropout (float): drop out rate of fully connected layer. Default=0.5
-            freeze (bool): whether to freeze weights in word embedding layer while training. Default=True
+            freeze (bool): whether to freeze weights in word embedding layer while training. Default=False
         """
 
     def __init__(self,
                  word_vectors: torch.Tensor,
-                 filter_num: int,
-                 kernel_sizes: List[int],
+                 filter_num=100,
+                 kernel_sizes: List[int] = None,
                  activate_func: Optional[Callable] = F.relu,
                  dropout=0.5,
-                 freeze=True):
+                 freeze=False):
         super().__init__()
+        if kernel_sizes is None:
+            kernel_sizes = [3, 4, 5]
+
         self.loss_func = nn.CrossEntropyLoss()
 
         self.word_embedding = nn.Embedding.from_pretrained(word_vectors, freeze=freeze)
