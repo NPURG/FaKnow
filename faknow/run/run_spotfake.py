@@ -1,8 +1,9 @@
 import random
 import re
-from typing import Dict, List
+from typing import Dict, List, Any
 
 import numpy as np
+import yaml
 from PIL import Image
 import torch
 from torch.optim import AdamW
@@ -82,7 +83,6 @@ def transform(path: str) -> torch.Tensor:
 
 
 def run_spotfake(
-        rank,
         root: str,
         pre_trained_bert_name="bert-base-uncased",
         batch_size=8,
@@ -104,7 +104,8 @@ def run_spotfake(
     train_loader = DataLoader(training_set, batch_size=batch_size, shuffle=True)
     validation_loader = DataLoader(validation_set, batch_size=batch_size, shuffle=True)
 
-    model = SpotFake(pre_trained_bert_name=pre_trained_bert_name)
+    model = SpotFake(pre_trained_bert_name=pre_trained_bert_name) #可以再跑一下试一下  网络不好 就用下面的那个
+    # model = SpotFake()
 
     optimizer = AdamW(
         model.parameters(),
@@ -117,12 +118,10 @@ def run_spotfake(
     trainer = BaseTrainer(model, evaluator, optimizer, device='cuda:0')
     trainer.fit(train_loader, epochs, validation_loader)
 
-
-def main():
-    root = "/root/FaKnow/dataset/example/SpotFake/twitter/"
-    pre_trained_bert_name = "bert-base-uncased"
-    run_spotfake(0, root, pre_trained_bert_name)
-
+def run_spotfake_from_yaml(config: Dict[str, Any]):
+    run_spotfake(**config)
 
 if __name__ == '__main__':
-    main()
+    with open(r'/root/FaKnow/faknow/properties/spotfake.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_spotfake_from_yaml(_config)

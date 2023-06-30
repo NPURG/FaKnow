@@ -11,14 +11,14 @@ from faknow.data.legacy.text_dataset import FolderTextDataset
 class SAFENumpyDataset(torch.utils.data.Dataset):
     def __init__(
             self,
-            root_dir: Path,
+            root_dir: str,
     ):
         super().__init__()
 
-        x_heads = np.load(root_dir / "case_headline.npy", allow_pickle=True)
-        x_bodies = np.load(root_dir / "case_body.npy", allow_pickle=True)
-        x_images = np.load(root_dir / "case_image.npy", allow_pickle=True)
-        y = np.load(root_dir / "case_y_fn_dim1.npy")
+        x_heads = np.load(root_dir + "\\case_headline.npy", allow_pickle=True)
+        x_bodies = np.load(root_dir + "\\case_body.npy", allow_pickle=True)
+        x_images = np.load(root_dir + "\\case_image.npy", allow_pickle=True)
+        y = np.load(root_dir + "\\case_y_fn_dim1.npy")
 
         self.x_heads = x_heads.astype(np.float32)
         self.x_bodies = x_bodies.astype(np.float32)

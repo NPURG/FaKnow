@@ -1,6 +1,7 @@
-from pathlib import Path
+from typing import Dict, Any
 
 import torch
+import yaml
 from torch.utils.data import random_split, DataLoader
 
 from faknow.data.dataset.safe_dataset import SAFENumpyDataset
@@ -10,7 +11,7 @@ from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
 
-def run_safe(rank, root):
+def run_safe(root):
     dataset = SAFENumpyDataset(root)
 
     val_size = int(len(dataset) * 0.1)
@@ -37,10 +38,11 @@ def run_safe(rank, root):
     print("test result: ", {dict2str(test_result)})
 
 
-def main():
-    root = Path(r"C:\Users\10749\Desktop\FaKnow\dataset\example\SAFE")
-    run_safe(0, root)
+def run_safe_from_yaml(config: Dict[str, Any]):
+    run_safe(**config)
 
 
 if __name__ == '__main__':
-    main()
+    with open(r'..\properties\safe.yaml', 'r') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_safe_from_yaml(_config)

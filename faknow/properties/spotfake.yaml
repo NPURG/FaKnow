@@ -1,0 +1,2 @@
+root: /root/FaKnow/dataset/example/SpotFake/twitter/
+pre_trained_bert_name: bert-base-uncased
