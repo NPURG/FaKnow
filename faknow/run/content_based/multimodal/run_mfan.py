@@ -118,7 +118,7 @@ def run_mfan(train_path: str,
         print('test result: ', dict2str(test_result))
 
 
-def run_mfan_from_yaml(config: Dict[str, Any]):
+def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
     with open(config['vocab'], 'rb') as f:
         config['vocab'] = pickle.load(f)
     with open(config['word_vectors'], 'rb') as f:
@@ -127,10 +127,10 @@ def run_mfan_from_yaml(config: Dict[str, Any]):
         config['node_embedding'] = pickle.load(f)
     config['adj_matrix'] = load_adj_matrix_mfan(config['adj_matrix'], config['node_num'])
 
-    run_mfan(**config)
+    return config
 
 
-if __name__ == '__main__':
-    with open(r'..\..\..\properties\mfan.yaml', 'r') as _f:
+def run_mfan_from_yaml(path: str):
+    with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_mfan_from_yaml(_config)
+        run_mfan(**_parse_kargs(_config))

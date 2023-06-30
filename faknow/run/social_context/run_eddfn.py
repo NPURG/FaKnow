@@ -44,17 +44,17 @@ def run_eddfn(train_pool_input: Tensor,
     trainer.fit(train_loader, num_epochs=num_epochs)
 
 
-def run_eddfn_from_yaml(config: Dict[str, Any]):
+def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
     with open(config['train_pool_input'], 'rb') as f:
         config['train_pool_input'] = pickle.load(f)
     with open(config['train_pool_label'], 'rb') as f:
         config['train_pool_label'] = pickle.load(f)
     with open(config['domain_embedding'], 'rb') as f:
         config['domain_embedding'] = pickle.load(f)
-    run_eddfn(**config)
+    return config
 
 
-if __name__ == '__main__':
-    with open(r'..\..\..\properties\eddfn.yaml', 'r') as _f:
+def run_eddfn_from_yaml(path: str):
+    with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_eddfn_from_yaml(_config)
+        run_eddfn(**_parse_kargs(_config))

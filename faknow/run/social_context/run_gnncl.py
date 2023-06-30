@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List
 
 import torch
 import yaml
@@ -70,11 +70,7 @@ def run_gnncl(root: str,
         print(f'test result={test_result}')
 
 
-def run_gnncl_from_yaml(config: Dict[str, Any]):
-    run_gnncl(**config)
-
-
-if __name__ == '__main__':
-    with open(r'..\..\properties\upfd.yaml', 'r') as _f:
+def run_gnncl_from_yaml(path: str):
+    with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_gnncl_from_yaml(_config)
+        run_gnncl(**_config)
