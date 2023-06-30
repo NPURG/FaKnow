@@ -84,13 +84,13 @@ def _load_data(path: str):
     return token_ids, masks, type_ids, labels, R_p, R_u, R_k, user_metadata, user_embeds
 
 
-def run_finerfact_from_yaml(config: Dict[str, Any]):
+def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
     config['train_data'] = _load_data('train_data')
     config['test_data'] = _load_data('test_data')
-    run_finerfact(**config)
+    return config
 
 
-if __name__ == '__main__':
-    with open(r'..\..\properties\finerfact.yaml', 'r') as _f:
+def run_finerfact_from_yaml(path: str):
+    with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_finerfact_from_yaml(_config)
+        run_finerfact(**_parse_kargs(_config))

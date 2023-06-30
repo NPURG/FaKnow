@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict
 
 import torch
 import yaml
@@ -11,10 +11,10 @@ from faknow.model.content_based.mdfend import MDFEND
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
-__all__ = ['MDFENDTokenizer', 'run_mdfend', 'run_mdfend_from_yaml']
+__all__ = ['TokenizerMDFEND', 'run_mdfend', 'run_mdfend_from_yaml']
 
 
-class MDFENDTokenizer:
+class TokenizerMDFEND:
     def __init__(self, max_len=170, bert="hfl/chinese-roberta-wwm-ext"):
         self.max_len = max_len
         self.tokenizer = BertTokenizer.from_pretrained(bert)
@@ -43,7 +43,7 @@ def run_mdfend(train_path: str,
                validate_path: str = None,
                test_path: str = None,
                device='cpu'):
-    tokenizer = MDFENDTokenizer(max_len, bert)
+    tokenizer = TokenizerMDFEND(max_len, bert)
     train_set = TextDataset(train_path, ['text'], tokenizer)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
 
@@ -71,11 +71,7 @@ def run_mdfend(train_path: str,
         print('test result: ', dict2str(test_result))
 
 
-def run_mdfend_from_yaml(config: Dict[str, Any]):
-    run_mdfend(**config)
-
-
-if __name__ == '__main__':
-    with open(r'..\..\properties\mdfend.yaml', 'r') as _f:
+def run_mdfend_from_yaml(path: str):
+    with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_mdfend_from_yaml(_config)
+        run_mdfend(_config)
