@@ -7,4 +7,5 @@ def run(model: str, **kwargs):
 
 
 def run_from_yaml(model: str, path: str):
+    model = model.lower()
     eval(f"run_{model}_from_yaml('{path}')")
