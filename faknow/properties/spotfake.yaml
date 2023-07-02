@@ -1,2 +1,3 @@
-root: /root/FaKnow/dataset/example/SpotFake/twitter/
-pre_trained_bert_name: bert-base-uncased
+train_path: /root/FaKnow/dataset/example/SpotFake/twitter/train_posts_clean.json
+validate_path: /root/FaKnow/dataset/example/SpotFake/twitter/test_posts.json
+test_path:
