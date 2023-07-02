@@ -99,11 +99,11 @@ run(model, **kargs)
 
 ```python
 # demo.py
-from faknow.run import run_from_config
+from faknow.run import run_from_yaml
 
 model = 'mdfend'  # lowercase short name of models
 config_path = 'mdfend.yaml'  # config file path
-run_from_config(model, config_path)
+run_from_yaml(model, config_path)
 ```
 
 your yaml config file should be like:
