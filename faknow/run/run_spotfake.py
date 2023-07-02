@@ -85,11 +85,14 @@ def transform(path: str) -> torch.Tensor:
 def run_spotfake(
         root: str,
         pre_trained_bert_name="bert-base-uncased",
+        seed_value=42,
         batch_size=8,
         epochs=50,
         MAX_LEN=500,
+        lr=3e-5,
+        metrics: List = None,
+        device='cuda:0'
 ):
-    seed_value = 42
     random.seed(seed_value)
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
@@ -104,18 +107,16 @@ def run_spotfake(
     train_loader = DataLoader(training_set, batch_size=batch_size, shuffle=True)
     validation_loader = DataLoader(validation_set, batch_size=batch_size, shuffle=True)
 
-    model = SpotFake(pre_trained_bert_name=pre_trained_bert_name) #可以再跑一下试一下  网络不好 就用下面的那个
-    # model = SpotFake()
+    model = SpotFake(pre_trained_bert_name=pre_trained_bert_name)
 
-    optimizer = AdamW(
+    optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=3e-5,
-        eps=1e-8
+        lr
     )
 
-    evaluator = Evaluator(['accuracy', 'precision', 'recall', 'f1'])
+    evaluator = Evaluator(metrics)
 
-    trainer = BaseTrainer(model, evaluator, optimizer, device='cuda:0')
+    trainer = BaseTrainer(model, evaluator, optimizer, device)
     trainer.fit(train_loader, epochs, validation_loader)
 
 def run_spotfake_from_yaml(config: Dict[str, Any]):
