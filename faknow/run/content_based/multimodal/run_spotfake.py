@@ -18,6 +18,8 @@ from faknow.model.content_based.multi_modal.spotfake import SpotFake
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
+__all__ = ['text_preprocessing', 'TokenizerSpotFake', 'transform', 'run_spotfake', 'run_spotfake_from_yaml']
+
 
 def text_preprocessing(text):
     """
@@ -38,7 +40,7 @@ def text_preprocessing(text):
     return text
 
 
-class SpotFakeTokenizer:
+class TokenizerSpotFake:
     def __init__(self, max_len, pre_trained_bert_name):
         self.max_len = max_len
         self.pre_trained_bert_name = BertTokenizer.from_pretrained(pre_trained_bert_name, do_lower_case=True)
@@ -111,7 +113,7 @@ def run_spotfake(
     torch.manual_seed(seed_value)
     torch.cuda.manual_seed_all(seed_value)
 
-    tokenizer = SpotFakeTokenizer(MAX_LEN, pre_trained_bert_name)
+    tokenizer = TokenizerSpotFake(MAX_LEN, pre_trained_bert_name)
 
     training_set = MultiModalDataset(train_path, ['post_text'], tokenizer, ['image_id'], transform)
     train_loader = DataLoader(training_set, batch_size=batch_size, shuffle=True)

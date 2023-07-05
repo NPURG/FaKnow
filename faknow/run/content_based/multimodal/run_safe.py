@@ -10,6 +10,8 @@ from faknow.model.content_based.multi_modal.safe import SAFE
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
+__all__ = ['run_safe', 'run_safe_from_yaml']
+
 
 def run_safe(
         train_path: str,
@@ -60,6 +62,6 @@ def run_safe_from_yaml(config: Dict[str, Any]):
 
 
 if __name__ == '__main__':
-    with open(r'..\properties\safe.yaml', 'r') as _f:
+    with open(r'..\..\..\properties\safe.yaml', 'r') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
         run_safe_from_yaml(_config)
