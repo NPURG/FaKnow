@@ -1,59 +1,31 @@
 # FaKnow
 
 **FaKnow** (**Fa**ke **Know**), a unified *Fake News Detection* algorithms library based on PyTorch, is designed for
-reproducing and developing fake news detection algorithms. It includes **17 models**(see at [Integrated Models](##
-Integrated Models)), covering **3 categories**:
+reproducing and developing fake news detection algorithms. It includes **17 models**(see at **Integrated Models**), covering **3 categories**:
 
 - content based
 - social context
 - knowledge aware
 
+
+
 ## Features
 
-### Unified Framework
+- **Unified Framework**: provide a unified and standardised interface to cover a series of algorithm development processes, including data processing, model developing, training and evaluation
+- **Generic Data Structure**:  use json as the file format read into the framework to fit the format of the data crawled down, allowing the user to feed the data into the framework with only minor processing
 
-*FaKnow* provides a unified and standardised interface to cover a series of algorithm development processes, including
-data processing, model writing, training and evaluation, and final result storage. We have designed and developed the
-data module, model module and training module as the core components of the framework, and encapsulated many of the
-functional components and functions commonly used in fake news detection algorithms.
+- **Diverse Models**: contains a number of representative fake news detection algorithms published in conferences or journals during recent years, including a variety of content-based, social context-based and knowledge aware models
+- **Convenient Usability**: pytorch based style make it easy to use with rich auxiliary functions like result visualisation, log printing, parameter saving
 
-### Generic Data Structure
+- **Great Scalability**: just focus on the exposed api and inherit built-in classed to reuse most of the functionality and only need to write a little code to meet new requirements
 
-For different types of tasks and scenarios, the framework contains different data formats to cope with various needs,
-focusing on two main areas of work. At the level of raw data files, as most of the current datasets for disinformation
-detection are crawled from social platform pages such as Weibo, we use json as the file format read into the framework
-to fit the format of the data crawled down, allowing the user to feed the data into the framework with only minor
-processing. At the level of data interaction within the algorithm's internal code, we have developed a uniform
-interaction format that allows users to easily access data by referencing feature names.
 
-### Diverse Models
-
-The framework contains a number of representative disinformation detection algorithms published in top academic
-conferences or journals, including a variety of content-based, social context-based and knowledge aware detection
-algorithm models, giving researchers a wide range of options for replicating their results or using them as a baseline
-for their own algorithm research. The built-in models include more than just the classical algorithms, but also focus on
-new and popular algorithms from recent years, covering a wide range of perspectives such as text content, multimodality
-and information propagation.
-
-### Convenient Usability
-
-The framework is developed based on the *pytorch* and encapsulated in several ways, eliminating the tedious work of
-daily model training and evaluation, providing auxiliary functions such as result visualisation, log printing, parameter
-saving, etc., avoiding a lot of code redundancy, and also supporting the reading of hyperparameters from configuration
-files and command lines for model training. In addition, although the framework has its own wrapper classes and
-functions, the overall logic is still the same behaviour commonly used by *pytorch*, and the learning cost is low enough
-for any researcher familiar with *pytorch* to start quickly.
-
-### Great Scalability
-
-The classes related to datasets, models, training and evaluation of the framework are designed to shield the internal
-detailed code logic and provide call interfaces externally, making the entire framework highly extensible. In addition
-to running the built-in algorithms already in the framework, users who want to fine-tune existing algorithms or write
-new models of fake news detection algorithms can simply focus on the api exposed by these classes and inherit them
-according to the specification to reuse most of the functionality and rewrite a small amount of code to meet their
-needs.
 
 ## Installation
+
+FaKnow is available for **Python 3.8** and higher. 
+
+**Make sure [PyTorch](https://pytorch.org/)(including torch and torchvision) and [PyG](https://www.pyg.org/)(including torch_geometric and optional dependencies) are already installed.**
 
 - from conda
 
@@ -74,13 +46,17 @@ git clone https://github.com/NPURG/FaKnow.git && cd FaKnow
 pip install -e . --verbose
 ```
 
-## Quick Start
+
+
+## Usage Examples
+
+### Quick Start
 
 We provide several methods to **run integrated models** quickly with passing only few arguments. For hyper parameters
 like learning rate, values from the open source code of the paper are taken as default. You can also passing your own
 defined hyper parameters to these methods.
 
-### run
+#### run
 
 You can use `run` and `run_from_yaml` methods to run integrated models. The former receives the parameters as `dict`
 keyword arguments and the latter reads them from the `yaml` configuration file.
@@ -93,6 +69,21 @@ from faknow.run import run
 model = 'mdfend'  # lowercase short name of models
 kargs = {'train_path': 'train.json', 'test_path': 'test.json'}  # dict arguments
 run(model, **kargs)
+```
+
+the json file for *mdfend* shoule be like:
+
+```json
+[
+    {
+        "text": "this is a sentence.",
+        "domain": 9
+    },
+    {
+        "text": "this is a sentence.",
+        "domain": 1
+    }
+]
 ```
 
 - run from yaml
@@ -114,7 +105,7 @@ train_path: train.json # the path of training set file
 test_path: test.json # the path of testing set file
 ```
 
-### run specific models
+#### run specific models
 
 You can also run specific models using `run_model` and `run_model_from_yaml` methods by passing paramter, where `model`
 is the short name of the integrated model you want to use. The usages are the same as `run` and `run_from_yaml`.
@@ -131,6 +122,61 @@ run_mdfend(**kargs)
 config_path = 'mdfend.yaml'  # config file path
 run_mdfend_from_yaml(config_path)
 ```
+
+### Run From Scratch
+
+Following is an example to run *mdfend* from scratch.
+
+```python
+from faknow.data.dataset.text import TextDataset
+from faknow.evaluate.evaluator import Evaluator
+from faknow.model.content_based.mdfend import MDFEND
+from faknow.train.trainer import BaseTrainer
+from faknow.run.content_based import TokenizerMDFEND
+
+import torch
+from torch.utils.data import DataLoader
+
+# tokenizer for MDFEND
+max_len, bert = 170, 'bert-base-uncased'
+tokenizer = TokenizerMDFEND(max_len, bert)
+
+batch_size = 64
+# dataset path
+train_path, test_path, validate_path = 'train.json', 'test.json', 'val.json'
+train_set = TextDataset(train_path, ['text'], tokenizer)
+train_loader = DataLoader(train_set, batch_size, shuffle=True)
+
+validate_set = TextDataset(validate_path, ['text'], tokenizer)
+val_loader = DataLoader(validate_set, batch_size, shuffle=False)
+
+test_set = TextDataset(test_path, ['text'], tokenizer)
+tset_loader = DataLoader(test_set, batch_size, shuffle=False)
+
+# prepare model
+domain_num = 9
+model = MDFEND(bert, domain_num)
+
+# optimizer and lr scheduler
+lr, weight_decay, step_size, gamma = 0.00005, 5e-5, 100, 0.98
+optimizer = torch.optim.Adam(params=model.parameters(),
+                             lr=lr,
+                             weight_decay=weight_decay)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size, gamma)
+
+# metrics to evaluate the model performance
+evaluator = Evaluator()
+
+# train and validate
+num_epochs, device = 50, 'cpu'
+trainer = BaseTrainer(model, evaluator, optimizer, scheduler, device=device)
+trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
+
+# show test result
+print(trainer.evaluate(test_loader))
+```
+
+
 
 ## Integrated Models
 
@@ -154,11 +200,15 @@ run_mdfend_from_yaml(config_path)
 |                 | [Zoom Out and Observe: News Environment Perception for Fake News Detection](https://aclanthology.org/2022.acl-long.311/)                                     | ACL                | 2022         | [ictmcg/news-environment-perception](https://github.com/ICTMCG/News-Environment-Perception)                                         | [NEP](faknow/model/social_context/nep.py)                      |
 | Knowledge Aware | [Towards Fine-Grained Reasoning for Fake News Detection ](https://aaai.org/papers/05746-towards-fine-grained-reasoning-for-fake-news-detection/)             | AAAI               | 2022         | [Ahren09/FinerFact ](https://github.com/Ahren09/FinerFact)                                                                          | [FinerFact](faknow/model/knowledge_aware/finerfact.py)         |
 
+
+
 ## Citation
 
 ```tex
 
 ```
+
+
 
 ## License
 
