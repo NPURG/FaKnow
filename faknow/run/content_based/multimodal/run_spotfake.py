@@ -144,10 +144,7 @@ def run_spotfake(
         test_result = trainer.evaluate(test_loader)
         print(f"test result: {dict2str(test_result)}")
 
-def run_spotfake_from_yaml(config: Dict[str, Any]):
-    run_spotfake(**config)
-
-if __name__ == '__main__':
-    with open(r'/root/FaKnow/faknow/properties/spotfake.yaml', 'r') as _f:
+def run_spotfake_from_yaml(path: str):
+    with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_spotfake_from_yaml(_config)
+        run_spotfake(**_config)

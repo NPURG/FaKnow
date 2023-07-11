@@ -57,11 +57,7 @@ def run_safe(
         print(f"test result: {dict2str(test_result)}")
 
 
-def run_safe_from_yaml(config: Dict[str, Any]):
-    run_safe(**config)
-
-
-if __name__ == '__main__':
-    with open(r'..\..\..\properties\safe.yaml', 'r') as _f:
+def run_safe_from_yaml(path: str):
+    with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_safe_from_yaml(_config)
+        run_safe(**_config)
