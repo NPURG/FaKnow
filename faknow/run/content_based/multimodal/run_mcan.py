@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict
 
 import numpy as np
 import torch
@@ -222,11 +222,7 @@ def run_mcan(train_path: str,
         print(test_result)
 
 
-def run_mcan_from_yaml(config: Dict[str, Any]):
-    run_mcan(**config)
-
-
-if __name__ == '__main__':
-    with open(r'..\..\..\properties\mcan.yaml', 'r') as _f:
+def run_mcan_from_yaml(path: str):
+    with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_mcan_from_yaml(_config)
+        run_mcan(**_config)
