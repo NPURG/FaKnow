@@ -1,13 +1,12 @@
 import random
 import re
-from typing import Dict, List, Any
+from typing import Dict, List
 
 import numpy as np
 import yaml
 from PIL import Image
 import torch
 from torch import nn
-from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from transformers import BertTokenizer
@@ -18,7 +17,7 @@ from faknow.model.content_based.multi_modal.spotfake import SpotFake
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
-__all__ = ['text_preprocessing', 'TokenizerSpotFake', 'transform', 'run_spotfake', 'run_spotfake_from_yaml']
+__all__ = ['text_preprocessing', 'TokenizerSpotFake', 'transform_spotfake', 'run_spotfake', 'run_spotfake_from_yaml']
 
 
 def text_preprocessing(text):
@@ -74,7 +73,7 @@ class TokenizerSpotFake:
         return {'input_ids': torch.stack(input_ids_ls), 'attention_mask': torch.stack(attention_mask_ls)}
 
 
-def transform(path: str) -> torch.Tensor:
+def transform_spotfake(path: str) -> torch.Tensor:
     with open(path, "rb") as f:
         img = Image.open(f).convert('RGB')
         trans = transforms.Compose([
@@ -83,7 +82,6 @@ def transform(path: str) -> torch.Tensor:
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
         return trans(img)
-
 
 
 def run_spotfake(
@@ -102,7 +100,7 @@ def run_spotfake(
         pre_trained_bert_name="bert-base-uncased",
         batch_size=8,
         epochs=50,
-        MAX_LEN=500,
+        max_len=500,
         lr=3e-5,
         metrics: List = None,
         device='cuda:0'
@@ -113,13 +111,13 @@ def run_spotfake(
     torch.manual_seed(seed_value)
     torch.cuda.manual_seed_all(seed_value)
 
-    tokenizer = TokenizerSpotFake(MAX_LEN, pre_trained_bert_name)
+    tokenizer = TokenizerSpotFake(max_len, pre_trained_bert_name)
 
-    training_set = MultiModalDataset(train_path, ['post_text'], tokenizer, ['image_id'], transform)
+    training_set = MultiModalDataset(train_path, ['post_text'], tokenizer, ['image_id'], transform_spotfake)
     train_loader = DataLoader(training_set, batch_size=batch_size, shuffle=True)
 
     if validate_path is not None:
-        validation_set = MultiModalDataset(validate_path, ['post_text'], tokenizer, ['image_id'], transform)
+        validation_set = MultiModalDataset(validate_path, ['post_text'], tokenizer, ['image_id'], transform_spotfake)
         validation_loader = DataLoader(validation_set, batch_size=batch_size, shuffle=True)
     else:
         validation_loader = None
@@ -139,10 +137,11 @@ def run_spotfake(
     trainer.fit(train_loader, epochs, validation_loader)
 
     if test_path is not None:
-        test_set = MultiModalDataset(test_path, ['post_text'], tokenizer, ['image_id'], transform)
+        test_set = MultiModalDataset(test_path, ['post_text'], tokenizer, ['image_id'], transform_spotfake)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
         print(f"test result: {dict2str(test_result)}")
+
 
 def run_spotfake_from_yaml(path: str):
     with open(path, 'r', encoding='utf-8') as _f:

@@ -1,8 +1,8 @@
-from typing import Dict, Any, List, Optional
+from typing import List, Optional
 
 import torch
 import yaml
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import DataLoader
 
 from faknow.data.dataset.safe_dataset import SAFENumpyDataset
 from faknow.evaluate.evaluator import Evaluator

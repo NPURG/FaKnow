@@ -6,4 +6,4 @@ from faknow.run.content_based.multimodal.run_mfan import run_mfan, run_mfan_from
     load_adj_matrix_mfan
 from faknow.run.content_based.multimodal.run_safe import run_safe, run_safe_from_yaml
 from faknow.run.content_based.multimodal.run_spotfake import run_spotfake, run_spotfake_from_yaml, TokenizerSpotFake, \
-    text_preprocessing, transform
+    text_preprocessing, transform_spotfake
