@@ -32,9 +32,9 @@ setup(
     name="faknow",
     version="0.0.1",  # edit faknow/__init__.py in response
     description="A unified fake news detection library",
-    url="https://github.com/thinking024/FaKnow",
+    url="https://github.com/NPURG/FaKnow",
     author="NPURG",
-    author_email="yiyuanzhu@mail.nwpu.edu.cn",
+    author_email="faknow@outlook.com",
     python_requires=">=3.8.0",
     packages=[package for package in find_packages() if package.startswith("faknow")],
     include_package_data=True,  # include files in MANIFEST.in
