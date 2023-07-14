@@ -286,6 +286,13 @@ cython_debug/
 test
 test/
 *test*
+
+# sphinx
+doc/build
+
+# pytorch models
 *.pth
+
+# tensorboard
 *events.out.tfevents*
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm+all,visualstudiocode,jupyternotebooks
