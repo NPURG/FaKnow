@@ -17,7 +17,7 @@ reproducing and developing fake news detection algorithms. It includes **17 mode
 - **Diverse Models**: contains a number of representative fake news detection algorithms published in conferences or journals during recent years, including a variety of content-based, social context-based and knowledge aware models
 - **Convenient Usability**: pytorch based style makes it easy to use with rich auxiliary functions like result visualization, log printing, parameter saving
 
-- **Great Scalability**: users just focus on the exposed api and inherit built-in classed to reuse most of the functionality and only need to write a little code to meet new requirements
+- **Great Scalability**: users just focus on the exposed api and inherit built-in classes to reuse most of the functionality and only need to write a little code to meet new requirements
 
 
 
@@ -141,9 +141,10 @@ from torch.utils.data import DataLoader
 max_len, bert = 170, 'bert-base-uncased'
 tokenizer = TokenizerMDFEND(max_len, bert)
 
+# dataset
 batch_size = 64
-# dataset path
 train_path, test_path, validate_path = 'train.json', 'test.json', 'val.json'
+
 train_set = TextDataset(train_path, ['text'], tokenizer)
 train_loader = DataLoader(train_set, batch_size, shuffle=True)
 
