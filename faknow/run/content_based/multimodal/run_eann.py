@@ -38,6 +38,7 @@ class TokenizerEANN:
             stop_words (List[str]): stop words, default=None
             language (str): language of the corpus, 'zh' or 'en', default='zh'
         """
+
         assert language in ['zh', 'en'], "language must be one of {zh, en}"
         self.language = language
         self.vocab = vocab
@@ -56,6 +57,7 @@ class TokenizerEANN:
         Returns:
             Dict[str, torch.Tensor]: tokenized texts with key 'token_id' and 'mask'
         """
+
         token_ids = []
         masks = []
         for text in texts:
@@ -101,6 +103,7 @@ def transform_eann(path: str) -> torch.Tensor:
     Returns:
         torch.Tensor: tensor of the image, shape=(3, 224, 224)
     """
+
     with open(path, "rb") as f:
         img = Image.open(f).convert('RGB')
         trans = transforms.Compose([
@@ -122,6 +125,7 @@ def adjust_lr_eann(epoch: int) -> float:
     Returns:
         float: learning rate
     """
+
     return 0.001 / (1. + 10 * (float(epoch) / 100))**0.75
 
 
@@ -154,7 +158,7 @@ def run_eann(train_path: str,
         event_num (int): number of events, default=None
         lr (float): learning rate, default=0.001
         num_epochs (int): number of epochs, default=100
-        metrics (List): metrics, default=None
+        metrics (List): metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default=None
         validate_path (str): path of the validation set, default=None
         test_path (str): path of the test set, default=None
         device (str): device, default='cpu'
@@ -207,6 +211,7 @@ def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: converted kargs
     """
+
     with open(config['vocab'], 'rb') as f:
         config['vocab'] = pickle.load(f)
     with open(config['word_vectors'], 'rb') as f:
@@ -221,8 +226,8 @@ def run_eann_from_yaml(path: str) -> None:
 
     Args:
         path (str): yaml config file path
-
     """
+
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
         run_eann(**_parse_kargs(_config))
