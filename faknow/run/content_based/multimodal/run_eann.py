@@ -19,7 +19,18 @@ __all__ = ['TokenizerEANN', 'transform_eann', 'adjust_lr_eann', 'run_eann', 'run
 
 
 class TokenizerEANN:
+    """
+    tokenizer for EANN
+    """
     def __init__(self, vocab: Dict[str, int], max_len=255, stop_words: List[str] = None, language='zh') -> None:
+        """
+
+        Args:
+            vocab (Dict[str, int]): vocabulary of the corpus
+            max_len (int): max length of the text, default=255
+            stop_words (List[str]): stop words, default=None
+            language (str): language of the corpus, 'zh' or 'en', default='zh'
+        """
         assert language in ['zh', 'en'], "language must be one of {zh, en}"
         self.language = language
         self.vocab = vocab
@@ -29,6 +40,14 @@ class TokenizerEANN:
         self.stop_words = stop_words
 
     def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
+        """
+        tokenize texts
+        Args:
+            texts (List[str]): texts to be tokenized
+
+        Returns:
+            Dict[str, torch.Tensor]: tokenized texts with key 'token_id' and 'mask'
+        """
         token_ids = []
         masks = []
         for text in texts:
@@ -56,6 +75,14 @@ class TokenizerEANN:
 
 
 def transform_eann(path: str) -> torch.Tensor:
+    """
+    transform image to tensor for EANN
+    Args:
+        path (str): image path
+
+    Returns:
+        torch.Tensor: tensor of the image, shape=(3, 224, 224)
+    """
     with open(path, "rb") as f:
         img = Image.open(f).convert('RGB')
         trans = transforms.Compose([
@@ -68,6 +95,14 @@ def transform_eann(path: str) -> torch.Tensor:
 
 
 def adjust_lr_eann(epoch: int) -> float:
+    """
+    adjust learning rate for EANN
+    Args:
+        epoch (int): current epoch
+
+    Returns:
+        float: learning rate
+    """
     return 0.001 / (1. + 10 * (float(epoch) / 100)) ** 0.75
 
 
@@ -86,8 +121,23 @@ def run_eann(train_path: str,
              test_path: str = None,
              device='cpu') -> None:
     """
-    todo run函数是否不要加过多参数，直接最基础最原始的几个参数就可以了，不需要很复杂，对于复杂功能就让用户自己写代码
-    直接传入数据
+    run EANN, including training, validation and testing.
+    If validate_path and test_path are None, only training is performed.
+    Args:
+        train_path (str): path of the training set
+        vocab (Dict[str, int]): vocabulary of the corpus
+        stop_words (List[str]): stop words
+        word_vectors (torch.Tensor): word vectors
+        language (str): language of the corpus, 'zh' or 'en', default='zh'
+        max_len (int): max length of the text, default=255
+        batch_size (int): batch size, default=100
+        event_num (int): number of events, default=None
+        lr (float): learning rate, default=0.001
+        num_epochs (int): number of epochs, default=100
+        metrics (List): metrics, default=None
+        validate_path (str): path of the validation set, default=None
+        test_path (str): path of the test set, default=None
+        device (str): device, default='cpu'
     """
 
     tokenizer = TokenizerEANN(vocab, max_len, stop_words, language)
@@ -121,11 +171,15 @@ def run_eann(train_path: str,
         print(f"test result: {dict2str(test_result)}")
 
 
-def _run_eann_from_config(config: Dict[str, Any]):
-    run_eann(**_parse_kargs(config))
-
-
 def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    parse kargs from config dict
+    Args:
+        config (Dict[str, Any]): config dict, keys are the same as the args of `run_eann`
+
+    Returns:
+        Dict[str, Any]: converted kargs
+    """
     with open(config['vocab'], 'rb') as f:
         config['vocab'] = pickle.load(f)
     with open(config['word_vectors'], 'rb') as f:
@@ -134,7 +188,13 @@ def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-def run_eann_from_yaml(path: str):
+def run_eann_from_yaml(path: str) -> None:
+    """
+    run EANN from yaml config file
+    Args:
+        path (str): yaml config file path
+
+    """
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
         run_eann(**_parse_kargs(_config))

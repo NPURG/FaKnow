@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Any
 
 import torch
 import torch.nn as nn
@@ -9,28 +9,26 @@ from torch import Tensor
 from faknow.model.layers.layer import GradientReverseLayer, TextCNNLayer
 from faknow.model.model import AbstractModel
 
-"""
-EANN: Multi-Modal Fake News Detection
-paper: https://dl.acm.org/doi/abs/10.1145/3219819.3219903
-code: https://github.com/yaqingwang/EANN-KDD18
-"""
-
 
 class EANN(AbstractModel):
-    r"""EANN: Multi-Modal Fake News Detection
-
-        Args:
-            event_num (int): number of events
-            embed_weight (Tensor): weight for word embedding layer, shape=(vocab_size, embedding_size)
-            reverse_lambda (float): lambda for gradient reverse layer. Default=1
-            hidden_size (int): size for hidden layers. Default=32
-        """
+    r"""
+    EANN: Multi-Modal Fake News Detection, KDD 2018
+    paper: https://dl.acm.org/doi/abs/10.1145/3219819.3219903
+    code: https://github.com/yaqingwang/EANN-KDD18
+    """
 
     def __init__(self,
                  event_num: int,
                  embed_weight: torch.Tensor,
                  reverse_lambda=1.0,
                  hidden_size=32):
+        """
+        Args:
+            event_num (int): number of events
+            embed_weight (Tensor): weights for word embedding layer, shape=(vocab_size, embedding_size)
+            reverse_lambda (float): lambda for gradient reverse layer. Default=1
+            hidden_size (int): size for hidden layers. Default=32
+        """
         super(EANN, self).__init__()
 
         self.loss_funcs = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss()]
@@ -105,7 +103,16 @@ class EANN(AbstractModel):
 
         return class_output, domain_output
 
-    def calculate_loss(self, data) -> Dict[str, Tensor]:
+    def calculate_loss(self, data: Dict[str, Any]) -> Dict[str, Tensor]:
+        """
+        calculate total loss, classification loss and domain loss,
+        where total loss = classification loss + domain loss
+        Args:
+            data (Dict[str, Any]): batch data dict
+
+        Returns:
+            Dict[str, Tensor]: loss dict, key: total_loss, class_loss, domain_loss
+        """
         token_id = data['text']['token_id']
         mask = data['text']['mask']
         image = data['image']
@@ -121,6 +128,14 @@ class EANN(AbstractModel):
         return {'total_loss': loss, 'class_loss': class_loss, 'domain_loss': domain_loss}
 
     def predict(self, data_without_label) -> torch.Tensor:
+        """
+        predict the probability of being fake news
+        Args:
+            data_without_label (Dict[str, Any]): batch data dict
+
+        Returns:
+            Tensor: probability of being fake news, shape=(batch_size, 2)
+        """
         token_id = data_without_label['text']['token_id']
         mask = data_without_label['text']['mask']
         image = data_without_label['image']
