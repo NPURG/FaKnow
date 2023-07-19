@@ -10,20 +10,18 @@ from faknow.model.layers.dct import DctStem, DctInceptionBlock, conv2d_bn_relu
 from faknow.model.layers.transformer import FFN, AddNorm
 from faknow.model.model import AbstractModel
 
-"""
-Multimodal Fusion with Co-Attention Networks for Fake News Detection
-paper: https://aclanthology.org/2021.findings-acl.226/
-code: https://github.com/wuyang45/MCAN_code
-"""
-
 
 class _VGG(nn.Module):
+    """
+    VGG module for MCAN
+    """
     def __init__(self):
         super(_VGG, self).__init__()
         vgg_19 = vgg19(weights=VGG19_Weights.DEFAULT)
 
         self.feature = vgg_19.features
-        self.classifier = nn.Sequential(*list(vgg_19.classifier.children())[:-3])
+        self.classifier = nn.Sequential(
+            *list(vgg_19.classifier.children())[:-3])
 
     def forward(self, img):
         img = self.feature(img)
@@ -34,6 +32,9 @@ class _VGG(nn.Module):
 
 
 class _DctCNN(nn.Module):
+    """
+    Dct CNN module for MCAN
+    """
     def __init__(self,
                  dropout,
                  kernel_sizes,
@@ -69,7 +70,8 @@ class _DctCNN(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-        self.conv = conv2d_bn_relu(branch1_channels[-1] + branch2_channels[-1] +
+        self.conv = conv2d_bn_relu(branch1_channels[-1] +
+                                   branch2_channels[-1] +
                                    branch3_channels[-1] + branch4_channels[-1],
                                    out_channels,
                                    kernel_size=1)
@@ -89,7 +91,6 @@ class _DctCNN(nn.Module):
 
 
 class _ScaledDotProductAttention(nn.Module):
-
     def __init__(self, attention_dropout=0.5):
         super(_ScaledDotProductAttention, self).__init__()
         self.dropout = nn.Dropout(attention_dropout)
@@ -111,7 +112,6 @@ class _MultiHeadAttention(nn.Module):
     """
     multi-head attention + add&norm
     """
-
     def __init__(self, model_dim=256, num_heads=8, dropout=0.5):
         super(_MultiHeadAttention, self).__init__()
 
@@ -159,11 +159,11 @@ class _MultiHeadAttention(nn.Module):
 
         # scaled dot product attention
         # scale 没有取对，变成了 dim_per_head // num_heads
-        scale = (key.size(-1) // num_heads) ** -0.5
-        attention = self.dot_product_attention(query, key, value,
-                                               scale)
+        scale = (key.size(-1) // num_heads)**-0.5
+        attention = self.dot_product_attention(query, key, value, scale)
 
-        attention = attention.view(-1, self.model_dim, dim_per_head * num_heads)
+        attention = attention.view(-1, self.model_dim,
+                                   dim_per_head * num_heads)
 
         # final linear projection W_o
         output = self.linear_final(attention).squeeze(-1)
@@ -177,9 +177,8 @@ class _MultiHeadAttention(nn.Module):
 
 class _CoAttentionLayer(nn.Module):
     """
-    co-attention layer with 2 co-attention blocks
+    co-attention layer with 2 co-attention blocks for MCAN
     """
-
     def __init__(self, model_dim=256, num_heads=8, ffn_dim=2048, dropout=0.5):
         super(_CoAttentionLayer, self).__init__()
 
@@ -218,10 +217,11 @@ class _CoAttentionLayer(nn.Module):
 
 
 class MCAN(AbstractModel):
+    r"""
+    Multimodal Fusion with Co-Attention Networks for Fake News Detection, ACL 2021
+    paper: https://aclanthology.org/2021.findings-acl.226/
+    code: https://github.com/wuyang45/MCAN_code
     """
-    Multimodal Fusion with Co-Attention Networks for Fake News Detection
-    """
-
     def __init__(self,
                  bert: str,
                  kernel_sizes: Optional[List[int]] = None,
@@ -250,15 +250,19 @@ class MCAN(AbstractModel):
         # check input
         if kernel_sizes is None:
             kernel_sizes = [3, 3, 3]
-        elif len(kernel_sizes) != 3 or not all(type(x) == int for x in kernel_sizes) or not all(
-                x > 0 for x in kernel_sizes):
-            raise ValueError("kernel_sizes must be a list of 3 positive integers")
+        elif len(kernel_sizes) != 3 or not all(
+                type(x) == int
+                for x in kernel_sizes) or not all(x > 0 for x in kernel_sizes):
+            raise ValueError(
+                "kernel_sizes must be a list of 3 positive integers")
 
         if num_channels is None:
             num_channels = [32, 64, 128]
-        elif len(num_channels) != 3 or not all(type(x) == int for x in num_channels) or not all(
-                x > 0 for x in num_channels):
-            raise ValueError("num_channels must be a list of 3 positive integers")
+        elif len(num_channels) != 3 or not all(
+                type(x) == int
+                for x in num_channels) or not all(x > 0 for x in num_channels):
+            raise ValueError(
+                "num_channels must be a list of 3 positive integers")
         assert drop_and_bn in ['drop-bn', 'bn-drop', 'drop-only', 'bn-only', 'none'], \
             "drop_and_bn must be one of 'drop-bn', 'bn-drop', 'drop-only', 'BN-only', 'none'"
 
@@ -276,16 +280,15 @@ class MCAN(AbstractModel):
         self.bn_vgg = nn.BatchNorm1d(model_dim)
 
         # dct image
-        self.dct_img = _DctCNN(
-            dropout,
-            kernel_sizes,
-            num_channels,
-            in_channel=128,
-            branch1_channels=[64],
-            branch2_channels=[48, 64],
-            branch3_channels=[64, 96, 96],
-            branch4_channels=[32],
-            out_channels=64)
+        self.dct_img = _DctCNN(dropout,
+                               kernel_sizes,
+                               num_channels,
+                               in_channel=128,
+                               branch1_channels=[64],
+                               branch2_channels=[48, 64],
+                               branch3_channels=[64, 96, 96],
+                               branch4_channels=[32],
+                               out_channels=64)
         self.linear_dct = nn.Linear(4096, model_dim)
         self.bn_dct = nn.BatchNorm1d(model_dim)
 
@@ -302,6 +305,14 @@ class MCAN(AbstractModel):
         self.dropout = nn.Dropout(dropout)
 
     def drop_bn_layer(self, x, part='dct'):
+        """
+        drop out and batch normalization
+
+        Args:
+            x (torch.Tensor): input tensor
+            part (str): 'dct', 'vgg' or 'bert'. Default='dct'
+        """
+
         bn = None
         if part == 'dct':
             bn = self.bn_dct
@@ -325,15 +336,13 @@ class MCAN(AbstractModel):
 
         return x
 
-    def forward(self, input_ids: torch.Tensor,
-                mask: torch.Tensor,
-                image: torch.Tensor,
-                dct_img: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_ids: torch.Tensor, mask: torch.Tensor,
+                image: torch.Tensor, dct_img: torch.Tensor) -> torch.Tensor:
         """
         Args:
             input_ids (Tensor): shape=(batch_size, max_len)
             mask (Tensor): shape=(batch_size, max_len)
-            image (Tensor): transformed image tensor, shape=(batch_size, 3, width, height)
+            image (Tensor): transformed image tensor, shape=(batch_size, 3, 224, 224)
             dct_img (Tensor): dtc image tensor, shape=(batch_size, N*N, 250)
 
         Returns:
@@ -341,8 +350,7 @@ class MCAN(AbstractModel):
         """
 
         # textual feature
-        bert_output = self.bert(input_ids=input_ids,
-                                attention_mask=mask)
+        bert_output = self.bert(input_ids=input_ids, attention_mask=mask)
         text_output = bert_output.pooler_output
         text_output = F.relu(self.linear_text(text_output))
         text_output = self.drop_bn_layer(text_output, part='bert')
@@ -371,6 +379,16 @@ class MCAN(AbstractModel):
         return output
 
     def calculate_loss(self, data) -> Tensor:
+        """
+        calculate loss
+
+        Args:
+            data (dict): batch data dict
+
+        Returns:
+            loss (Tensor): loss value
+        """
+
         token_id = data['text']['token_id']
         mask = data['text']['mask']
         vgg_feature = data['image']['vgg']
@@ -379,9 +397,21 @@ class MCAN(AbstractModel):
         output = self.forward(token_id, mask, vgg_feature, dct_feature)
         return F.cross_entropy(output, label)
 
-    def predict(self, data):
+    def predict(self, data) -> Tensor:
+        """
+        predict the probability of being fake news
+
+        Args:
+            data_without_label (Dict[str, Any]): batch data dict
+
+        Returns:
+            Tensor: probability of being fake news, shape=(batch_size, 2)
+        """
+
         token_id = data['text']['token_id']
         mask = data['text']['mask']
         vgg_feature = data['image']['vgg']
         dct_feature = data['image']['dct']
-        return torch.softmax(self.forward(token_id, mask, vgg_feature, dct_feature), dim=-1)
+        return torch.softmax(self.forward(token_id, mask, vgg_feature,
+                                          dct_feature),
+                             dim=-1)
