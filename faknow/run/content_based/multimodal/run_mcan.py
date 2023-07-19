@@ -37,17 +37,12 @@ class TokenizerMCAN:
 def transform_mcan(path: str) -> Dict[str, torch.Tensor]:
     with open(path, "rb") as f:
         img = Image.open(f)
-        transform_vgg = transforms.Compose([
+        transform_img = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
         ])
-        vgg_feature = transform_vgg(img.convert('RGB'))
-
-        transform_dct = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor()
-        ])
-        dct_feature = process_dct_mcan(transform_dct(img.convert('L')))
+        vgg_feature = transform_img(img.convert('RGB'))
+        dct_feature = process_dct_mcan(transform_img(img.convert('L')))
 
     return {'vgg': vgg_feature, 'dct': dct_feature}
 
