@@ -107,6 +107,7 @@ class EANN(AbstractModel):
         """
         calculate total loss, classification loss and domain loss,
         where total loss = classification loss + domain loss
+
         Args:
             data (Dict[str, Any]): batch data dict
 
@@ -130,6 +131,7 @@ class EANN(AbstractModel):
     def predict(self, data_without_label) -> torch.Tensor:
         """
         predict the probability of being fake news
+
         Args:
             data_without_label (Dict[str, Any]): batch data dict
 
