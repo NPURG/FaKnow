@@ -15,14 +15,21 @@ from faknow.model.content_based.multi_modal.eann import EANN
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str, read_stop_words
 
-__all__ = ['TokenizerEANN', 'transform_eann', 'adjust_lr_eann', 'run_eann', 'run_eann_from_yaml']
+__all__ = [
+    'TokenizerEANN', 'transform_eann', 'adjust_lr_eann', 'run_eann',
+    'run_eann_from_yaml'
+]
 
 
 class TokenizerEANN:
     """
     tokenizer for EANN
     """
-    def __init__(self, vocab: Dict[str, int], max_len=255, stop_words: List[str] = None, language='zh') -> None:
+    def __init__(self,
+                 vocab: Dict[str, int],
+                 max_len=255,
+                 stop_words: List[str] = None,
+                 language='zh') -> None:
         """
 
         Args:
@@ -42,6 +49,7 @@ class TokenizerEANN:
     def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
         """
         tokenize texts
+
         Args:
             texts (List[str]): texts to be tokenized
 
@@ -51,13 +59,19 @@ class TokenizerEANN:
         token_ids = []
         masks = []
         for text in texts:
-            cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "", text).strip().lower()
+            cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]",
+                                  "", text).strip().lower()
 
             if self.language == 'zh':
                 split_words = jieba.cut_for_search(cleaned_text)
-                words = " ".join([word for word in split_words if word not in self.stop_words])
+                words = " ".join([
+                    word for word in split_words if word not in self.stop_words
+                ])
             else:
-                words = [word for word in cleaned_text.split() if word not in self.stop_words]
+                words = [
+                    word for word in cleaned_text.split()
+                    if word not in self.stop_words
+                ]
 
             token_id = [self.vocab[word] for word in words]
             real_len = len(token_id)
@@ -71,12 +85,16 @@ class TokenizerEANN:
             mask[:real_len] = 1
             masks.append(mask)
 
-        return {'token_id': torch.tensor(token_ids), 'mask': torch.stack(masks)}
+        return {
+            'token_id': torch.tensor(token_ids),
+            'mask': torch.stack(masks)
+        }
 
 
 def transform_eann(path: str) -> torch.Tensor:
     """
     transform image to tensor for EANN
+
     Args:
         path (str): image path
 
@@ -97,13 +115,14 @@ def transform_eann(path: str) -> torch.Tensor:
 def adjust_lr_eann(epoch: int) -> float:
     """
     adjust learning rate for EANN
+
     Args:
         epoch (int): current epoch
 
     Returns:
         float: learning rate
     """
-    return 0.001 / (1. + 10 * (float(epoch) / 100)) ** 0.75
+    return 0.001 / (1. + 10 * (float(epoch) / 100))**0.75
 
 
 def run_eann(train_path: str,
@@ -123,6 +142,7 @@ def run_eann(train_path: str,
     """
     run EANN, including training, validation and testing.
     If validate_path and test_path are None, only training is performed.
+
     Args:
         train_path (str): path of the training set
         vocab (Dict[str, int]): vocabulary of the corpus
@@ -143,29 +163,35 @@ def run_eann(train_path: str,
     tokenizer = TokenizerEANN(vocab, max_len, stop_words, language)
 
     # todo 是否在函数中加入validation_size，允许从train_path中划分出一部分作为validation set
-    train_set = MultiModalDataset(train_path, ['text'], tokenizer, ['image'], transform_eann)
+    train_set = MultiModalDataset(train_path, ['text'], tokenizer, ['image'],
+                                  transform_eann)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
     if event_num is None:
         event_num = torch.max(train_set.data['domain']).item() + 1
 
     if validate_path is not None:
-        val_set = MultiModalDataset(validate_path, ['text'], tokenizer, ['image'], transform_eann)
+        val_set = MultiModalDataset(validate_path, ['text'], tokenizer,
+                                    ['image'], transform_eann)
         val_loader = DataLoader(val_set, batch_size, shuffle=False)
     else:
         val_loader = None
 
     model = EANN(event_num, embed_weight=word_vectors)
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
-                                        list(model.parameters())),
-                                 lr)
+    optimizer = torch.optim.Adam(
+        filter(lambda p: p.requires_grad, list(model.parameters())), lr)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
                                                   lr_lambda=adjust_lr_eann)
     evaluator = Evaluator(metrics)
-    trainer = BaseTrainer(model, evaluator, optimizer, scheduler, device=device)
+    trainer = BaseTrainer(model,
+                          evaluator,
+                          optimizer,
+                          scheduler,
+                          device=device)
     trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 
     if test_path is not None:
-        test_set = MultiModalDataset(test_path, ['text'], tokenizer, ['image'], transform_eann)
+        test_set = MultiModalDataset(test_path, ['text'], tokenizer, ['image'],
+                                     transform_eann)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
         print(f"test result: {dict2str(test_result)}")
@@ -174,6 +200,7 @@ def run_eann(train_path: str,
 def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
     """
     parse kargs from config dict
+
     Args:
         config (Dict[str, Any]): config dict, keys are the same as the args of `run_eann`
 
@@ -191,6 +218,7 @@ def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
 def run_eann_from_yaml(path: str) -> None:
     """
     run EANN from yaml config file
+
     Args:
         path (str): yaml config file path
 
