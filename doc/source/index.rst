@@ -21,6 +21,30 @@ Welcome to FaKnow's documentation!
 
 
 
+.. toctree::
+   :maxdepth: 2
+   :caption: models:
+
+   models/multi_modal
+
+
+.. toctree::
+   :maxdepth: 4
+   :caption: api reference:
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: run:
+
+   run/multimodal
+
+
+.. toctree::
+   :maxdepth: 4
+   :caption: api reference:
+
+
 Indices and tables
 ==================
 

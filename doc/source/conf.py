@@ -8,7 +8,9 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../faknow'))
+sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../../faknow/model/content_based/'))
+sys.path.insert(0, os.path.abspath('../../faknow/run/content_based/'))
 
 project = 'FaKnow'
 copyright = '2023, NPURG'

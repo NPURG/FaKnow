@@ -29,6 +29,25 @@ def run_safe(
         num_epochs=100,
         device='cpu',
 ):
+    """
+    Train and evaluate the SAFE model.
+
+    Args:
+        train_path (str): Path to the training data.
+        validate_path (str, optional): Path to the validation data. Defaults to None.
+        test_path (str, optional): Path to the test data. Defaults to None.
+        embedding_size (int, optional): Size of the embedding for SAFE model. Defaults to 300.
+        conv_in_size (int, optional): Size of the input for convolutional layer. Defaults to 32.
+        filter_num (int, optional): Number of filters for convolutional layer. Defaults to 128.
+        cnn_out_size (int, optional): Size of the output for the convolutional layer. Defaults to 200.
+        dropout (float, optional): Dropout probability. Defaults to 0.0.
+        loss_weights (List[float], optional): List of loss weights. Defaults to None.
+        batch_size (int, optional): Batch size. Defaults to 64.
+        lr (float, optional): Learning rate. Defaults to 0.00025.
+        metrics (List, optional): List of evaluation metrics. Defaults to None.
+        num_epochs (int, optional): Number of training epochs. Defaults to 100.
+        device (str, optional): Device to run the training on ('cpu' or 'cuda'). Defaults to 'cpu'.
+    """
     train_dataset = SAFENumpyDataset(train_path)
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 
@@ -58,6 +77,12 @@ def run_safe(
 
 
 def run_safe_from_yaml(path: str):
+    """
+    Load SAFE configuration from YAML file and run the training and evaluation.
+
+    Args:
+        path (str): Path to the YAML configuration file.
+    """
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
         run_safe(**_config)
