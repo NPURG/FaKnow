@@ -15,18 +15,39 @@ __all__ = ['TokenizerMDFEND', 'run_mdfend', 'run_mdfend_from_yaml']
 
 
 class TokenizerMDFEND:
+    """Tokenizer for MDFEND"""
     def __init__(self, max_len=170, bert="hfl/chinese-roberta-wwm-ext"):
+        """
+
+        Args:
+            max_len (int): max length of input text
+            bert (str): bert model name, default="bert-base-chinese"
+        """
+
         self.max_len = max_len
         self.tokenizer = BertTokenizer.from_pretrained(bert)
 
     def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
+        """
+        tokenize texts
+
+        Args:
+            texts (List[str]): texts to be tokenized
+
+        Returns:
+            Dict[str, torch.Tensor]: tokenized texts with key 'token_id' and 'mask'
+        """
+
         inputs = self.tokenizer(texts,
                                 return_tensors='pt',
                                 max_length=self.max_len,
                                 add_special_tokens=True,
                                 padding='max_length',
                                 truncation=True)
-        return {'token_id': inputs['input_ids'], 'mask': inputs['attention_mask']}
+        return {
+            'token_id': inputs['input_ids'],
+            'mask': inputs['attention_mask']
+        }
 
 
 def run_mdfend(train_path: str,
@@ -43,6 +64,27 @@ def run_mdfend(train_path: str,
                validate_path: str = None,
                test_path: str = None,
                device='cpu'):
+    """
+    run MCAN, including training, validation and testing.
+    If validate_path and test_path are None, only training is performed.
+
+    Args:
+        train_path (str): path of training data
+        bert (str): bert model name, default="hfl/chinese-roberta-wwm-ext"
+        max_len (int): max length of input text, default=170
+        domain_num (int): number of domains, default=9
+        batch_size (int): batch size, default=64
+        num_epochs (int): number of epochs, default=50
+        lr (float): learning rate, default=0.0005
+        weight_decay (float): weight decay, default=5e-5
+        step_size (int): step size of learning rate scheduler, default=100
+        gamma (float): gamma of learning rate scheduler, default=0.98
+        metrics (List): evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default=None
+        validate_path (str): path of validation data, default=None
+        test_path (str): path of testing data, default=None
+        device (str): device to run model, default='cpu'
+    """
+
     tokenizer = TokenizerMDFEND(max_len, bert)
     train_set = TextDataset(train_path, ['text'], tokenizer)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
@@ -61,7 +103,11 @@ def run_mdfend(train_path: str,
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size, gamma)
     evaluator = Evaluator(metrics)
 
-    trainer = BaseTrainer(model, evaluator, optimizer, scheduler, device=device)
+    trainer = BaseTrainer(model,
+                          evaluator,
+                          optimizer,
+                          scheduler,
+                          device=device)
     trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 
     if test_path is not None:
@@ -72,6 +118,13 @@ def run_mdfend(train_path: str,
 
 
 def run_mdfend_from_yaml(path: str):
+    """
+    run MDFEND from yaml config file
+
+    Args:
+        path (str): yaml config file path
+    """
+
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
         run_mdfend(_config)

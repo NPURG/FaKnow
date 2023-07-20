@@ -1,8 +1,3 @@
-"""
-MDFEND: Multi-domain Fake News Detection
-paper: https://dl.acm.org/doi/10.1145/3459637.3482139
-code: https://github.com/kennqiang/MDFEND-Weibo21
-"""
 from typing import List, Optional, Tuple
 
 import torch
@@ -46,7 +41,6 @@ class _MaskAttentionLayer(torch.nn.Module):
     """
     Compute attention layer
     """
-
     def __init__(self, input_size: int):
         super(_MaskAttentionLayer, self).__init__()
         self.attention_layer = torch.nn.Linear(input_size, 1)
@@ -63,9 +57,11 @@ class _MaskAttentionLayer(torch.nn.Module):
 
 
 class MDFEND(AbstractModel):
-    r"""MDFEND: Multi-domain Fake News Detection
+    r"""
+    MDFEND: Multi-domain Fake News Detection, CIKM 2021
+    paper: https://dl.acm.org/doi/10.1145/3459637.3482139
+    code: https://github.com/kennqiang/MDFEND-Weibo21
     """
-
     def __init__(self,
                  pre_trained_bert_name: str,
                  domain_num: int,
@@ -77,9 +73,9 @@ class MDFEND(AbstractModel):
         Args:
             pre_trained_bert_name (str): the name or local path of pre-trained bert model
             domain_num (int): total number of all domains
-            mlp_dims (List[int]): a list of the dimensions in MLP layer. Default=[384]
-            dropout_rate (float): rate of Dropout layer. Default=0.2
-            expert_num (int): number of experts also called TextCNNLayer. Default=5
+            mlp_dims (List[int]): a list of the dimensions in MLP layer, if None, [384] will be taken as default, default=384
+            dropout_rate (float): rate of Dropout layer, default=0.2
+            expert_num (int): number of experts also called TextCNNLayer, default=5
         """
         super(MDFEND, self).__init__()
         self.domain_num = domain_num
@@ -109,7 +105,8 @@ class MDFEND(AbstractModel):
                                             embedding_dim=self.embedding_size)
         self.classifier = _MLP(320, mlp_dims, dropout_rate)
 
-    def forward(self, token_id: Tensor, mask: Tensor, domain: Tensor) -> Tensor:
+    def forward(self, token_id: Tensor, mask: Tensor,
+                domain: Tensor) -> Tensor:
         """
 
         Args:
@@ -120,7 +117,8 @@ class MDFEND(AbstractModel):
         Returns:
             FloatTensor: the prediction of being fake, shape=(batch_size,)
         """
-        text_embedding = self.bert(token_id, attention_mask=mask).last_hidden_state
+        text_embedding = self.bert(token_id,
+                                   attention_mask=mask).last_hidden_state
         attention_feature, _ = self.attention(text_embedding, mask)
 
         domain_embedding = self.domain_embedder(domain.view(-1, 1)).squeeze(1)
@@ -138,6 +136,16 @@ class MDFEND(AbstractModel):
         return torch.sigmoid(label_pred.squeeze(1))
 
     def calculate_loss(self, data) -> Tensor:
+        """
+        calculate loss via BCELoss
+
+        Args:
+            data (dict): batch data dict
+
+        Returns:
+            loss (Tensor): loss value
+        """
+
         token_ids = data['text']['token_id']
         masks = data['text']['mask']
         domains = data['domain']
@@ -146,6 +154,16 @@ class MDFEND(AbstractModel):
         return self.loss_func(output, labels.float())
 
     def predict(self, data_without_label) -> Tensor:
+        """
+        predict the probability of being fake news
+
+        Args:
+            data_without_label (Dict[str, Any]): batch data dict
+
+        Returns:
+            Tensor: one-hot probability, shape=(batch_size, 2)
+        """
+
         token_ids = data_without_label['text']['token_id']
         masks = data_without_label['text']['mask']
         domains = data_without_label['domain']
