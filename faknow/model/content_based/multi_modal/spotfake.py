@@ -57,7 +57,7 @@ class _TextEncoder(nn.Module):
 
     def fine_tune(self):
         """
-        固定参数
+        Freeze or unfreeze BERT parameters based on fine_tune_module flag.
         """
         for p in self.bert.parameters():
             p.requires_grad = self.fine_tune_module
@@ -85,11 +85,13 @@ class _VisionEncoder(nn.Module):
 
     def forward(self, images):
         """
+        Forward pass of the visual encoder.
+
         Args:
-            images (Tensor): images as input. shape=(batch_size, 3, image_size, image_size)
+            images (Tensor): Images as input. shape=(batch_size, 3, image_size, image_size)
 
         Returns:
-            x (Tensor): encoded images. shape=(batch_size ,img_fc2_out)
+            x (Tensor): Encoded images. shape=(batch_size, img_fc2_out)
         """
 
         x = self.vis_encoder(images)
@@ -105,7 +107,7 @@ class _VisionEncoder(nn.Module):
 
     def fine_tune(self):
         """
-        允许或阻止vgg的卷积块2到4的梯度计算。
+        Allow or block gradient computation for convolutional blocks 2 to 4 in VGG19.
         """
         for p in self.vis_encoder.parameters():
             p.requires_grad = False
@@ -139,12 +141,14 @@ class _TextConcatVision(nn.Module):
 
     def forward(self, text, image):
         """
+        Forward pass of the language and vision fusion model.
+
         Args:
-            text (Tensor): text as input. shape=[(batch_size, max_len), (batch_size, max_len)]
-            image(Tensor): image as input. shape=(batch_size, 3, 224, 224)
+            text (Tensor): Text as input. shape=[(batch_size, max_len), (batch_size, max_len)]
+            image(Tensor): Image as input. shape=(batch_size, 3, 224, 224)
 
         Returns:
-            prediction (Tensor): prediction as output. shape=(8,)
+            prediction (Tensor): Prediction as output. shape=(8,)
         """
         # text to Bert
         text_features = self.text_encoder(text[0], text[1])
@@ -227,13 +231,15 @@ class SpotFake(AbstractModel):
 
     def forward(self, text: torch.Tensor, mask: torch.Tensor, domain: torch.Tensor):
         """
+        Forward pass of the SpotFake model.
+
         Args:
-            text (Tensor): shape=(batch_size, max_len)
-            mask (Tensor): shape=(batch_size, max_len)
-            domain (Tensor): shape=(batch_size, 3, 224, 224)
+            text (Tensor): Text input. shape=(batch_size, max_len)
+            mask (Tensor): Attention mask. shape=(batch_size, max_len)
+            domain (Tensor): Image input. shape=(batch_size, 3, 224, 224)
 
         Returns:
-            self.model([text, mask], image=domain) (Tensor): shape=(8,)
+            self.model([text, mask], image=domain) (Tensor): Output predictions. shape=(8,)
         """
         return self.model([text, mask], image=domain)
 

@@ -22,10 +22,16 @@ __all__ = ['text_preprocessing', 'TokenizerSpotFake', 'transform_spotfake', 'run
 
 def text_preprocessing(text):
     """
-    - 删除实体@符号(如。“@united”)
-    — 纠正错误(如:'&amp;' '&')
-    @参数 text (str):要处理的字符串
-    @返回 text (Str):已处理的字符串
+    Preprocess the given text.
+
+    - Remove entity '@' symbols (e.g., "@united")
+    - Correct errors (e.g., '&amp;' to '&')
+
+    Args:
+        text (str): The text to be processed.
+
+    Returns:
+        str: The preprocessed text.
     """
     # 去除 '@name'
     text = re.sub(r'(@.*?)[\s]', ' ', text)
@@ -41,10 +47,26 @@ def text_preprocessing(text):
 
 class TokenizerSpotFake:
     def __init__(self, max_len, pre_trained_bert_name):
+        """
+        Initialize the TokenizerSpotFake.
+
+        Args:
+            max_len (int): Maximum length for tokenization.
+            pre_trained_bert_name (str): Name of the pre-trained BERT model.
+        """
         self.max_len = max_len
         self.pre_trained_bert_name = BertTokenizer.from_pretrained(pre_trained_bert_name, do_lower_case=True)
 
     def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
+        """
+        Tokenize the list of texts.
+
+        Args:
+            texts (List[str]): List of input texts.
+
+        Returns:
+            Dict[str, torch.Tensor]: A dictionary containing the tokenized inputs.
+        """
         # 定义列表存储文本处理后的结果
         input_ids_ls = []
         attention_mask_ls = []
@@ -74,6 +96,15 @@ class TokenizerSpotFake:
 
 
 def transform_spotfake(path: str) -> torch.Tensor:
+    """
+    Transform the image data at the given path.
+
+    Args:
+        path (str): Path to the image file.
+
+    Returns:
+        torch.Tensor: Transformed image data.
+    """
     with open(path, "rb") as f:
         img = Image.open(f).convert('RGB')
         trans = transforms.Compose([
@@ -105,6 +136,30 @@ def run_spotfake(
         metrics: List = None,
         device='cuda:0'
 ):
+    """
+    Train and evaluate the SpotFake model.
+
+    Args:
+        train_path (str): Path to the training data.
+        validate_path (str, optional): Path to the validation data. Defaults to None.
+        test_path (str, optional): Path to the test data. Defaults to None.
+        text_fc2_out (int, optional): Output size for the text FC2 layer. Defaults to 32.
+        text_fc1_out (int, optional): Output size for the text FC1 layer. Defaults to 2742.
+        dropout_p (float, optional): Dropout probability. Defaults to 0.4.
+        fine_tune_text_module (bool, optional): Fine-tune text module. Defaults to False.
+        img_fc1_out (int, optional): Output size for the image FC1 layer. Defaults to 2742.
+        img_fc2_out (int, optional): Output size for the image FC2 layer. Defaults to 32.
+        fine_tune_vis_module (bool, optional): Fine-tune visual module. Defaults to False.
+        fusion_output_size (int, optional): Output size for the fusion layer. Defaults to 35.
+        loss_func (nn.Module, optional): Loss function. Defaults to nn.BCELoss().
+        pre_trained_bert_name (str, optional): Name of the pre-trained BERT model. Defaults to "bert-base-uncased".
+        batch_size (int, optional): Batch size. Defaults to 8.
+        epochs (int, optional): Number of training epochs. Defaults to 50.
+        max_len (int, optional): Maximum length for tokenization. Defaults to 500.
+        lr (float, optional): Learning rate. Defaults to 3e-5.
+        metrics (List, optional): List of evaluation metrics. Defaults to None.
+        device (str, optional): Device to run the training on ('cpu' or 'cuda'). Defaults to 'cuda:0'.
+    """
     seed_value = 42
     random.seed(seed_value)
     np.random.seed(seed_value)
@@ -144,6 +199,12 @@ def run_spotfake(
 
 
 def run_spotfake_from_yaml(path: str):
+    """
+    Load SpotFake configuration from a YAML file and run the training and evaluation.
+
+    Args:
+        path (str): Path to the YAML configuration file.
+    """
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
         run_spotfake(**_config)

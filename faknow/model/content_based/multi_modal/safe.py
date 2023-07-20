@@ -14,7 +14,17 @@ code: https://github.com/Jindi0/SAFE
 """
 
 
-def loss_func(cos_dis_sim: Tensor, label: Tensor) -> Tensor:
+def _loss_func(cos_dis_sim: Tensor, label: Tensor) -> Tensor:
+    """
+    Compute the loss based on cosine distance similarity.
+
+    Args:
+        cos_dis_sim (Tensor): Cosine distance similarity tensor.
+        label (Tensor): Target label tensor.
+
+    Returns:
+        Tensor: Computed loss tensor.
+    """
     return -(F.one_hot(label.long(), num_classes=2).float() * cos_dis_sim.log()).sum(1).mean()
 
 
@@ -62,7 +72,7 @@ class SAFE(AbstractModel):
         """
         super(SAFE, self).__init__()
 
-        self.loss_funcs = [loss_func, loss_func]
+        self.loss_funcs = [_loss_func, _loss_func]
         if loss_weights is None:
             loss_weights = [1.0, 1.0]
         self.loss_weights = loss_weights
@@ -134,6 +144,15 @@ class SAFE(AbstractModel):
         return class_output, cos_dis_sim
 
     def calculate_loss(self, data) -> Dict[str, Tensor]:
+        """
+        Calculate the loss for the SAFE model.
+
+        Args:
+            data (Dict[str, Tensor]): Input data containing 'head', 'body', 'image', and 'label' tensors.
+
+        Returns:
+            Dict[str, Tensor]: Dictionary containing computed losses.
+        """
         headline = data['head']
         body = data['body']
         image = data['image']
@@ -147,6 +166,15 @@ class SAFE(AbstractModel):
         return {'total_loss': loss, 'class_loss': class_loss, 'cos_dis_sim_loss': cos_dis_sim_loss}
 
     def predict(self, data_without_label) -> torch.Tensor:
+        """
+        Perform prediction with the SAFE model.
+
+        Args:
+            data_without_label (Dict[str, Tensor]): Input data containing 'head', 'body', and 'image' tensors.
+
+        Returns:
+            torch.Tensor: Predicted class output tensor.
+        """
         head = data_without_label['head']
         body = data_without_label['body']
         image = data_without_label['image']

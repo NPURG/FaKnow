@@ -3,7 +3,7 @@ from typing import Optional, List
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
-from torchvision.models import vgg19, VGG19_Weights
+import torchvision
 from transformers import BertModel
 
 from faknow.model.layers.dct import DctStem, DctInceptionBlock, conv2d_bn_relu
@@ -17,7 +17,7 @@ class _VGG(nn.Module):
     """
     def __init__(self):
         super(_VGG, self).__init__()
-        vgg_19 = vgg19(weights=VGG19_Weights.DEFAULT)
+        vgg_19 = torchvision.models.vgg19(weights=torchvision.models.VGG19_Weights.DEFAULT)
 
         self.feature = vgg_19.features
         self.classifier = nn.Sequential(
