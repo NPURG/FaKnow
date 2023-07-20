@@ -380,7 +380,7 @@ class MCAN(AbstractModel):
 
     def calculate_loss(self, data) -> Tensor:
         """
-        calculate loss
+        calculate loss via CrossEntropyLoss
 
         Args:
             data (dict): batch data dict
@@ -405,7 +405,7 @@ class MCAN(AbstractModel):
             data_without_label (Dict[str, Any]): batch data dict
 
         Returns:
-            Tensor: probability of being fake news, shape=(batch_size, 2)
+            Tensor: softmax probability, shape=(batch_size, 2)
         """
 
         token_id = data['text']['token_id']

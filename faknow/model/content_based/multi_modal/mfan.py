@@ -229,7 +229,7 @@ class MFAN(AbstractModel):
 
     def calculate_loss(self, data) -> Dict[str, Tensor]:
         """
-        calculate total loss, classification loss and distance loss,
+        calculate total loss, classification loss(via CrossEntropyLoss) and distance loss(via MSELoss),
         where total loss = classification loss + distance loss
 
         Args:
@@ -263,7 +263,7 @@ class MFAN(AbstractModel):
             data_without_label (Dict[str, Any]): batch data dict
 
         Returns:
-            Tensor: softmax probability of being fake news, shape=(batch_size, 2)
+            Tensor: softmax probability, shape=(batch_size, 2)
         """
 
         post_id = data_without_label['post_id']

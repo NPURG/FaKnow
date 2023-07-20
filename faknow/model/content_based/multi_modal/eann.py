@@ -105,7 +105,7 @@ class EANN(AbstractModel):
 
     def calculate_loss(self, data: Dict[str, Any]) -> Dict[str, Tensor]:
         """
-        calculate total loss, classification loss and domain loss,
+        calculate total loss, classification loss and domain loss via CrossEntropyLoss,
         where total loss = classification loss + domain loss
 
         Args:
@@ -136,7 +136,7 @@ class EANN(AbstractModel):
             data_without_label (Dict[str, Any]): batch data dict
 
         Returns:
-            Tensor: probability of being fake news, shape=(batch_size, 2)
+            Tensor: softmax probability, shape=(batch_size, 2)
         """
         token_id = data_without_label['text']['token_id']
         mask = data_without_label['text']['mask']
