@@ -7,16 +7,22 @@ from torch import nn, Tensor
 from faknow.model.layers.layer import TextCNNLayer
 from faknow.model.model import AbstractModel
 
-"""
-Convolutional Neural Networks for Sentence Classification
-paper: https://aclanthology.org/D14-1181/
-code: https://github.com/yoonkim/CNN_sentence
-"""
-
 
 class TextCNN(AbstractModel):
-    r"""TextCNN model with a TextCNN layer and a fully connected layer
+    r"""
+    Convolutional Neural Networks for Sentence Classification, EMNLP 2014
+    paper: https://aclanthology.org/D14-1181/
+    code: https://github.com/yoonkim/CNN_sentence
+    """
 
+    def __init__(self,
+                 word_vectors: torch.Tensor,
+                 filter_num=100,
+                 kernel_sizes: List[int] = None,
+                 activate_func: Optional[Callable] = F.relu,
+                 dropout=0.5,
+                 freeze=False):
+        """
         Args:
             word_vectors (torch.Tensor): weights of word embedding layer, shape=(vocab_size, embedding_size)
             filter_num (int): number of filters in conv layer. Default=100
@@ -26,13 +32,6 @@ class TextCNN(AbstractModel):
             freeze (bool): whether to freeze weights in word embedding layer while training. Default=False
         """
 
-    def __init__(self,
-                 word_vectors: torch.Tensor,
-                 filter_num=100,
-                 kernel_sizes: List[int] = None,
-                 activate_func: Optional[Callable] = F.relu,
-                 dropout=0.5,
-                 freeze=False):
         super().__init__()
         if kernel_sizes is None:
             kernel_sizes = [3, 4, 5]
@@ -49,18 +48,46 @@ class TextCNN(AbstractModel):
         )
 
     def forward(self, text: torch.Tensor) -> Tensor:
+        """
+        Args:
+            text: batch data, shape=(batch_size, max_len)
+
+        Returns:
+            Tensor: output, shape=(batch_size, 2)
+        """
+
         text = self.word_embedding(text)
         text = self.text_ccn_layer(text)
         out = self.classifier(text)
         return out
 
     def calculate_loss(self, data) -> Tensor:
+        """
+        calculate loss via CrossEntropyLoss
+
+        Args:
+            data: batch data tuple
+
+        Returns:
+            torch.Tensor: loss
+        """
+
         text, label = data
         out = self.forward(text)
         loss = self.loss_func(out, label)
         return loss
 
     def predict(self, data_without_label):
+        """
+        predict the probability of being fake news
+
+        Args:
+            data_without_label: batch data
+
+        Returns:
+            Tensor: softmax probability, shape=(batch_size, 2)
+        """
+
         if type(data_without_label) is tuple:
             text = data_without_label[0]
         else:
