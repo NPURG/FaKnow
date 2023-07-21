@@ -8,19 +8,8 @@ from transformers import BertModel
 
 from faknow.model.model import AbstractModel
 
-"""
-Towards Fine-Grained Reasoning for Fake News Detection
-paper: https://aaai.org/papers/05746-towards-fine-grained-reasoning-for-fake-news-detection/
-code: https://github.com/Ahren09/FinerFact
-"""
 
-
-def kernel_mus(n_kernels):
-    """
-    get the mean mus for each gaussian kernel_num. Mu is the middle of each bin
-    :param n_kernels: number of kernels (including exact match). first one is exact match
-    :return: l_mu, a list of mus.
-    """
+def _kernel_mus(n_kernels):
     l_mu = [1]
     if n_kernels == 1:
         return l_mu
@@ -32,7 +21,7 @@ def kernel_mus(n_kernels):
     return l_mu
 
 
-def kernel_sigmas(n_kernels, sigma_val):
+def _kernel_sigmas(n_kernels, sigma_val):
     assert n_kernels >= 1
     l_sigma = [0.001] + [sigma_val] * (n_kernels - 1)
     return l_sigma
@@ -57,10 +46,11 @@ class _BertExtractor(nn.Module):
 
 
 class FinerFact(AbstractModel):
+    r"""
+    Towards Fine-Grained Reasoning for Fake News Detection, AAAI 2022
+    paper: https://aaai.org/papers/05746-towards-fine-grained-reasoning-for-fake-news-detection/
+    code: https://github.com/Ahren09/FinerFact
     """
-    Towards Fine-Grained Reasoning for Fake News Detection
-    """
-
     def __init__(self,
                  bert: str,
                  evidence_num=5,
@@ -114,11 +104,11 @@ class FinerFact(AbstractModel):
         self.proj_select = nn.Linear(self.kernel_num, 1)
 
         # gaussian kernels
-        self.mus = torch.FloatTensor(kernel_mus(self.kernel_num)).view(
+        self.mus = torch.FloatTensor(_kernel_mus(self.kernel_num)).view(
             1, 1, 1, self.kernel_num)
         self.sigmas = torch.FloatTensor(
-            kernel_sigmas(self.kernel_num,
-                          self.sigma_value)).view(1, 1, 1, self.kernel_num)
+            _kernel_sigmas(self.kernel_num,
+                           self.sigma_value)).view(1, 1, 1, self.kernel_num)
 
         # projection layers
         self.proj_pred_P = nn.Linear(channel, 1)
@@ -212,9 +202,6 @@ class FinerFact(AbstractModel):
                             mask,
                             index,
                             z_qv_z_v_all=None):
-        """
-        Models interactions among user embeddings
-        """
 
         idx = torch.LongTensor([index])
         mask = mask.view([-1, self.evidence_num, self.user_num])
@@ -366,7 +353,7 @@ class FinerFact(AbstractModel):
                 weight_de, trans_mat_prior[:, index].reshape(
                     -1, self.evidence_num, 1)
             ],
-                dim=2)
+                                  dim=2)
             weight_de = self.proj_pred_interact(weight_de)
         weight_de = F.softmax(weight_de, dim=1)
 
@@ -384,7 +371,7 @@ class FinerFact(AbstractModel):
                                                  q_embed.size()[1],
                                                  d_embed.size()[1], 1)
         pooling_value = torch.exp(
-            (-((sim - self.mus) ** 2) / (self.sigmas ** 2) / 2)) * attn_d
+            (-((sim - self.mus)**2) / (self.sigmas**2) / 2)) * attn_d
         pooling_sum = torch.sum(
             pooling_value,
             2)  # If merge content and social representation here
@@ -408,7 +395,7 @@ class FinerFact(AbstractModel):
 
         # B, 130, 11
         pooling_value = torch.exp(
-            (-((sim - self.mus) ** 2) / (self.sigmas ** 2) / 2)) * attn_d
+            (-((sim - self.mus)**2) / (self.sigmas**2) / 2)) * attn_d
 
         # B*5, user_num, 11
         log_pooling_sum = torch.sum(pooling_value, 2)
@@ -553,7 +540,7 @@ class FinerFact(AbstractModel):
             user_metadata (Tensor): shape=(batch_size, evidence_num, user_num, user_embed_dim). Default=None
 
         Returns:
-            logits (Tensor): predictions of being fake, shape=(batch_size, 2)
+            torch.Tensor: predictions of being fake, shape=(batch_size, 2)
         """
         if (not self.pretrain_user) and user_metadata is None:
             raise ValueError(
@@ -607,8 +594,16 @@ class FinerFact(AbstractModel):
         return logits
 
     def calculate_loss(self, data) -> Tensor:
-        # token_id, mask, type_id, label, post_rank, user_rank, keyword_rank, user_metadata = data
-        """get item from batch dict"""
+        """
+        calculate loss for FinerFact via CrossEntropyLoss
+
+        Args:
+            data (dict): batch data dict
+
+        Returns:
+            torch.Tensor: loss
+        """
+
         token_id = data['token_id']
         mask = data['mask']
         type_id = data['type_id']
@@ -617,13 +612,22 @@ class FinerFact(AbstractModel):
         user_rank = data['user_rank']
         keyword_rank = data['keyword_rank']
         user_metadata = data.get('user_metadata', None)
-        logits = self.forward(token_id, mask, type_id, post_rank, user_rank, keyword_rank,
-                              user_metadata)
+        logits = self.forward(token_id, mask, type_id, post_rank, user_rank,
+                              keyword_rank, user_metadata)
         loss = F.nll_loss(logits, label)
         return loss
 
     def predict(self, data):
-        # token_id, mask, type_id, post_rank, user_rank, keyword_rank, user_metadata = data_without_label
+        """
+        predict the probability of being fake news
+
+        Args:
+            data_without_label: batch data
+
+        Returns:
+            Tensor: softmax probability, shape=(batch_size, 2)
+        """
+
         token_id = data['token_id']
         mask = data['mask']
         type_id = data['type_id']
@@ -631,6 +635,6 @@ class FinerFact(AbstractModel):
         user_rank = data['user_rank']
         keyword_rank = data['keyword_rank']
         user_metadata = data.get('user_metadata', None)
-        logits = self.forward(token_id, mask, type_id, post_rank, user_rank, keyword_rank,
-                              user_metadata)
+        logits = self.forward(token_id, mask, type_id, post_rank, user_rank,
+                              keyword_rank, user_metadata)
         return logits
