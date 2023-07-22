@@ -26,6 +26,39 @@ def run_bigcn(root: str,
               weight_decay=0.001,
               metrics: List = None,
               device='cpu'):
+    r"""
+    run BiGCN using UPFD dataset, including training, validation and testing.
+    If validation and testing data are not provided, only training is performed.
+
+    Args:
+        root (string): Root directory where the dataset should be saved
+        name (string): The name of the graph set (:obj:`"politifact"`, :obj:`"gossipcop"`)
+        feature (string): The node feature type (:obj:`"profile"`, :obj:`"spacy"`, :obj:`"bert"`, :obj:`"content"`)
+            If set to :obj:`"profile"`, the 10-dimensional node feature
+            is composed of ten Twitter user profile attributes.
+            If set to :obj:`"spacy"`, the 300-dimensional node feature is
+            composed of Twitter user historical tweets encoded by
+            the `spaCy word2vec encoder
+            <https://spacy.io/models/en#en_core_web_lg>`_.
+            If set to :obj:`"bert"`, the 768-dimensional node feature is
+            composed of Twitter user historical tweets encoded by the
+            `bert-as-service <https://github.com/hanxiao/bert-as-service>`_.
+            If set to :obj:`"content"`, the 310-dimensional node feature is
+            composed of a 300-dimensional "spacy" vector plus a
+            10-dimensional "profile" vector.
+        split (List[str]): dataset split, including 'train', 'val' and 'test'.
+            If None, ['train', 'val', 'test'] will be used. Default=None
+        batch_size (int): batch size, default=128
+        epochs (int): number of epochs, default=45
+        hidden_size (int): dimension of hidden layer, default=128
+        td_drop_rate (float): drop rate of drop edge in top-down direction, default=0.2
+        bu_drop_rate (float): drop rate of drop edge in bottom-up direction, default=0.2
+        lr (float): learning rate, default=0.01
+        weight_decay (float): weight decay, default=0.001
+        metrics (List): evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default=None
+        device (str): device, default='cpu'
+    """
+
     if splits is None:
         splits = ['train', 'val', 'test']
 
@@ -73,6 +106,13 @@ def run_bigcn(root: str,
 
 
 def run_bigcn_from_yaml(path: str):
+    """
+    run BiGCN from yaml config file
+
+    Args:
+        path (str): yaml config file path
+    """
+
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
         run_bigcn(**_config)
