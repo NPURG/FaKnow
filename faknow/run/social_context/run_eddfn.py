@@ -25,6 +25,23 @@ def run_eddfn(train_pool_input: Tensor,
               lr=0.02,
               metrics: List = None,
               device='cpu'):
+    """
+    run EDDFN
+
+    Args:
+        train_pool_input (Tensor): train pool input, shape=(train_pool_size, input_size)
+        train_pool_label (Tensor): train pool label, shape=(train_pool_size, )
+        domain_embedding (Tensor): domain embedding, shape=(train_pool_size, domain_size)
+        budget_size (float): budget size, default=0.8
+        num_h (int): number of hash functions, default=10
+        batch_size (int): batch size, default=32
+        num_epochs (int): number of epochs, default=100
+        lr (float): learning rate, default=0.02
+        metrics (List): evaluation metrics, if None, use default metrics, default=None
+        device (str): device, default='cpu'
+    """
+
+    # todo: testing and validation
     input_size = train_pool_input.shape[-1]
     domain_size = domain_embedding.shape[-1]
 
@@ -45,6 +62,16 @@ def run_eddfn(train_pool_input: Tensor,
 
 
 def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    parse kargs from config dict
+
+    Args:
+        config (Dict[str, Any]): config dict, keys are the same as the args of `run_eddfn`
+
+    Returns:
+        Dict[str, Any]: converted kargs
+    """
+
     with open(config['train_pool_input'], 'rb') as f:
         config['train_pool_input'] = pickle.load(f)
     with open(config['train_pool_label'], 'rb') as f:
@@ -55,6 +82,13 @@ def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def run_eddfn_from_yaml(path: str):
+    """
+    run EDDFN from yaml config file
+
+    Args:
+        path (str): yaml config file path
+    """
+
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
         run_eddfn(**_parse_kargs(_config))
