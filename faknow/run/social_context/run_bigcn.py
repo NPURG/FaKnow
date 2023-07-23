@@ -31,9 +31,9 @@ def run_bigcn(root: str,
     If validation and testing data are not provided, only training is performed.
 
     Args:
-        root (string): Root directory where the dataset should be saved
-        name (string): The name of the graph set (:obj:`"politifact"`, :obj:`"gossipcop"`)
-        feature (string): The node feature type (:obj:`"profile"`, :obj:`"spacy"`, :obj:`"bert"`, :obj:`"content"`)
+        root (str): Root directory where the dataset should be saved
+        name (str): The name of the graph set (:obj:`"politifact"`, :obj:`"gossipcop"`)
+        feature (str): The node feature type (:obj:`"profile"`, :obj:`"spacy"`, :obj:`"bert"`, :obj:`"content"`)
             If set to :obj:`"profile"`, the 10-dimensional node feature
             is composed of ten Twitter user profile attributes.
             If set to :obj:`"spacy"`, the 300-dimensional node feature is
