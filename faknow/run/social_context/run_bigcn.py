@@ -46,7 +46,7 @@ def run_bigcn(root: str,
             If set to :obj:`"content"`, the 310-dimensional node feature is
             composed of a 300-dimensional "spacy" vector plus a
             10-dimensional "profile" vector.
-        split (List[str]): dataset split, including 'train', 'val' and 'test'.
+        splits (List[str]): dataset split, including 'train', 'val' and 'test'.
             If None, ['train', 'val', 'test'] will be used. Default=None
         batch_size (int): batch size, default=128
         epochs (int): number of epochs, default=45
