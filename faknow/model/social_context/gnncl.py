@@ -5,17 +5,16 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch_geometric.nn import DenseSAGEConv, dense_diff_pool
+from torch_geometric.data import Batch
 
 from faknow.model.model import AbstractModel
 
-"""
-Graph neural networks with continual learning for fake news detection from social media
-paper: https://arxiv.org/abs/2007.03316
-code: https://github.com/safe-graph/GNN-FakeNews
-"""
-
 
 class _DenseGNN(torch.nn.Module):
+    """
+    Dense GNN module for GNNCL
+    """
+
     def __init__(self,
                  in_channels: int,
                  hidden_channels: int,
@@ -55,12 +54,19 @@ class _DenseGNN(torch.nn.Module):
 
 
 class GNNCL(AbstractModel):
+    """
+    Graph neural networks with continual learning for fake news detection from social media, arXiv 2020
+    paper: https://arxiv.org/abs/2007.03316
+    code: https://github.com/safe-graph/GNN-FakeNews
+    """
+
     def __init__(self, feature_size: int, max_nodes: int):
         """
         Args:
             feature_size (int): dimension of input node feature
             max_nodes (int): maximum number of nodes in a graph
         """
+
         super(GNNCL, self).__init__()
 
         num_nodes = ceil(0.25 * max_nodes)
@@ -78,18 +84,18 @@ class GNNCL(AbstractModel):
 
     def forward(self, x: Tensor, adj: Tensor, mask: Optional[Tensor] = None):
         """
-
         Args:
-            x (Tensor): node feature, shape (batch_size, max_nodes, feature_size)
-            adj (Tensor): adjacency matrix, shape (batch_size, max_nodes, max_nodes)
-            mask (Optional[Tensor], optional): mask for adjacency matrix, shape (batch_size, max_nodes). Default=None.
+            x (Tensor): node features, shape=(batch_size, max_nodes, feature_size)
+            adj (Tensor): adjacency matrix, shape=(batch_size, max_nodes, max_nodes)
+            mask (Tensor): mask for adjacency matrix, shape=(batch_size, max_nodes). Default=None.
 
         Returns:
-            Tuple[Tensor, Tensor, Tensor]:
-                output (Tensor): prediction of being fake, shape (batch_size, 2).
-                l (Tensor): loss of first pooling layer.
-                e (Tensor): entropy of first pooling layer.
+           tuple:
+                output (Tensor): prediction of being fake, shape (batch_size, 2)
+                l (Tensor): loss of first pooling layer
+                e (Tensor): entropy of first pooling layer
         """
+
         s = self.gnn1_pool(x, adj, mask)
         x = self.gnn1_embed(x, adj, mask)
 
@@ -107,13 +113,33 @@ class GNNCL(AbstractModel):
         out = self.fc2(x)
         return out, l1 + l2, e1 + e2
 
-    def calculate_loss(self, data) -> torch.Tensor:
+    def calculate_loss(self, data: Batch) -> torch.Tensor:
+        """
+        calculate loss via CrossEntropyLoss
+
+        Args:
+            data (Batch): batch data
+
+        Returns:
+            torch.Tensor: loss
+        """
+
         output, _, _ = self.forward(data.x, data.adj, data.mask)
         loss_func = torch.nn.CrossEntropyLoss()
         loss = loss_func(output, data.y.view(-1))
         return loss
 
     def predict(self, data_without_label) -> torch.Tensor:
+        """
+        predict the probability of being fake news
+
+        Args:
+            data_without_label (Batch): batch data
+
+        Returns:
+            Tensor: softmax probability, shape=(batch_size, 2)
+        """
+
         output, _, _ = self.forward(data_without_label.x,
                                     data_without_label.adj,
                                     data_without_label.mask)
