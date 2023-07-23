@@ -7,7 +7,8 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.transforms import ToUndirected
 
 from faknow.evaluate.evaluator import Evaluator
-from faknow.model.social_context.upfd import UPFDSAGE
+from faknow.model.social_context.upfd import (UPFDSAGE, UPFDGCN, UPFDGAT,
+                                              UPFDGCNFN)
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
 
 __all__ = ['run_upfd', 'run_upfd_from_yaml']
@@ -17,12 +18,18 @@ def run_upfd(root: str,
              name: str,
              feature: str,
              splits=None,
+             base_model='sage',
              batch_size=128,
              epochs=75,
              lr=0.01,
              weight_decay=0.01,
              metrics: List = None,
              device='cpu'):
+
+    assert base_model in [
+        'sage', 'gcn', 'gat', 'gcnfn'
+    ], "base_model must be in ['sage', 'gcn', 'gat', 'gcnfn']"
+
     if splits is None:
         splits = ['train', 'val', 'test']
 
@@ -40,7 +47,15 @@ def run_upfd(root: str,
         val_loader = None
 
     feature_size = train_dataset.num_features
-    model = UPFDSAGE(feature_size)
+    if base_model == 'sage':
+        model = UPFDSAGE(feature_size)
+    elif base_model == 'gcn':
+        model = UPFDGCN(feature_size)
+    elif base_model == 'gat':
+        model = UPFDGAT(feature_size)
+    else:
+        model = UPFDGCNFN(feature_size)
+
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr,
                                  weight_decay=weight_decay)
