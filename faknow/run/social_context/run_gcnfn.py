@@ -49,8 +49,6 @@ def run_gcnfn(root: str,
         batch_size (int): batch size, default=128
         epochs (int): number of epochs, default=110
         hidden_size (int): dimension of hidden layer, default=128
-        td_drop_rate (float): drop rate of drop edge in top-down direction, default=0.2
-        bu_drop_rate (float): drop rate of drop edge in bottom-up direction, default=0.2
         lr (float): learning rate, default=0.001
         weight_decay (float): weight decay, default=0.01
         metrics (List): evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default=None
