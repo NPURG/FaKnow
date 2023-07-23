@@ -2,17 +2,15 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 from torch_geometric.nn import GATConv, global_mean_pool
+from torch_geometric.data import Batch
 
 from faknow.model.model import AbstractModel
 
-"""
-Fake news detection on social media using geometric deep learning
-paper: https://arxiv.org/abs/1902.06673
-code: https://github.com/safe-graph/GNN-FakeNews
-"""
-
 
 class _BaseGCNFN(AbstractModel):
+    """
+    base GCNFN
+    """
     def __init__(self,
                  feature_size: int,
                  hidden_size=128,
@@ -45,7 +43,6 @@ class _BaseGCNFN(AbstractModel):
     def forward(self, x: Tensor, edge_index: Tensor, batch: Tensor,
                 num_graphs: int):
         """
-
         Args:
             x (Tensor): node feature, shape=(num_nodes, feature_size)
             edge_index (Tensor): edge index, shape=(2, num_edges)
@@ -53,8 +50,9 @@ class _BaseGCNFN(AbstractModel):
             num_graphs (int): number of graphs, a.k.a. batch_size
 
         Returns:
-            output (Tensor): prediction of being fake, shape=(num_graphs, 2)
+            Tensor: prediction of being fake, shape=(num_graphs, 2)
         """
+
         raw_x = x
         x = F.selu(self.conv1(x, edge_index))
         x = F.selu(self.conv2(x, edge_index))
@@ -75,14 +73,34 @@ class _BaseGCNFN(AbstractModel):
         out = self.fc2(x)
         return out
 
-    def calculate_loss(self, data) -> torch.Tensor:
+    def calculate_loss(self, data: Batch) -> torch.Tensor:
+        """
+        calculate loss via CrossEntropyLoss
+
+        Args:
+            data (Batch): batch data
+
+        Returns:
+            torch.Tensor: loss
+        """
+
         output = self.forward(data.x, data.edge_index, data.batch,
                               data.num_graphs)
         loss_fn = nn.CrossEntropyLoss()
         loss = loss_fn(output, data.y)
         return loss
 
-    def predict(self, data_without_label) -> torch.Tensor:
+    def predict(self, data_without_label: Batch) -> torch.Tensor:
+        """
+        predict the probability of being fake news
+
+        Args:
+            data_without_label (Batch): batch data
+
+        Returns:
+            Tensor: softmax probability, shape=(num_graphs, 2)
+        """
+
         output = self.forward(data_without_label.x,
                               data_without_label.edge_index,
                               data_without_label.batch,
@@ -92,17 +110,18 @@ class _BaseGCNFN(AbstractModel):
 
 class GCNFN(_BaseGCNFN):
     """
-    Fake news detection on social media using geometric deep learning
+    Fake news detection on social media using geometric deep learning, arXiv 2020
+    paper: https://arxiv.org/abs/1902.06673
+    code: https://github.com/safe-graph/GNN-FakeNews
     """
-    def __init__(self,
-                 feature_size: int,
-                 hidden_size=128,
-                 dropout_ratio=0.5):
-        """
 
+    def __init__(self, feature_size: int, hidden_size=128, dropout_ratio=0.5):
+        """
         Args:
             feature_size (int): dimension of input node feature
             hidden_size (int): dimension of hidden layer. Default=128
             dropout_ratio (float): dropout ratio. Default=0.5
         """
-        super(GCNFN, self).__init__(feature_size, hidden_size, dropout_ratio, False)
+
+        super(GCNFN, self).__init__(feature_size, hidden_size, dropout_ratio,
+                                    False)

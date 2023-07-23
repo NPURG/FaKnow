@@ -56,6 +56,7 @@ def run_gcnfn(root: str,
         metrics (List): evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default=None
         device (str): device, default='cpu'
     """
+
     if splits is None:
         splits = ['train', 'val', 'test']
 
@@ -89,6 +90,13 @@ def run_gcnfn(root: str,
 
 
 def run_gcnfn_from_yaml(path: str):
+    """
+    run GCNFN from yaml config file
+
+    Args:
+        path (str): yaml config file path
+    """
+
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
         run_gcnfn(**_config)
