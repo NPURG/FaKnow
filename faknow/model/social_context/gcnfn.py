@@ -110,7 +110,7 @@ class _BaseGCNFN(AbstractModel):
 
 class GCNFN(_BaseGCNFN):
     """
-    Fake news detection on social media using geometric deep learning, arXiv 2020
+    Fake news detection on social media using geometric deep learning, arXiv 2019
     paper: https://arxiv.org/abs/1902.06673
     code: https://github.com/safe-graph/GNN-FakeNews
     """
