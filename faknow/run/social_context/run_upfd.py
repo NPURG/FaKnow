@@ -41,7 +41,9 @@ def run_upfd(root: str,
 
     feature_size = train_dataset.num_features
     model = UPFDSAGE(feature_size)
-    optimizer = torch.optim.Adam(model.parameters(), lr, weight_decay=weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(),
+                                 lr,
+                                 weight_decay=weight_decay)
     evaluator = Evaluator(metrics)
 
     trainer = BaseGNNTrainer(model, evaluator, optimizer, device=device)
@@ -57,6 +59,13 @@ def run_upfd(root: str,
 
 
 def run_upfd_from_yaml(path: str):
+    """
+    run UPFD from yaml config file
+
+    Args:
+        path (str): yaml config file path
+    """
+
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
         run_upfd(**_config)

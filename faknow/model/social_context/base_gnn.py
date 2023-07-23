@@ -9,7 +9,7 @@ from faknow.model.model import AbstractModel
 
 class _BaseGNN(AbstractModel):
     """
-    base gnn models
+    base gnn models for GCN, SAGE and GAT
     """
     def __init__(self, feature_size: int, hidden_size: int, concat=False):
         """

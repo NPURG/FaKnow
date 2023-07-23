@@ -9,7 +9,7 @@ from faknow.model.model import AbstractModel
 
 class _BaseGCNFN(AbstractModel):
     """
-    base GCNFN
+    base GCNFN model for GCNFN
     """
     def __init__(self,
                  feature_size: int,
