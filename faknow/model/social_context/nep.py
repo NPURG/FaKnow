@@ -8,12 +8,6 @@ from transformers import BertModel
 
 from faknow.model.model import AbstractModel
 
-"""
-Zoom Out and Observe: News Environment Perception for Fake News Detection
-paper: https://aclanthology.org/2022.acl-long.311/
-code: https://github.com/ICTMCG/News-Environment-Perception
-"""
-
 
 class _NewsEnvExtractor(nn.Module):
     def __init__(self,
@@ -193,8 +187,11 @@ class _BERT(nn.Module):
 
 class NEP(AbstractModel):
     """
-    Zoom Out and Observe: News Environment Perception for Fake News Detection
+    Zoom Out and Observe: News Environment Perception for Fake News Detection, ACL 2022
+    paper: https://aclanthology.org/2022.acl-long.311/
+    code: https://github.com/ICTMCG/News-Environment-Perception
     """
+
     def __init__(self,
                  macro_env_out_dim=128,
                  micro_env_out_dim=128,
@@ -260,7 +257,7 @@ class NEP(AbstractModel):
         self.fcs = nn.ModuleList(self.fcs)
 
     def forward(self, post_simcse, avg_mac, avg_mic, kernel_p_mac,
-                kernel_p_mic, kernel_avg_mic_mic, **kwargs):
+                kernel_p_mic, kernel_avg_mic_mic, **kwargs) -> Tensor:
         """
         Args:
             post_simcse: post simcse representation, shape=(batch_size, simcse_dim)
@@ -269,11 +266,12 @@ class NEP(AbstractModel):
             kernel_p_mac: gaussian kernel of similarity between post and macro news, shape=(batch_size, kernel_num)
             kernel_p_mic: gaussian kernel of similarity between  post and micro news, shape=(batch_size, kernel_num)
             kernel_avg_mic_mic: gaussian kernel of similarity between average micro and micro news, shape=(batch_size, kernel_num)
-            **kwargs: parameters for fnd forward
+            **kwargs: parameters for FND module forward
 
         Returns:
-            output: prediction of being fake, shape=(batch_size, 2)
+            Tensor: prediction of being fake, shape=(batch_size, 2)
         """
+
         # env
         v_p_mac, v_p_mic = self.news_env_extractor(post_simcse, avg_mac,
                                                    avg_mic, kernel_p_mac,
@@ -337,6 +335,16 @@ class NEP(AbstractModel):
         return output
 
     def calculate_loss(self, data) -> Tensor:
+        """
+        calculate loss via CrossEntropyLoss
+
+        Args:
+            data (dict): data dict, keys: ['post_simcse', 'avg_mac', 'avg_mic', 'p_mac', 'p_mic', 'avg_mic_mic', 'token', 'label']
+
+        Returns:
+            Tensor: loss
+        """
+
         post_simcse, avg_mac, avg_mic, p_mac, p_mic, avg_mic_mic, token, label = data.values(
         )
         output = self(post_simcse,
@@ -351,6 +359,16 @@ class NEP(AbstractModel):
         return loss
 
     def predict(self, data_without_label):
+        """
+        predict the probability of being fake
+
+        Args:
+            data_without_label (dict): data dict, keys: ['post_simcse', 'avg_mac', 'avg_mic', 'p_mac', 'p_mic', 'avg_mic_mic', 'token']
+
+        Returns:
+            Tensor: softmax probability, shape=(batch_size, 2)
+        """
+
         post_simcse, avg_mac, avg_mic, p_mac, p_mic, avg_mic_mic, token, _ = data_without_label.values(
         )
         output = self(post_simcse,
