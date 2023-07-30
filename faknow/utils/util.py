@@ -10,19 +10,29 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 def calculate_cos_matrix(matrix1: torch.Tensor, matrix2: torch.Tensor):
-    # pairwise 计算matrix1中每行向量与matrix2中所有行向量的余弦相似度
+    """
+    Calculate the cosine similarity matrix between two matrices.
+
+    Args:
+        matrix1 (torch.Tensor): The first matrix.
+        matrix2 (torch.Tensor): The second matrix.
+
+    Returns:
+        torch.Tensor: The cosine similarity matrix.
+    """
     return torch.from_numpy(cosine_similarity(matrix1.numpy(),
                                               matrix2.numpy()))
 
 
 def dict2str(result_dict: Dict[str, float]) -> str:
-    r"""convert result dict to str
+    """
+    Convert a dictionary of metrics to a string.
 
     Args:
-        result_dict (dict): result dict
+        result_dict (dict): A dictionary containing metric names and corresponding values.
 
     Returns:
-        str: result str
+        str: The formatted string representation of the dictionary.
     """
 
     return "    ".join([
@@ -32,10 +42,11 @@ def dict2str(result_dict: Dict[str, float]) -> str:
 
 
 def now2str() -> str:
-    r"""convert current time to str
+    """
+    Get the current time and convert it to a formatted string.
 
     Returns:
-        str: current time, %Y-%m-%d-%H_%M_%S
+        str: The current time in the format '%Y-%m-%d-%H_%M_%S'.
     """
     cur = datetime.datetime.now()
     cur = cur.strftime("%Y-%m-%d-%H_%M_%S")
@@ -44,7 +55,15 @@ def now2str() -> str:
 
 
 def seconds2str(seconds: float) -> str:
-    r"""Convert seconds to time format"""
+    """
+    Convert seconds to a human-readable time format.
+
+    Args:
+        seconds (float): The duration in seconds.
+
+    Returns:
+        str: The duration in the format 'h:mm:ss' or 'm:ss'.
+    """
     if seconds < 60:
         return f'{seconds:.6f}s'
 
@@ -58,6 +77,15 @@ def seconds2str(seconds: float) -> str:
 
 
 def check_loss_type(result):
+    """
+    Check the type of the loss and convert it to a tensor if necessary.
+
+    Args:
+        result (Union[torch.Tensor, dict]): The loss value or a dictionary of losses.
+
+    Returns:
+        Tuple[torch.Tensor, bool]: A tuple containing the loss tensor and a boolean indicating if the loss was a dictionary.
+    """
     result_is_dict = False
 
     if type(result) is dict:
@@ -80,14 +108,15 @@ def check_loss_type(result):
 
 def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, hash_dimension=10) -> List[int]:
     """
-    local sensitive hash selection for training dataset
+    Local sensitive hash (LSH) selection for training dataset.
+
     Args:
-        domain_embeddings (Tensor): 2-D domain embedding tensor of samples
-        labelling_budget (int): number of selection budget, must be smaller than number of samples. Default=100
-        hash_dimension (int): dimension of random hash vector. Default=10
+        domain_embeddings (torch.Tensor): 2-D domain embedding tensor of samples.
+        labelling_budget (int): Number of selection budget, must be smaller than the number of samples. Default=100.
+        hash_dimension (int): Dimension of random hash vector. Default=10.
 
     Returns:
-        List[int], a list of selected samples index
+        List[int]: A list of selected sample indices.
     """
     if len(domain_embeddings.shape) != 2:
         raise TypeError("domain embedding must be 2-D tensor!")
@@ -103,21 +132,21 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
     random_distribution = [3 ** 0.5, 0.0, 0.0, 0.0, 0.0, -(3 ** 0.5)]
 
     while len(final_selected_ids) < labelling_budget:
-        # generate random vectors
+        # Generate random vectors
         random_vectors = []
         for hash_run in range(hash_dimension):
             vec = random.choices(random_distribution, k=embedding_size)
             random_vectors.append(torch.tensor(vec))
 
-        # create hash table
+        # Create hash table
         code_dict = defaultdict(lambda: [])  # {str(h-dim hash value): [domain_id]}
         for i, item in enumerate(domain_embeddings):
             code = ''
-            # skip if the item is already selected
+            # Skip if the item is already selected
             if is_final_selected[i]:
                 continue
 
-            # concat result of hash functions to generate hash vectors
+            # Concat result of hash functions to generate hash vectors
             for code_vec in random_vectors:
                 code = code + str(int(torch.dot(item, code_vec) > 0))
             code_dict[code].append(i)
@@ -125,13 +154,13 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
         selected_ids = []
         is_selected = defaultdict(lambda: False)
 
-        # pick one item from each item bin
+        # Pick one item from each item bin
         for item in code_dict:
             selected_item = random.choice(code_dict[item])
             selected_ids.append(selected_item)  # 添加domain id，即domain embedding中的行号
             is_selected[selected_item] = True
 
-        # remove a set of instances randomly to meet the labelling budget
+        # Remove a set of instances randomly to meet the labelling budget
         if len(final_selected_ids + selected_ids) > labelling_budget:
             random_pick_size = labelling_budget - len(final_selected_ids)
             mod_selected_ids = []
@@ -149,6 +178,15 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
 
 
 def read_stop_words(path: str) -> List[str]:
+    """
+    Read stop words from a file.
+
+    Args:
+        path (str): The path to the file containing stop words.
+
+    Returns:
+        List[str]: A list of stop words.
+    """
     with open(path, 'r', encoding='utf-8') as f:
         stop_words = [str(line).strip() for line in f.readlines()]
     return stop_words
@@ -179,11 +217,13 @@ class EarlyStopping:
 
     def __call__(self, current_score: float) -> bool:
         """
+        Check if the current score is the best score and update early stopping status.
+
         Args:
-            current_score (float): current score to check if it is the best score
+            current_score (float): The current score to check if it is the best score.
 
         Returns:
-            bool: whether the current score is the best score
+            bool: Whether the current score is the best score.
         """
         improvement = False
         if self.best_score is None:

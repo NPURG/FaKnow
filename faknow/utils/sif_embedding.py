@@ -13,6 +13,7 @@ Weight4ind = None
 
 class Params(object):
     def __init__(self):
+        """Class to hold parameter values for SIF embedding."""
         self.LW = 1e-5
         self.LC = 1e-5
         self.eta = 0.05
@@ -28,6 +29,16 @@ params.rmpc = 1
 
 
 def getWordWeight(weightfile, a=1e-3):
+    """
+    Get word weights from a file and apply a weight transformation.
+
+    Args:
+        weightfile (str): Path to the file containing word weights.
+        a (float, optional): Smoothing parameter for word weights (default: 1e-3).
+
+    Returns:
+        dict: A dictionary mapping words to their corresponding weights.
+    """ 
     if a <= 0:  # when the parameter makes no sense, use unweighted
         a = 1.0
 
@@ -50,6 +61,16 @@ def getWordWeight(weightfile, a=1e-3):
 
 
 def getWeight(words, word2weight):
+    """
+    Get word weights for words in the given dictionary.
+
+    Args:
+        words (dict): A dictionary mapping words to their indices.
+        word2weight (dict): A dictionary mapping words to their corresponding weights.
+
+    Returns:
+        dict: A dictionary mapping word indices to their corresponding weights.
+    """
     weight4ind = {}
     for word, ind in words.items():
         if word in word2weight:
@@ -60,6 +81,16 @@ def getWeight(words, word2weight):
 
 
 def lookupIDX(words, w):
+    """
+    Look up the index of a word in the given dictionary.
+
+    Args:
+        words (dict): A dictionary mapping words to their indices.
+        w (str): The word to look up.
+
+    Returns:
+        int: The index of the word if found, otherwise the index for 'UUUNKKK' (unknown word).
+    """
     w = w.lower()
     if len(w) > 1 and w[0] == '#':
         w = w.replace("#", "")
@@ -72,6 +103,16 @@ def lookupIDX(words, w):
 
 
 def getSeq(p1, words):
+    """
+    Get the sequence of word indices for a given sentence.
+
+    Args:
+        p1 (list): A list of words in the sentence.
+        words (dict): A dictionary mapping words to their indices.
+
+    Returns:
+        list: A list of word indices in the sentence.
+    """
     # p1 = p1.split()
     X1 = []
     for i in p1:
@@ -80,6 +121,15 @@ def getSeq(p1, words):
 
 
 def prepare_data(list_of_seqs):
+    """
+    Prepare input data for the model.
+
+    Args:
+        list_of_seqs (list): A list of sequences containing word indices.
+
+    Returns:
+        tuple: A tuple containing the input data (x) and the mask (x_mask).
+    """
     lengths = [len(s) for s in list_of_seqs]
     n_samples = len(list_of_seqs)
     maxlen = np.max(lengths)
@@ -94,10 +144,14 @@ def prepare_data(list_of_seqs):
 
 def sentences2idx(sentences, words):
     """
-    Given a list of sentences, output array of word indices that can be fed into the algorithms.
-    :param sentences: a list of sentences
-    :param words: a dictionary, words['str'] is the indices of the word 'str'
-    :return: x1, m1. x1[i, :] is the word indices in sentence i, m1[i,:] is the mask for sentence i (0 means no word at the location)
+    Convert a list of sentences to a numpy array of word indices.
+
+    Args:
+        sentences (list): A list of sentences, each represented as a list of words.
+        words (dict): A dictionary mapping words to their indices.
+
+    Returns:
+        tuple: A tuple containing the input data (x) and the mask (m).
     """
     seq1 = []
     for i in sentences:
@@ -107,6 +161,17 @@ def sentences2idx(sentences, words):
 
 
 def seq2weight(seq, mask, weight4ind):
+    """
+    Convert a sequence and its mask to a weight matrix.
+
+    Args:
+        seq (numpy.ndarray): A numpy array containing word indices for a sequence.
+        mask (numpy.ndarray): A numpy array representing the mask for the sequence.
+        weight4ind (dict): A dictionary mapping word indices to their corresponding weights.
+
+    Returns:
+        numpy.ndarray: A weight matrix for the sequence.
+    """
     weight = np.zeros(seq.shape).astype('float32')
     for i in range(seq.shape[0]):
         for j in range(seq.shape[1]):
@@ -118,11 +183,15 @@ def seq2weight(seq, mask, weight4ind):
 
 def get_weighted_average(We, x, w):
     """
-    Compute the weighted average vectors
-    :param We: We[i,:] is the vector for word i
-    :param x: x[i, :] are the indices of the words in sentence i
-    :param w: w[i, :] are the weights for the words in sentence i
-    :return: emb[i, :] are the weighted average vector for sentence i
+    Compute the weighted average vectors.
+
+    Args:
+        We (numpy.ndarray): A numpy array containing word embeddings.
+        x (numpy.ndarray): A numpy array of word indices for sentences.
+        w (numpy.ndarray): A weight matrix for the words in sentences.
+
+    Returns:
+        numpy.ndarray: Weighted average vectors for the sentences.
     """
     n_samples = x.shape[0]
     emb = np.zeros((n_samples, We.shape[1]))
@@ -133,10 +202,14 @@ def get_weighted_average(We, x, w):
 
 def compute_pc(X, npc=1):
     """
-    Compute the principal components. DO NOT MAKE THE DATA ZERO MEAN!
-    :param X: X[i,:] is a data point
-    :param npc: number of principal components to remove
-    :return: component_[i,:] is the i-th pc
+    Compute the principal components.
+
+    Args:
+        X (numpy.ndarray): A numpy array containing data points.
+        npc (int, optional): Number of principal components to compute (default: 1).
+
+    Returns:
+        numpy.ndarray: Array containing principal components.
     """
     svd = TruncatedSVD(n_components=npc, n_iter=7, random_state=0)
     svd.fit(X)
@@ -145,10 +218,14 @@ def compute_pc(X, npc=1):
 
 def remove_pc(X, npc=1):
     """
-    Remove the projection on the principal components
-    :param X: X[i,:] is a data point
-    :param npc: number of principal components to remove
-    :return: XX[i, :] is the data point after removing its projection
+    Remove the projection on the principal components.
+
+    Args:
+        X (numpy.ndarray): A numpy array containing data points.
+        npc (int, optional): Number of principal components to remove (default: 1).
+
+    Returns:
+        numpy.ndarray: Array containing data points after removing their projection on the principal components.
     """
     pc = compute_pc(X, npc)
     if npc == 1:
@@ -160,12 +237,16 @@ def remove_pc(X, npc=1):
 
 def SIF_embedding(We, x, w, params):
     """
-    Compute the scores between pairs of sentences using weighted average + removing the projection on the first principal component
-    :param We: We[i,:] is the vector for word i
-    :param x: x[i, :] are the indices of the words in the i-th sentence
-    :param w: w[i, :] are the weights for the words in the i-th sentence
-    :param params.rmpc: if >0, remove the projections of the sentence embeddings to their first principal component
-    :return: emb, emb[i, :] is the embedding for sentence i
+    Compute the SIF (Smooth Inverse Frequency) embeddings for sentences.
+
+    Args:
+        We (numpy.ndarray): A numpy array containing word embeddings.
+        x (numpy.ndarray): A numpy array of word indices for sentences.
+        w (numpy.ndarray): A weight matrix for the words in sentences.
+        params (Params): An instance of the Params class containing the parameters.
+
+    Returns:
+        numpy.ndarray: SIF embeddings for sentences.
     """
     emb = get_weighted_average(We, x, w)
     if params.rmpc > 0:
@@ -174,6 +255,15 @@ def SIF_embedding(We, x, w, params):
 
 
 def sif_embedding(sentences):
+    """
+    Compute SIF embeddings for a list of sentences.
+
+    Args:
+        sentences (list): A list of sentences, each represented as a list of words.
+
+    Returns:
+        numpy.ndarray: SIF embeddings for the given sentences.
+    """
     global Words, We, Weight4ind
 
     if Words is None:
@@ -193,6 +283,11 @@ def sif_embedding(sentences):
 
 
 def preprocess():
+    """
+    Preprocess the data to calculate word weights.
+
+    This function is run once to calculate and save word weights to be used later during SIF embedding.
+    """
     with open(ASSETS_PATH / "words.json") as f:
         Words = json.load(f)
 
@@ -207,11 +302,14 @@ def preprocess():
 
 
 def main():
+    """
+    Main function to demonstrate SIF embedding on a sample sentence.
+    """
     embd = sif_embedding(
         ["the parameter in the SIF weighting scheme, usually in the range"])
     print(embd.shape)
 
 
 if __name__ == "__main__":
-    # preprocess()
+    # preprocess()  # Uncomment this line to run the preprocess step (only needs to be done once)
     main()
