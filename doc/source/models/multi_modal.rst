@@ -1,4 +1,4 @@
-multi\_modal package
+multi\_modal
 ====================
 
 

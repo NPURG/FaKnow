@@ -1,4 +1,4 @@
-multimodal package
+multimodal
 ==================
 
 

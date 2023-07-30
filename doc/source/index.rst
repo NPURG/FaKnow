@@ -16,21 +16,10 @@ Welcome to FaKnow's documentation!
 
 
 .. toctree::
-   :maxdepth: 4
-   :caption: api reference:
-
-
-
-.. toctree::
    :maxdepth: 2
    :caption: models:
 
    models/multi_modal
-
-
-.. toctree::
-   :maxdepth: 4
-   :caption: api reference:
 
 
 .. toctree::
@@ -41,8 +30,16 @@ Welcome to FaKnow's documentation!
 
 
 .. toctree::
-   :maxdepth: 4
-   :caption: api reference:
+   :maxdepth: 1
+   :caption: API REFERENCE:
+
+   faknow/faknow.config
+   faknow/faknow.data
+   faknow/faknow.evaluate
+   faknow/faknow.model
+   faknow/faknow.run
+   faknow/faknow.train
+   faknow/faknow.utils
 
 
 Indices and tables
