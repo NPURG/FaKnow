@@ -1,10 +1,9 @@
 faknow.data.dataloader
 ==============================
 
-Submodules
-----------
 
-faknow.data.dataloader.dataloader module
+
+faknow.data.dataloader.dataloader
 ----------------------------------------
 
 .. automodule:: faknow.data.dataloader.dataloader
@@ -12,8 +11,7 @@ faknow.data.dataloader.dataloader module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.data.dataloader
    :members:

@@ -1,10 +1,9 @@
 faknow.run.social\_context
 ==================================
 
-Submodules
-----------
 
-faknow.run.social\_context.run\_bigcn module
+
+faknow.run.social\_context.run\_bigcn
 --------------------------------------------
 
 .. automodule:: faknow.run.social_context.run_bigcn
@@ -12,7 +11,7 @@ faknow.run.social\_context.run\_bigcn module
    :undoc-members:
    :show-inheritance:
 
-faknow.run.social\_context.run\_eddfn module
+faknow.run.social\_context.run\_eddfn
 --------------------------------------------
 
 .. automodule:: faknow.run.social_context.run_eddfn
@@ -20,7 +19,7 @@ faknow.run.social\_context.run\_eddfn module
    :undoc-members:
    :show-inheritance:
 
-faknow.run.social\_context.run\_gcnfn module
+faknow.run.social\_context.run\_gcnfn
 --------------------------------------------
 
 .. automodule:: faknow.run.social_context.run_gcnfn
@@ -28,7 +27,7 @@ faknow.run.social\_context.run\_gcnfn module
    :undoc-members:
    :show-inheritance:
 
-faknow.run.social\_context.run\_gnncl module
+faknow.run.social\_context.run\_gnncl
 --------------------------------------------
 
 .. automodule:: faknow.run.social_context.run_gnncl
@@ -36,7 +35,7 @@ faknow.run.social\_context.run\_gnncl module
    :undoc-members:
    :show-inheritance:
 
-faknow.run.social\_context.run\_nep module
+faknow.run.social\_context.run\_nep
 ------------------------------------------
 
 .. automodule:: faknow.run.social_context.run_nep
@@ -44,7 +43,7 @@ faknow.run.social\_context.run\_nep module
    :undoc-members:
    :show-inheritance:
 
-faknow.run.social\_context.run\_upfd module
+faknow.run.social\_context.run\_upfd
 -------------------------------------------
 
 .. automodule:: faknow.run.social_context.run_upfd
@@ -52,8 +51,7 @@ faknow.run.social\_context.run\_upfd module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.run.social_context
    :members:

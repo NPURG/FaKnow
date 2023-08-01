@@ -1,8 +1,7 @@
 faknow.model
 ====================
 
-Subpackages
------------
+
 
 .. toctree::
    :maxdepth: 4
@@ -12,10 +11,9 @@ Subpackages
    faknow.model.layers
    faknow.model.social_context
 
-Submodules
-----------
 
-faknow.model.model module
+
+faknow.model.model
 -------------------------
 
 .. automodule:: faknow.model.model
@@ -23,8 +21,7 @@ faknow.model.model module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.model
    :members:

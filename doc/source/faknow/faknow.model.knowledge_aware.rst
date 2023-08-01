@@ -1,10 +1,9 @@
 faknow.model.knowledge\_aware
 =====================================
 
-Submodules
-----------
 
-faknow.model.knowledge\_aware.finerfact module
+
+faknow.model.knowledge\_aware.finerfact
 ----------------------------------------------
 
 .. automodule:: faknow.model.knowledge_aware.finerfact
@@ -12,8 +11,7 @@ faknow.model.knowledge\_aware.finerfact module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.model.knowledge_aware
    :members:

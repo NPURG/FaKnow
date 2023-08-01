@@ -1,10 +1,9 @@
 faknow.run.knowledge\_aware
 ===================================
 
-Submodules
-----------
 
-faknow.run.knowledge\_aware.run\_finerfact module
+
+faknow.run.knowledge\_aware.run\_finerfact
 -------------------------------------------------
 
 .. automodule:: faknow.run.knowledge_aware.run_finerfact
@@ -12,8 +11,7 @@ faknow.run.knowledge\_aware.run\_finerfact module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.run.knowledge_aware
    :members:

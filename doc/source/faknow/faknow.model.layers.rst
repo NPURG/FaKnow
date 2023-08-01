@@ -1,10 +1,9 @@
 faknow.model.layers
 ===========================
 
-Submodules
-----------
 
-faknow.model.layers.dct module
+
+faknow.model.layers.dct
 ------------------------------
 
 .. automodule:: faknow.model.layers.dct
@@ -12,7 +11,7 @@ faknow.model.layers.dct module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.layers.layer module
+faknow.model.layers.layer
 --------------------------------
 
 .. automodule:: faknow.model.layers.layer
@@ -20,7 +19,7 @@ faknow.model.layers.layer module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.layers.transformer module
+faknow.model.layers.transformer
 --------------------------------------
 
 .. automodule:: faknow.model.layers.transformer
@@ -28,8 +27,7 @@ faknow.model.layers.transformer module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.model.layers
    :members:

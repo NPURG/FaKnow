@@ -1,8 +1,7 @@
 faknow.run
 ==================
 
-Subpackages
------------
+
 
 .. toctree::
    :maxdepth: 4
@@ -11,10 +10,9 @@ Subpackages
    faknow.run.knowledge_aware
    faknow.run.social_context
 
-Submodules
-----------
 
-faknow.run.run module
+
+faknow.run.run
 ---------------------
 
 .. automodule:: faknow.run.run
@@ -22,8 +20,7 @@ faknow.run.run module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.run
    :members:

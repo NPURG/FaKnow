@@ -1,10 +1,9 @@
 faknow.train
 ====================
 
-Submodules
-----------
 
-faknow.train.base\_gnn\_trainer module
+
+faknow.train.base\_gnn\_trainer
 --------------------------------------
 
 .. automodule:: faknow.train.base_gnn_trainer
@@ -12,7 +11,7 @@ faknow.train.base\_gnn\_trainer module
    :undoc-members:
    :show-inheritance:
 
-faknow.train.dense\_gnn\_trainer module
+faknow.train.dense\_gnn\_trainer
 ---------------------------------------
 
 .. automodule:: faknow.train.dense_gnn_trainer
@@ -20,7 +19,7 @@ faknow.train.dense\_gnn\_trainer module
    :undoc-members:
    :show-inheritance:
 
-faknow.train.pgd\_trainer module
+faknow.train.pgd\_trainer
 --------------------------------
 
 .. automodule:: faknow.train.pgd_trainer
@@ -28,7 +27,7 @@ faknow.train.pgd\_trainer module
    :undoc-members:
    :show-inheritance:
 
-faknow.train.trainer module
+faknow.train.trainer
 ---------------------------
 
 .. automodule:: faknow.train.trainer
@@ -36,7 +35,7 @@ faknow.train.trainer module
    :undoc-members:
    :show-inheritance:
 
-faknow.train.trainer\_gpu module
+faknow.train.trainer\_gpu
 --------------------------------
 
 .. automodule:: faknow.train.trainer_gpu
@@ -44,8 +43,7 @@ faknow.train.trainer\_gpu module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.train
    :members:

@@ -1,8 +1,7 @@
 faknow.config
 =====================
 
-Module contents
----------------
+
 
 .. automodule:: faknow.config
    :members:

@@ -17,14 +17,14 @@ Welcome to FaKnow's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: models:
+   :caption: User Guide:
 
    models/multi_modal
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: run:
+   :caption: Developer Guide:
 
    run/multimodal
 
