@@ -2,7 +2,7 @@ multimodal
 ==================
 
 
-multimodal.run\_eann module
+multimodal.run\_eann
 ---------------------------
 
 .. automodule:: multimodal.run_eann
@@ -10,7 +10,7 @@ multimodal.run\_eann module
    :undoc-members:
    :show-inheritance:
 
-multimodal.run\_mcan module
+multimodal.run\_mcan
 ---------------------------
 
 .. automodule:: multimodal.run_mcan
@@ -18,7 +18,7 @@ multimodal.run\_mcan module
    :undoc-members:
    :show-inheritance:
 
-multimodal.run\_mfan module
+multimodal.run\_mfan
 ---------------------------
 
 .. automodule:: multimodal.run_mfan
@@ -26,7 +26,7 @@ multimodal.run\_mfan module
    :undoc-members:
    :show-inheritance:
 
-multimodal.run\_safe module
+multimodal.run\_safe
 ---------------------------
 
 .. automodule:: multimodal.run_safe
@@ -34,7 +34,7 @@ multimodal.run\_safe module
    :undoc-members:
    :show-inheritance:
 
-multimodal.run\_spotfake module
+multimodal.run\_spotfake
 -------------------------------
 
 .. automodule:: multimodal.run_spotfake

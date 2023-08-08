@@ -1,10 +1,9 @@
 faknow.model.social\_context
 ====================================
 
-Submodules
-----------
 
-faknow.model.social\_context.base\_gnn module
+
+faknow.model.social\_context.base\_gnn
 ---------------------------------------------
 
 .. automodule:: faknow.model.social_context.base_gnn
@@ -12,7 +11,7 @@ faknow.model.social\_context.base\_gnn module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.bigcn module
+faknow.model.social\_context.bigcn
 -----------------------------------------
 
 .. automodule:: faknow.model.social_context.bigcn
@@ -20,7 +19,7 @@ faknow.model.social\_context.bigcn module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.eddfn module
+faknow.model.social\_context.eddfn
 -----------------------------------------
 
 .. automodule:: faknow.model.social_context.eddfn
@@ -28,7 +27,7 @@ faknow.model.social\_context.eddfn module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.gcnfn module
+faknow.model.social\_context.gcnfn
 -----------------------------------------
 
 .. automodule:: faknow.model.social_context.gcnfn
@@ -36,7 +35,7 @@ faknow.model.social\_context.gcnfn module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.gnncl module
+faknow.model.social\_context.gnncl
 -----------------------------------------
 
 .. automodule:: faknow.model.social_context.gnncl
@@ -44,7 +43,7 @@ faknow.model.social\_context.gnncl module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.nep module
+faknow.model.social\_context.nep
 ---------------------------------------
 
 .. automodule:: faknow.model.social_context.nep
@@ -52,7 +51,7 @@ faknow.model.social\_context.nep module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.upfd module
+faknow.model.social\_context.upfd
 ----------------------------------------
 
 .. automodule:: faknow.model.social_context.upfd
@@ -60,8 +59,7 @@ faknow.model.social\_context.upfd module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.model.social_context
    :members:

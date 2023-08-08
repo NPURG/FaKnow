@@ -1,10 +1,9 @@
 faknow.model.content\_based.multi\_modal
 ================================================
 
-Submodules
-----------
 
-faknow.model.content\_based.multi\_modal.eann module
+
+faknow.model.content\_based.multi\_modal.eann
 ----------------------------------------------------
 
 .. automodule:: faknow.model.content_based.multi_modal.eann
@@ -12,7 +11,7 @@ faknow.model.content\_based.multi\_modal.eann module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.content\_based.multi\_modal.mcan module
+faknow.model.content\_based.multi\_modal.mcan
 ----------------------------------------------------
 
 .. automodule:: faknow.model.content_based.multi_modal.mcan
@@ -20,7 +19,7 @@ faknow.model.content\_based.multi\_modal.mcan module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.content\_based.multi\_modal.mfan module
+faknow.model.content\_based.multi\_modal.mfan
 ----------------------------------------------------
 
 .. automodule:: faknow.model.content_based.multi_modal.mfan
@@ -28,7 +27,7 @@ faknow.model.content\_based.multi\_modal.mfan module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.content\_based.multi\_modal.safe module
+faknow.model.content\_based.multi\_modal.safe
 ----------------------------------------------------
 
 .. automodule:: faknow.model.content_based.multi_modal.safe
@@ -36,7 +35,7 @@ faknow.model.content\_based.multi\_modal.safe module
    :undoc-members:
    :show-inheritance:
 
-faknow.model.content\_based.multi\_modal.spotfake module
+faknow.model.content\_based.multi\_modal.spotfake
 --------------------------------------------------------
 
 .. automodule:: faknow.model.content_based.multi_modal.spotfake
@@ -44,8 +43,7 @@ faknow.model.content\_based.multi\_modal.spotfake module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.model.content_based.multi_modal
    :members:

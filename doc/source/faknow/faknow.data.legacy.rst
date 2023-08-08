@@ -1,10 +1,9 @@
 faknow.data.legacy
 ==========================
 
-Submodules
-----------
 
-faknow.data.legacy.multi\_modal\_dataset module
+
+faknow.data.legacy.multi\_modal\_dataset
 -----------------------------------------------
 
 .. automodule:: faknow.data.legacy.multi_modal_dataset
@@ -12,7 +11,7 @@ faknow.data.legacy.multi\_modal\_dataset module
    :undoc-members:
    :show-inheritance:
 
-faknow.data.legacy.text\_dataset module
+faknow.data.legacy.text\_dataset
 ---------------------------------------
 
 .. automodule:: faknow.data.legacy.text_dataset
@@ -20,8 +19,7 @@ faknow.data.legacy.text\_dataset module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.data.legacy
    :members:

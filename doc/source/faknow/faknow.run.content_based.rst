@@ -1,18 +1,16 @@
 faknow.run.content\_based
 =================================
 
-Subpackages
------------
+
 
 .. toctree::
    :maxdepth: 4
 
    faknow.run.content_based.multimodal
 
-Submodules
-----------
 
-faknow.run.content\_based.run\_mdfend module
+
+faknow.run.content\_based.run\_mdfend
 --------------------------------------------
 
 .. automodule:: faknow.run.content_based.run_mdfend
@@ -20,7 +18,7 @@ faknow.run.content\_based.run\_mdfend module
    :undoc-members:
    :show-inheritance:
 
-faknow.run.content\_based.run\_textcnn module
+faknow.run.content\_based.run\_textcnn
 ---------------------------------------------
 
 .. automodule:: faknow.run.content_based.run_textcnn
@@ -28,8 +26,7 @@ faknow.run.content\_based.run\_textcnn module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.run.content_based
    :members:

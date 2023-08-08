@@ -1,10 +1,9 @@
 faknow.data.dataset
 ===========================
 
-Submodules
-----------
 
-faknow.data.dataset.dataset module
+
+faknow.data.dataset.dataset
 ----------------------------------
 
 .. automodule:: faknow.data.dataset.dataset
@@ -12,7 +11,7 @@ faknow.data.dataset.dataset module
    :undoc-members:
    :show-inheritance:
 
-faknow.data.dataset.finerfact\_dataset module
+faknow.data.dataset.finerfact\_dataset
 ---------------------------------------------
 
 .. automodule:: faknow.data.dataset.finerfact_dataset
@@ -20,7 +19,7 @@ faknow.data.dataset.finerfact\_dataset module
    :undoc-members:
    :show-inheritance:
 
-faknow.data.dataset.multi\_modal module
+faknow.data.dataset.multi\_modal
 ---------------------------------------
 
 .. automodule:: faknow.data.dataset.multi_modal
@@ -28,7 +27,7 @@ faknow.data.dataset.multi\_modal module
    :undoc-members:
    :show-inheritance:
 
-faknow.data.dataset.nep\_dataset module
+faknow.data.dataset.nep\_dataset
 ---------------------------------------
 
 .. automodule:: faknow.data.dataset.nep_dataset
@@ -36,7 +35,7 @@ faknow.data.dataset.nep\_dataset module
    :undoc-members:
    :show-inheritance:
 
-faknow.data.dataset.safe\_dataset module
+faknow.data.dataset.safe\_dataset
 ----------------------------------------
 
 .. automodule:: faknow.data.dataset.safe_dataset
@@ -44,7 +43,7 @@ faknow.data.dataset.safe\_dataset module
    :undoc-members:
    :show-inheritance:
 
-faknow.data.dataset.spotfake\_dataset module
+faknow.data.dataset.spotfake\_dataset
 --------------------------------------------
 
 .. automodule:: faknow.data.dataset.spotfake_dataset
@@ -52,7 +51,7 @@ faknow.data.dataset.spotfake\_dataset module
    :undoc-members:
    :show-inheritance:
 
-faknow.data.dataset.text module
+faknow.data.dataset.text
 -------------------------------
 
 .. automodule:: faknow.data.dataset.text
@@ -60,7 +59,7 @@ faknow.data.dataset.text module
    :undoc-members:
    :show-inheritance:
 
-faknow.data.dataset.utils module
+faknow.data.dataset.utils
 --------------------------------
 
 .. automodule:: faknow.data.dataset.utils
@@ -68,8 +67,7 @@ faknow.data.dataset.utils module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.data.dataset
    :members:

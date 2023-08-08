@@ -1,10 +1,9 @@
 faknow.run.content\_based.multimodal
 ============================================
 
-Submodules
-----------
 
-faknow.run.content\_based.multimodal.run\_eann module
+
+faknow.run.content\_based.multimodal.run\_eann
 -----------------------------------------------------
 
 .. automodule:: faknow.run.content_based.multimodal.run_eann
@@ -12,7 +11,7 @@ faknow.run.content\_based.multimodal.run\_eann module
    :undoc-members:
    :show-inheritance:
 
-faknow.run.content\_based.multimodal.run\_mcan module
+faknow.run.content\_based.multimodal.run\_mcan
 -----------------------------------------------------
 
 .. automodule:: faknow.run.content_based.multimodal.run_mcan
@@ -20,7 +19,7 @@ faknow.run.content\_based.multimodal.run\_mcan module
    :undoc-members:
    :show-inheritance:
 
-faknow.run.content\_based.multimodal.run\_mfan module
+faknow.run.content\_based.multimodal.run\_mfan
 -----------------------------------------------------
 
 .. automodule:: faknow.run.content_based.multimodal.run_mfan
@@ -28,7 +27,7 @@ faknow.run.content\_based.multimodal.run\_mfan module
    :undoc-members:
    :show-inheritance:
 
-faknow.run.content\_based.multimodal.run\_safe module
+faknow.run.content\_based.multimodal.run\_safe
 -----------------------------------------------------
 
 .. automodule:: faknow.run.content_based.multimodal.run_safe
@@ -36,7 +35,7 @@ faknow.run.content\_based.multimodal.run\_safe module
    :undoc-members:
    :show-inheritance:
 
-faknow.run.content\_based.multimodal.run\_spotfake module
+faknow.run.content\_based.multimodal.run\_spotfake
 ---------------------------------------------------------
 
 .. automodule:: faknow.run.content_based.multimodal.run_spotfake
@@ -44,8 +43,7 @@ faknow.run.content\_based.multimodal.run\_spotfake module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.run.content_based.multimodal
    :members:
