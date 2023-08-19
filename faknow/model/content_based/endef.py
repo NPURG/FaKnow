@@ -7,7 +7,6 @@ from torch import nn
 from transformers import BertModel
 from faknow.model.content_based.mdfend import _MLP
 
-from faknow.model.layers.layer import TextCNNLayer, CNNExtractor
 from faknow.model.model import AbstractModel
 
 class CNNExtractor(nn.Module):
