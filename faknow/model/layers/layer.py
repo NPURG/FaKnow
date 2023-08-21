@@ -8,14 +8,25 @@ from torch.autograd import Function
 
 class TextCNNLayer(nn.Module):
     """
-    It's not a full TextCNN model. Only convolution and max pooling are including here
-    but without an embedding layer or fully connected layer. Thus, it should be a part of your own TextCNN model
+    It's not a whole TextCNN model. Only convolution and max pooling layers are
+    included here but without an embedding layer or fully connected layer.
+    Thus, it should be a part of your own TextCNN model.
     """
     def __init__(self,
                  embedding_dim: int,
                  filter_num: int,
                  filter_sizes: List[int],
                  activate_fn: Optional[Callable] = None):
+        """
+        Args:
+            embedding_dim (int): the dimension of word embedding
+            filter_num (int): the number of filters,
+                which is also the output channel
+            filter_sizes (List[int]): the size of filters
+            activate_fn (Callable): the activation function of
+                convolution layer. Default=None
+        """
+
         super().__init__()
         # in_channel=1, out_channel=filter_num
         self.convs = nn.ModuleList([
@@ -24,6 +35,16 @@ class TextCNNLayer(nn.Module):
         self.activate_fn = activate_fn
 
     def forward(self, embedded_text: torch.Tensor):
+        """
+        Args:
+            embedded_text (torch.Tensor): the embedded text,
+                shape=(batch_size, max_len, embedding_dim)
+
+        Returns:
+            torch.Tensor: the output of convolution and max pooling layer,
+                shape (batch_size, filter_num * len(filter_sizes))
+        """
+
         # before unsqueeze: batch_size * max_len * embedding_dim
         embedded_text = embedded_text.unsqueeze(1)
 
@@ -38,8 +59,8 @@ class TextCNNLayer(nn.Module):
                 for conv in self.convs
             ]
 
+        # conv.shape[2] = (max_len - k + 1)
         # before squeeze: batch_size * filter_num * 1
-        # conv.shape[2] = (max_len-k+1)
         pool_features = [
             torch.max_pool1d(conv, conv.shape[2]).squeeze(2)
             for conv in conv_features
@@ -51,25 +72,60 @@ class TextCNNLayer(nn.Module):
 
 
 class GradientReverseLayer(Function):
+    """
+    gradient reverse layer,
+    which is used to reverse the gradient in backward propagation,
+    see https://pytorch.org/docs/stable/autograd.html#torch.autograd.Function
+    """
     @staticmethod
     def forward(ctx, x, lambd):
+        """
+        Args:
+            ctx (torch.autograd.function.Function): the context
+            x (torch.Tensor): the input tensor
+            lambd (float): the lambda value
+
+        Returns:
+            torch.Tensor: the input tensor x
+        """
         ctx.lambd = lambd
         return x.view_as(x)
 
     @staticmethod
     def backward(ctx, grad_output):
-        # 只需要对输入的x返回loss，其他的返回None
-        # 详见 https://zhuanlan.zhihu.com/p/263827804
+        """
+        reverse the gradient in backward propagation
+        Args:
+            ctx (torch.autograd.function.Function): the context
+            grad_output (torch.Tensor): the gradient of output
+
+        Returns:
+            tuple:
+                torch.Tensor: the reversed gradient
+                None: None
+        """
         return grad_output * -ctx.lambd, None
 
 
 class SignedAttention(nn.Module):
+    """
+    signed attention layer for signed graph
+    """
     def __init__(self,
                  in_features: int,
                  out_features: int,
                  dropout: float,
                  alpha: float,
                  concat=True):
+        """
+        Args:
+            in_features (int): the size of input features
+            out_features (int): the size of output features
+            dropout (float): the dropout rate
+            alpha (float): the alpha value of LeakyReLU
+            concat (bool): whether to concatenate the output features or not
+        """
+
         super(SignedAttention, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
@@ -90,6 +146,14 @@ class SignedAttention(nn.Module):
         nn.init.xavier_uniform_(self.fc_W.data, gain=1.414)
 
     def forward(self, x: torch.Tensor, adj: torch.Tensor):
+        """
+        Args:
+            x (torch.Tensor): the input features
+            adj (torch.Tensor): the adjacency matrix
+
+        Returns:
+            torch.Tensor: the output features
+        """
 
         h = torch.mm(x, self.W)
         Wh1 = torch.mm(h, self.a[:self.out_features, :])
@@ -121,6 +185,9 @@ class SignedAttention(nn.Module):
 
 
 class SignedGAT(nn.Module):
+    """
+    signed graph attention network
+    """
     def __init__(self,
                  node_vectors: torch.Tensor,
                  cos_sim_matrix: torch.Tensor,
@@ -131,10 +198,25 @@ class SignedGAT(nn.Module):
                  out_features=300,
                  dropout=0,
                  alpha=0.3):
+        """
+        Args:
+            node_vectors (torch.Tensor): the node vectors
+            cos_sim_matrix (torch.Tensor): the cosine similarity matrix
+            num_features (int): the size of input features
+            node_num (int): the number of nodes
+            adj_matrix (torch.Tensor): the adjacency matrix
+            head_num (int): the number of attention heads
+            out_features (int): the size of output features
+            dropout (float): the dropout rate
+            alpha (float): the alpha value of LeakyReLU
+                in signed attention layer
+        """
+
         super(SignedGAT, self).__init__()
         self.dropout = dropout
         self.node_num = node_num
-        self.node_embedding = nn.Embedding.from_pretrained(node_vectors, padding_idx=0)
+        self.node_embedding = nn.Embedding.from_pretrained(node_vectors,
+                                                           padding_idx=0)
         self.original_adj = adj_matrix
         self.potential_adj = torch.where(cos_sim_matrix > 0.5,
                                          torch.ones_like(cos_sim_matrix),
@@ -153,7 +235,6 @@ class SignedGAT(nn.Module):
         for i, attention in enumerate(self.attentions):
             self.add_module('attention_{}'.format(i), attention)
 
-        # multi head attention
         self.out_att = SignedAttention(num_features * head_num,
                                        out_features,
                                        dropout=dropout,
@@ -161,6 +242,14 @@ class SignedGAT(nn.Module):
                                        concat=False)
 
     def forward(self, post_id: torch.Tensor):
+        """
+        Args:
+            post_id (torch.Tensor): the post id
+
+        Returns:
+            torch.Tensor: the output features
+        """
+
         embedding = self.node_embedding(torch.arange(
             0, self.node_num).long()).to(torch.float32)
         x = F.dropout(embedding, self.dropout, training=self.training)
