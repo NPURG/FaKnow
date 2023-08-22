@@ -18,7 +18,9 @@ class TokenizerENDEF:
     """Tokenizer for ENDEF"""
     def __init__(self, max_len=170, bert="hfl/chinese-roberta-wwm-ext"):
         """
-
+        Args:
+            max_len(int): max length of input text, default=170
+            bert(str): bert model name, default="hfl/chinese-roberta-wwm-ext"
         """
         self.max_len = max_len
         self.tokenizer = BertTokenizer.from_pretrained(bert)
@@ -56,6 +58,7 @@ class TokenizerENDEF:
         }
 
 def run_endef(train_path: str,
+              base_model=MDFEND('hfl/chinese-roberta-wwm-ext',domain_num=8),
                bert='hfl/chinese-roberta-wwm-ext',
                max_len=170,
                domain_num=8,
@@ -69,6 +72,27 @@ def run_endef(train_path: str,
                validate_path: str = None,
                test_path: str = None,
                device='cpu'):
+    """
+        run ENDEF, including training, validation and testing.
+    If validate_path and test_path are None, only training is performed.
+
+    Args:
+        train_path (str): path of training data
+        base_model(AbstractModel): the base model of endef. Default=MDFEND
+        bert (str): bert model name, default="hfl/chinese-roberta-wwm-ext"
+        max_len (int): max length of input text, default=170
+        domain_num (int): number of domains, default=9
+        batch_size (int): batch size, default=64
+        num_epochs (int): number of epochs, default=50
+        lr (float): learning rate, default=0.0005
+        weight_decay (float): weight decay, default=5e-5
+        step_size (int): step size of learning rate scheduler, default=100
+        gamma (float): gamma of learning rate scheduler, default=0.98
+        metrics (List): evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default=None
+        validate_path (str): path of validation data, default=None
+        test_path (str): path of testing data, default=None
+        device (str): device to run model, default='cpu'
+    """
 
     tokenizer = TokenizerENDEF(max_len, bert)
     train_set = TextDataset(train_path, ['text', 'entity'], tokenizer)
@@ -80,7 +104,7 @@ def run_endef(train_path: str,
     else:
         val_loader = None
 
-    model = ENDEF(bert,base_model=MDFEND(bert, domain_num))
+    model = ENDEF(bert,base_model=base_model)
     optimizer = torch.optim.Adam(params=model.parameters(),
                                  lr=lr,
                                  weight_decay=weight_decay)
@@ -102,7 +126,7 @@ def run_endef(train_path: str,
 
 def run_endef_from_yaml(path: str):
     """
-    run MDFENDENDEF from yaml config file
+    run ENDEF from yaml config file
 
     Args:
         path(str): yaml config file path
@@ -111,4 +135,4 @@ def run_endef_from_yaml(path: str):
 
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_mdfendendef(_config)
+        run_endef(_config)
