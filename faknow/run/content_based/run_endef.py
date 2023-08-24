@@ -74,7 +74,7 @@ def run_endef(train_path: str,
                device='cpu'):
     """
         run ENDEF, including training, validation and testing.
-    If validate_path and test_path are None, only training is performed.
+        If validate_path and test_path are None, only training is performed.
 
     Args:
         train_path (str): path of training data
