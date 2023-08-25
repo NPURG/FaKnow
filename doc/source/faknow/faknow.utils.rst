@@ -1,10 +1,9 @@
 faknow.utils
 ====================
 
-Submodules
-----------
 
-faknow.utils.pgd module
+
+faknow.utils.pgd
 -----------------------
 
 .. automodule:: faknow.utils.pgd
@@ -12,7 +11,7 @@ faknow.utils.pgd module
    :undoc-members:
    :show-inheritance:
 
-faknow.utils.sif\_embedding module
+faknow.utils.sif\_embedding
 ----------------------------------
 
 .. automodule:: faknow.utils.sif_embedding
@@ -20,7 +19,7 @@ faknow.utils.sif\_embedding module
    :undoc-members:
    :show-inheritance:
 
-faknow.utils.util module
+faknow.utils.util
 ------------------------
 
 .. automodule:: faknow.utils.util
@@ -28,8 +27,7 @@ faknow.utils.util module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.utils
    :members:

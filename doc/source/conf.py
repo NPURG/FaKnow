@@ -26,6 +26,10 @@ source_parsers = {
 
 source_suffix = ['.rst', '.md']
 
+autodoc_default_options = {
+    'special-members': '__init__',
+}
+
 extensions = [
     'recommonmark',
     'sphinx_markdown_tables',

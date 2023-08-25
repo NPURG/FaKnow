@@ -2,7 +2,7 @@ multi\_modal
 ====================
 
 
-multi\_modal.eann module
+multi\_modal.eann
 ------------------------
 
 .. automodule:: multi_modal.eann
@@ -10,7 +10,7 @@ multi\_modal.eann module
    :undoc-members:
    :show-inheritance:
 
-multi\_modal.mcan module
+multi\_modal.mcan
 ------------------------
 
 .. automodule:: multi_modal.mcan
@@ -18,7 +18,7 @@ multi\_modal.mcan module
    :undoc-members:
    :show-inheritance:
 
-multi\_modal.mfan module
+multi\_modal.mfan
 ------------------------
 
 .. automodule:: multi_modal.mfan
@@ -26,7 +26,7 @@ multi\_modal.mfan module
    :undoc-members:
    :show-inheritance:
 
-multi\_modal.safe module
+multi\_modal.safe
 ------------------------
 
 .. automodule:: multi_modal.safe
@@ -34,7 +34,7 @@ multi\_modal.safe module
    :undoc-members:
    :show-inheritance:
 
-multi\_modal.spotfake module
+multi\_modal.spotfake
 ----------------------------
 
 .. automodule:: multi_modal.spotfake

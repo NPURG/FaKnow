@@ -1,8 +1,7 @@
 faknow
 ==============
 
-Subpackages
------------
+
 
 .. toctree::
    :maxdepth: 4
@@ -15,8 +14,7 @@ Subpackages
    faknow.train
    faknow.utils
 
-Module contents
----------------
+
 
 .. automodule:: faknow
    :members:

@@ -1,8 +1,7 @@
 faknow.data
 ===================
 
-Subpackages
------------
+
 
 .. toctree::
    :maxdepth: 4
@@ -12,8 +11,7 @@ Subpackages
    faknow.data.legacy
    faknow.data.process
 
-Module contents
----------------
+
 
 .. automodule:: faknow.data
    :members:

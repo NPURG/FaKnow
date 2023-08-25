@@ -1,10 +1,9 @@
-from typing import Optional
+from typing import Optional, Union, List
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-
 """
 layers for transformer, including:
 Feed-Forward Networks
@@ -16,7 +15,18 @@ Encoder Layer
 
 
 def sequence_mask(x: Tensor, valid_len: Optional[Tensor] = None, value=0.):
-    """Mask irrelevant entries in sequences."""
+    """
+    Mask irrelevant entries in sequences.
+
+    Args:
+        x (Tensor): shape=(batch_size, num_steps, num_hiddens)
+        valid_len (Tensor): shape=(batch_size,), default=None
+        value (float): value to be substituted in masked entries, default=0.
+
+    Returns:
+        Tensor: masked input x, shape=(batch_size, num_steps)
+    """
+
     max_len = x.size(1)
     mask = torch.arange(max_len, dtype=torch.float32,
                         device=x.device)[None, :] < valid_len[:, None]
@@ -25,7 +35,17 @@ def sequence_mask(x: Tensor, valid_len: Optional[Tensor] = None, value=0.):
 
 
 def masked_softmax(x: Tensor, valid_lens: Optional[Tensor] = None):
-    """Perform softmax operation by masking elements on the last axis."""
+    """
+    Perform softmax operation by masking elements on the last axis.
+
+    Args:
+        x (Tensor): shape=(batch_size, num_steps, num_hiddens)
+        valid_lens (Tensor): shape=(batch_size,), default=None
+
+    Returns:
+        Tensor: shape=(batch_size, num_steps, num_hiddens)
+    """
+
     # x: 3D tensor, valid_lens: 1D or 2D tensor
     if valid_lens is None:
         return nn.functional.softmax(x, dim=-1)
@@ -41,15 +61,17 @@ def masked_softmax(x: Tensor, valid_lens: Optional[Tensor] = None):
         return nn.functional.softmax(x.reshape(shape), dim=-1)
 
 
-def transpose_qkv(x, num_heads):
+def transpose_qkv(x: Tensor, num_heads: int):
     """
     Transposition for parallel computation of multiple attention heads.
+
     Args:
-        x: (batch_size, num, num_hiddens), num_hiddens = head_num * out_size
-        num_heads: number of attention heads
+        x (Tensor): shape=(batch_size, num, num_hiddens),
+            where num_hiddens = head_num * out_size
+        num_heads (int): number of attention heads
 
     Returns:
-        (batch_size * head_num, num, num_hiddens/head_num)
+        Tensor: shape=(batch_size * head_num, num, num_hiddens/head_num)
     """
 
     # after:
@@ -63,15 +85,17 @@ def transpose_qkv(x, num_heads):
     return x.reshape(-1, x.shape[2], x.shape[3])
 
 
-def transpose_output(x, num_heads):
+def transpose_output(x: Tensor, num_heads: int):
     """
     Reverse the operation of transpose_qkv.
+
     Args:
-        x: (batch_size * head_num, num, num_hiddens/head_num)
-        num_heads: number of attention heads
+        x (Tensor): shape=(batch_size * head_num, num, num_hiddens/head_num)
+        num_heads (int): number of attention heads
 
     Returns:
-        (batch_size, num, num_hiddens), num_hiddens = head_num * out_size
+        Tensor: shape=(batch_size, num, num_hiddens),
+            where num_hiddens = head_num * out_size
     """
     x = x.reshape(-1, num_heads, x.shape[1], x.shape[2])
     x = x.permute(0, 2, 1, 3)
@@ -79,11 +103,24 @@ def transpose_output(x, num_heads):
 
 
 class FFN(nn.Module):
-    def __init__(self, input_size: int,
+    """
+    Feed-Forward Networks
+    """
+    def __init__(self,
+                 input_size: int,
                  hidden_size: int,
                  output_size: Optional[int] = None,
                  dropout=0.,
                  activation=F.relu):
+        """
+        Args:
+            input_size(int): input dimension
+            hidden_size(int): hidden layer dimension
+            output_size(int): output dimension,
+                if None, output_size=input_size, default=None
+            dropout(float): dropout rate, default=0.
+            activation(Callable): activation function, default=F.relu
+        """
         super(FFN, self).__init__()
 
         if output_size is None:
@@ -100,7 +137,17 @@ class FFN(nn.Module):
 
 
 class AddNorm(nn.Module):
-    def __init__(self, normalized_shape: int, dropout=0.):
+    """
+    residual add and layernorm
+    """
+    def __init__(self,
+                 normalized_shape: Union[int, List[int], torch.Size],
+                 dropout=0.):
+        """
+        Args:
+            normalized_shape (Union[int, List[int], torch.Size]): input shape from an expected input of size
+            dropout (float): dropout rate, default=0.
+        """
         super(AddNorm, self).__init__()
         self.dropout = nn.Dropout(dropout)
         self.ln = nn.LayerNorm(normalized_shape)
@@ -108,14 +155,26 @@ class AddNorm(nn.Module):
     def forward(self, x: Tensor, y: Tensor):
         """
         Args:
-            x: residual
-            y: output of sublayer
+            x (Tensor): residual
+            y (Tensor): output of sublayer
+
+        Returns:
+            Tensor: layernorm(x + dropout(y))
         """
         return self.ln(self.dropout(y) + x)
 
 
 class ScaledDotProductAttention(nn.Module):
+    """
+    Scaled Dot Product Attention
+    """
     def __init__(self, dropout=0., epsilon=0.):
+        """
+        Args:
+            dropout (float): dropout rate, default=0.
+            epsilon (float): small constant for numerical stability, default=0.
+        """
+
         super(ScaledDotProductAttention, self).__init__()
         self.epsilon = epsilon
         self.dropout = nn.Dropout(dropout)
@@ -128,22 +187,25 @@ class ScaledDotProductAttention(nn.Module):
                 valid_lens: Optional[Tensor] = None):
         """
         Args:
-            queries: (batch_size, q_num, d)
-            keys: (batch_size, k-v_num, d)
-            values: (batch_size, k-v_num, v_dim)
-            valid_lens: (batch_size,) or (batch_size, q_num)
+            queries (Tensor): shape=(batch_size, q_num, d)
+            keys (Tensor): shape=(batch_size, k-v_num, d)
+            values (Tensor): shape=(batch_size, k-v_num, v_dim)
+            valid_lens (Tensor): shape=(batch_size,) or (batch_size, q_num), default=None
 
         Returns:
-            attention_values: (batch_size, q_num, v_dim)
+            Tensor: attention_values, shape=(batch_size, q_num, v_dim)
         """
         d = queries.shape[-1]
         scores = torch.bmm(queries, keys.transpose(
-            1, 2)) / (d ** 0.5 + self.epsilon)
+            1, 2)) / (d**0.5 + self.epsilon)
         self.attention_weights = masked_softmax(scores, valid_lens)
         return torch.bmm(self.dropout(self.attention_weights), values)
 
 
 class MultiHeadAttention(nn.Module):
+    """
+    Multi-head Attention with ScaledDotProductAttention
+    """
     def __init__(self,
                  input_size: int,
                  k_out_size: int,
@@ -155,6 +217,24 @@ class MultiHeadAttention(nn.Module):
                  v_in_size: Optional[int] = None,
                  dropout=0.,
                  bias=False):
+        """
+        Args:
+            input_size (int): input dimension
+            k_out_size (int): output dimension of key
+            v_out_size (int): output dimension of value
+            head_num (int): number of attention heads
+            out_size (int): output dimension,
+                if None, out_size=input_size, default=None
+            q_in_size (int): input dimension of query,
+                if None, q_in_size=input_size, default=None
+            k_in_size (int): input dimension of key,
+                if None, k_in_size=input_size, default=None
+            v_in_size (int): input dimension of value,
+                if None, v_in_size=input_size, default=None
+            dropout (float): dropout rate, default=0.
+            bias (bool): whether to use bias in Linear layers, default=False
+        """
+
         super(MultiHeadAttention, self).__init__()
         self.head_num = head_num
         self.q_in_size = q_in_size if q_in_size is not None else input_size
@@ -166,18 +246,24 @@ class MultiHeadAttention(nn.Module):
         self.W_q = nn.Linear(self.q_in_size, k_out_size * head_num, bias=bias)
         self.W_k = nn.Linear(self.k_in_size, k_out_size * head_num, bias=bias)
         self.W_v = nn.Linear(self.v_in_size, v_out_size * head_num, bias=bias)
-        self.W_o = nn.Linear(v_out_size * head_num, self.out_size * head_num, bias=bias)
+        self.W_o = nn.Linear(v_out_size * head_num,
+                             self.out_size * head_num,
+                             bias=bias)
 
-    def forward(self, queries, keys, values, valid_lens=None):
+    def forward(self,
+                queries: Tensor,
+                keys: Tensor,
+                values: Tensor,
+                valid_lens: Optional[Tensor] = None):
         """
         Args:
-            queries: (batch_size, q_num, d)
-            keys: (batch_size, k-v_num, d)
-            values: (batch_size, k-v_num, v-dim)
-            valid_lens: (batch_size,) or (batch_size, q_num)
+            queries (Tensor): shape=(batch_size, q_num, d)
+            keys (Tensor): shape=(batch_size, k-v_num, d)
+            values (Tensor): shape=(batch_size, k-v_num, v-dim)
+            valid_lens (Tensor): shape=(batch_size,) or (batch_size, q_num)
 
         Returns:
-            multi-head output: (batch_size, q_num, out_size * head_num)
+            Tensor: multi-head output, shape=(batch_size, q_num, out_size * head_num)
         """
 
         # After transpose:
@@ -203,6 +289,10 @@ class MultiHeadAttention(nn.Module):
 
 
 class EncoderLayer(nn.Module):
+    """
+    Encoder Layer in Transformer
+    """
+
     def __init__(self,
                  input_size: int,
                  ffn_hidden_size: int,
@@ -211,6 +301,17 @@ class EncoderLayer(nn.Module):
                  v_out_size: int,
                  dropout=0.,
                  bias=False):
+        """
+        Args:
+            input_size (int): input dimension
+            ffn_hidden_size (int): hidden layer dimension of FFN
+            head_num (int): number of attention heads
+            k_out_size (int): output dimension of key
+            v_out_size (int): output dimension of value
+            dropout (float): dropout rate, default=0.
+            bias (bool): whether to use bias in Linear layers, default=False
+        """
+
         super(EncoderLayer, self).__init__()
         self.attention = MultiHeadAttention(input_size,
                                             k_out_size,
@@ -219,12 +320,18 @@ class EncoderLayer(nn.Module):
                                             dropout=dropout,
                                             bias=bias)
         self.addnorm1 = AddNorm(input_size, dropout)
-        self.ffn = FFN(input_size,
-                       ffn_hidden_size,
-                       input_size,
-                       dropout)
+        self.ffn = FFN(input_size, ffn_hidden_size, input_size, dropout)
         self.addnorm2 = AddNorm(input_size, dropout)
 
-    def forward(self, x, valid_lens=None):
+    def forward(self, x: Tensor, valid_lens: Optional[Tensor] = None):
+        """
+        Args:
+            x (Tensor): shape=(batch_size, num_steps, input_size)
+            valid_lens (Tensor): shape=(batch_size,), default=None
+
+        Returns:
+            Tensor: shape=(batch_size,) or (batch_size, q_num)
+        """
+
         y = self.addnorm1(x, self.attention(x, x, x, valid_lens))
         return self.addnorm2(y, self.ffn(y))

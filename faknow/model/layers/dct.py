@@ -1,24 +1,17 @@
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 import torch
 from torch import nn
+"""
+layers for Discrete Cosine Transform in MCAN
+"""
 
 
-def conv1d_bn_relu(in_channels, out_channels, kernel_size, stride=1, padding=0):
-    return nn.Sequential(
-        nn.Conv1d(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=padding,
-        ),
-        nn.BatchNorm1d(out_channels),
-        nn.ReLU(inplace=True),
-    )
-
-
-def conv2d_bn_relu(in_channels, out_channels, kernel_size, stride=1, padding: Union[str, int, Tuple[int, int]] = 0):
+def conv2d_bn_relu(in_channels,
+                   out_channels,
+                   kernel_size,
+                   stride=1,
+                   padding: Union[str, int, Tuple[int, int]] = 0):
     return nn.Sequential(
         nn.Conv2d(
             in_channels=in_channels,
@@ -62,12 +55,12 @@ class DctStem(nn.Module):
 
 class DctInceptionBlock(nn.Module):
     def __init__(
-            self,
-            in_channel=128,
-            branch1_channels=None,
-            branch2_channels=None,
-            branch3_channels=None,
-            branch4_channels=None,
+        self,
+        in_channel=128,
+        branch1_channels=None,
+        branch2_channels=None,
+        branch3_channels=None,
+        branch4_channels=None,
     ):
         super(DctInceptionBlock, self).__init__()
 

@@ -1,10 +1,9 @@
 faknow.data.process
 ===========================
 
-Submodules
-----------
 
-faknow.data.process.text\_process module
+
+faknow.data.process.text\_process
 ----------------------------------------
 
 .. automodule:: faknow.data.process.text_process
@@ -12,8 +11,7 @@ faknow.data.process.text\_process module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.data.process
    :members:

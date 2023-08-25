@@ -1,10 +1,9 @@
 faknow.evaluate
 =======================
 
-Submodules
-----------
 
-faknow.evaluate.evaluator module
+
+faknow.evaluate.evaluator
 --------------------------------
 
 .. automodule:: faknow.evaluate.evaluator
@@ -12,7 +11,7 @@ faknow.evaluate.evaluator module
    :undoc-members:
    :show-inheritance:
 
-faknow.evaluate.metrics module
+faknow.evaluate.metrics
 ------------------------------
 
 .. automodule:: faknow.evaluate.metrics
@@ -20,8 +19,7 @@ faknow.evaluate.metrics module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+
 
 .. automodule:: faknow.evaluate
    :members:
