@@ -127,4 +127,4 @@ def run_mdfend_from_yaml(path: str):
 
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_mdfend(_config)
+        run_mdfend(**_config)
