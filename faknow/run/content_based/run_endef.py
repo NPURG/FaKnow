@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import torch
 import yaml
@@ -9,13 +9,16 @@ from faknow.data.dataset.text import TextDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.endef import ENDEF
 from faknow.model.content_based.mdfend import MDFEND
+from faknow.model.model import AbstractModel
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
 __all__ = ['TokenizerENDEF', 'run_endef', 'run_endef_from_yaml']
 
+
 class TokenizerENDEF:
     """Tokenizer for ENDEF"""
+
     def __init__(self, max_len=170, bert="hfl/chinese-roberta-wwm-ext"):
         """
         Args:
@@ -52,36 +55,32 @@ class TokenizerENDEF:
         token_id = torch.cat(token_id, dim=0)
         attention_mask = torch.cat(attention_mask, dim=0)
 
-        return{
-            'token_id': token_id,
-            'mask': attention_mask
-        }
+        return {'token_id': token_id, 'mask': attention_mask}
+
 
 def run_endef(train_path: str,
-              base_model=MDFEND('hfl/chinese-roberta-wwm-ext',domain_num=8),
-               bert='hfl/chinese-roberta-wwm-ext',
-               max_len=170,
-               domain_num=8,
-               batch_size=64,
-               num_epochs=50,
-               lr=0.0005,
-               weight_decay=5e-5,
-               step_size=100,
-               gamma=0.98,
-               metrics: List = None,
-               validate_path: str = None,
-               test_path: str = None,
-               device='cpu'):
+              base_model: Optional[AbstractModel] = MDFEND('hfl/chinese-roberta-wwm-ext', domain_num=8),
+              bert='hfl/chinese-roberta-wwm-ext',
+              max_len=170,
+              batch_size=64,
+              num_epochs=50,
+              lr=0.0005,
+              weight_decay=5e-5,
+              step_size=100,
+              gamma=0.98,
+              metrics: List = None,
+              validate_path: str = None,
+              test_path: str = None,
+              device='cpu'):
     """
         run ENDEF, including training, validation and testing.
         If validate_path and test_path are None, only training is performed.
 
     Args:
         train_path (str): path of training data
-        base_model(AbstractModel): the base model of endef. Default=MDFEND
+        base_model(AbstractModel): the base model of ENDEF. Default=MDFEND('hfl/chinese-roberta-wwm-ext', domain_num=8)
         bert (str): bert model name, default="hfl/chinese-roberta-wwm-ext"
         max_len (int): max length of input text, default=170
-        domain_num (int): number of domains, default=9
         batch_size (int): batch size, default=64
         num_epochs (int): number of epochs, default=50
         lr (float): learning rate, default=0.0005
@@ -99,12 +98,13 @@ def run_endef(train_path: str,
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
 
     if validate_path is not None:
-        validate_set = TextDataset(validate_path, ['text', 'entity'], tokenizer)
+        validate_set = TextDataset(validate_path, ['text', 'entity'],
+                                   tokenizer)
         val_loader = DataLoader(validate_set, batch_size, shuffle=False)
     else:
         val_loader = None
 
-    model = ENDEF(bert,base_model=base_model)
+    model = ENDEF(bert, base_model=base_model)
     optimizer = torch.optim.Adam(params=model.parameters(),
                                  lr=lr,
                                  weight_decay=weight_decay)
@@ -118,11 +118,12 @@ def run_endef(train_path: str,
                           device=device)
     trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 
-    if test_path is None:
+    if test_path is not None:
         test_set = TextDataset(test_path, ['text', 'entity'], tokenizer)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
         print('test result: ', dict2str(test_result))
+
 
 def run_endef_from_yaml(path: str):
     """
@@ -135,4 +136,4 @@ def run_endef_from_yaml(path: str):
 
     with open(path, 'r', encoding='utf-8') as _f:
         _config = yaml.load(_f, Loader=yaml.FullLoader)
-        run_endef(_config)
+        run_endef(**_config)

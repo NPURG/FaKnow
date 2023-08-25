@@ -10,25 +10,25 @@ from faknow.model.layers.layer import TextCNNLayer
 
 from faknow.model.model import AbstractModel
 
+
 class ENDEF(AbstractModel):
     r"""
-    ENDEF: Generalizing to the Future: Mitigating Entity Bias in Fake News Detection，SIGIR 2022
-    paper: https://arxiv.org/pdf/2204.09484.pdf
+    Generalizing to the Future: Mitigating Entity Bias in Fake News Detection, SIGIR 2022
+    paper: https://dl.acm.org/doi/10.1145/3477495.3531816
     code: https://github.com/ICTMCG/ENDEF-SIGIR2022
     """
-
     def __init__(self,
                  pre_trained_bert_name: str,
                  base_model: AbstractModel,
                  mlp_dims: Optional[List[int]] = None,
-                 dropout_rate = 0.2,
-                 entity_weight = 0.1,
-                 loss_weight = 0.2):
+                 dropout_rate=0.2,
+                 entity_weight=0.1,
+                 loss_weight=0.2):
         """
 
         Args:
             pre_trained_bert_name(str): the name or local path of pre-trained bert model
-            base_model(Callable): the base model(content_based) using with entity features
+            base_model(AbstractModel): the base model(content_based) using with entity features
             mlp_dims(List[int]): a list of the dimensions in MLP layer, if None, [384] will be taken as default
             dropout_rate(float): dropout rate. Default=0.2
             entity_weight(float): the weight of entity in train. Default=0.1
@@ -50,14 +50,13 @@ class ENDEF(AbstractModel):
         filter_num = 64
         filter_sizes = [1, 2, 3, 5, 10]
 
-        self.entity_convs = TextCNNLayer(self.embedding_size, filter_num, filter_sizes)
+        self.entity_convs = TextCNNLayer(self.embedding_size, filter_num,
+                                         filter_sizes)
         mlp_input_shape = sum([filter_num for filter_size in filter_sizes])
         self.entity_mlp = _MLP(mlp_input_shape, mlp_dims, dropout_rate)
         self.entity_net = nn.Sequential(self.entity_convs, self.entity_mlp)
 
-    def forward(self,
-                base_model_params: Dict,
-                entity_token_id: Tensor,
+    def forward(self, base_model_params: Dict, entity_token_id: Tensor,
                 entity_mask: Tensor):
         """
 
@@ -81,20 +80,23 @@ class ENDEF(AbstractModel):
 
         entity_pred = self.entity_net(entity_embedding).squeeze(1)
 
-
         # 判断base_model的forward函数输出形式，选择不同输出形式
         if type(base_model_pred) is list:
             if base_model_pred[0].shape == entity_pred.shape:
                 base_model_pred[0] = base_model_pred[0].unsqueeze(1)
-            unbias_pred = (1 - self.entity_weight) * base_model_pred[0][:, -1] + self.entity_weight * entity_pred
+            unbias_pred = (1 - self.entity_weight) * base_model_pred[
+                0][:, -1] + self.entity_weight * entity_pred
 
         else:
             if base_model_pred.shape == entity_pred.shape:
                 base_model_pred = base_model_pred.unsqueeze(1)
-            unbias_pred = (1 - self.entity_weight) * base_model_pred[:, -1] + self.entity_weight * entity_pred
+            unbias_pred = (
+                1 - self.entity_weight
+            ) * base_model_pred[:, -1] + self.entity_weight * entity_pred
 
         if base_model_pred[:, -1].shape == torch.Size([2]):
-            return torch.sigmoid(unbias_pred.squeeze(1)), torch.sigmoid(entity_pred)
+            return torch.sigmoid(
+                unbias_pred.squeeze(1)), torch.sigmoid(entity_pred)
         else:
             return torch.sigmoid(unbias_pred), torch.sigmoid(entity_pred)
 
@@ -116,8 +118,11 @@ class ENDEF(AbstractModel):
         del data['entity']
         del data['label']
 
-        output, entity_output = self.forward(data, entity_token_id, entity_mask)
-        loss = self.loss_func(output, label.float()) + self.loss_weight * self.loss_weight * self.loss_func(entity_output, label.float())
+        output, entity_output = self.forward(data, entity_token_id,
+                                             entity_mask)
+        loss = self.loss_func(output, label.float(
+        )) + self.loss_weight * self.loss_weight * self.loss_func(
+            entity_output, label.float())
 
         return loss
 
@@ -154,8 +159,3 @@ class ENDEF(AbstractModel):
 
         for keys in keys_keep:
             del inputs[keys]
-
-
-
-
-
