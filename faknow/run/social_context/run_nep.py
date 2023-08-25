@@ -48,7 +48,6 @@ def run_nep(post_simcse: Tensor,
         lr (float): learning rate, default=5e-4
         metrics (List): evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default=None
         device (str): device, default='cpu'
-        **kwargs: other args of NEP
     """
 
     dataset = NEPDataset(post_simcse, avg_mac, avg_mic, p_mac, p_mic,
@@ -68,7 +67,7 @@ def run_nep(post_simcse: Tensor,
     val_loader = DataLoader(val_set, batch_size, shuffle=False)
     test_loader = DataLoader(test_set, batch_size, shuffle=False)
 
-    model = NEP(**kwargs)
+    model = NEP()
     optimizer = AdamW(filter(lambda p: p.requires_grad, model.parameters()),
                       lr)
     evaluator = Evaluator(metrics)

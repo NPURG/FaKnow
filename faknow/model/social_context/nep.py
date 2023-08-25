@@ -198,8 +198,7 @@ class NEP(AbstractModel):
                  num_mlp_layers=3,
                  fnd: nn.Module = _BERT,
                  fusion='gate',
-                 attention_dim=128,
-                 **kwargs):
+                 attention_dim=128):
         """
         Args:
             macro_env_out_dim (int): dimension of macro environment representation, default=128
@@ -221,7 +220,7 @@ class NEP(AbstractModel):
 
         # === FEND ===
         if fnd is not None:
-            self.fake_news_detector = fnd(**kwargs)
+            self.fake_news_detector = fnd
             last_output = self.fake_news_detector.out_dim
 
             # Env and FEND fusion
