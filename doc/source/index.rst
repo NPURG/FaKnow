@@ -19,7 +19,7 @@ Welcome to FaKnow's documentation!
    :maxdepth: 2
    :caption: User Guide:
 
-   models/multi_modal
+   user_guide/config_intro
 
 
 .. toctree::

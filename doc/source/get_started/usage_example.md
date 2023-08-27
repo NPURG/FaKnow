@@ -21,7 +21,7 @@ kargs = {'train_path': 'train.json', 'test_path': 'test.json'}  # dict arguments
 run(model, **kargs)
 ```
 
-the json file for *mdfend* shoule be like:
+the json file for *mdfend* should be like:
 
 ```json
 [
