@@ -7,11 +7,34 @@ from torch.utils.data import Dataset
 
 
 class TextDataset(Dataset):
+    """
+    Dataset for json file with post texts,
+    allow users to tokenize texts and convert them into tensors.
+
+    Attributes:
+        root (str): absolute path to json file
+        data (dict): data in json file
+        feature_names (List[str]): names of all features in json file
+        tokenize (Callable[[List[str]], Any]): function to tokenize text,
+            which takes a list of texts and returns a tensor or a dict of tensors
+        text_features (dict): a dict of text features, key is feature name,
+            value is feature values
+    """
+
     def __init__(self,
                  path: str,
                  text_features: List[str],
                  tokenize: Callable[[List[str]], Any],
                  to_tensor=True):
+        """
+        Args:
+            path (str): absolute path to json file
+            text_features (List[str]): a list of names of text features in json file
+            tokenize (Callable[[List[str]], Any]): function to tokenize text,
+                which takes a list of texts and returns a tensor or a dict of tensors
+            to_tensor (bool, optional): whether to convert all features into tensor. Default=True.
+        """
+
         super().__init__()
         self.root = os.path.dirname(path)
 
@@ -27,6 +50,14 @@ class TextDataset(Dataset):
             self._to_tensor()
 
     def __getitem__(self, index) -> Dict[str, Any]:
+        """
+        Args:
+            index (int): index of item to get
+
+        Returns:
+            item (dict): a dict of features of the item
+        """
+
         item = {}
         for feature_name, feature_values in self.data.items():
             if feature_name in self.text_features and type(
@@ -41,10 +72,27 @@ class TextDataset(Dataset):
         return len(self.data['label'])
 
     def check_feature(self, name: str):
+        """
+        Args:
+            name (str): name of feature to check
+
+        Raises:
+            ValueError: if there is no feature named 'name'
+        """
+
         if name not in self.feature_names:
             raise ValueError(f"there is no feature named '{name}'")
 
     def process_text(self, name: str):
+        """
+        process text feature with tokenize function,
+        store the old value of the feature in text_features,
+        and store the new value in data.
+
+        Args:
+            name (str): name of text feature to process
+        """
+
         self.check_feature(name)
         if name in self.text_features:
             raise ValueError(
@@ -61,17 +109,35 @@ class TextDataset(Dataset):
         elif type(new_text) is not torch.Tensor:
             raise TypeError("return type of tokenize function must be tensor")
 
-        self.text_features[name] = self.data[name]  # 把旧值存储
-        self.data[name] = new_text  # 更改为tokenize后的新值
+        self.text_features[name] = self.data[name]  # store the old value
+        self.data[name] = new_text  # store the new value
 
     def remove_text(self, name: str):
+        """
+        remove text feature from self.text_features
+
+        Args:
+            name (str): name of text feature to remove
+
+        Raises:
+            ValueError: if there is no feature named 'name'
+            ValueError: if 'name' has not been marked as text features
+        """
+
         self.check_feature(name)
         if name not in self.text_features:
             raise ValueError(f"'{name}' has not been marked as text features")
-        self.data[name] = self.text_features[name]  # 恢复旧值
-        del self.text_features[name]  # 删除新值
+        self.data[name] = self.text_features[name]  # restore old value
+        del self.text_features[name]  # remove new value
 
     def _to_tensor(self):
+        """
+        convert all features in data into tensor
+
+        Raises:
+            RuntimeError: if fail to convert feature into tensor
+        """
+
         for name, values in self.data.items():
             if name not in self.text_features:
                 if type(values[0]) is int or type(values[0]) is float:
