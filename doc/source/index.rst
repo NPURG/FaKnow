@@ -20,6 +20,7 @@ Welcome to FaKnow's documentation!
    :caption: User Guide:
 
    user_guide/config_intro
+   user_guide/data_intro
 
 
 .. toctree::
