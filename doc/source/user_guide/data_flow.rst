@@ -1,6 +1,8 @@
 Data Flow
 ==========
-Faknow is mainly composed of three modules: `data module <http://127.0.0.1:8000/user_guide/data_intro.html>`_, algorithm model module, and training and validation module.
+Faknow is mainly composed of three modules: `data module <http://127.0.0.1:8000/user_guide/data_intro.html>`_, `algorithm
+model module <http://127.0.0.1:8000/user_guide/model_intro.html>`_, and
+`training and validation module <http://127.0.0.1:8000/user_guide/train_eval_intro.html>`_.
 The data module is responsible for preprocessing the user input data and feeding it into the algorithm model module;
 There are several classic false information recognition algorithms in the algorithm model module; The data is trained
 through an embedded algorithm model, and the performance of the algorithm model is evaluated by verifying its various
