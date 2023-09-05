@@ -13,4 +13,4 @@ For more details about setting config, please read
 .. toctree::
    :maxdepth: 1
 
-   parameters_configuration
+   config/parameters_configuration

@@ -8,7 +8,7 @@ There are several classic false information recognition algorithms in the algori
 through an embedded algorithm model, and the performance of the algorithm model is evaluated by verifying its various
 indicators. Finally, the final algorithm model is saved.
 
-.. image:: ../media/data_flow.png
+.. image:: ../../media/data_flow.png
     :align: center
 
 

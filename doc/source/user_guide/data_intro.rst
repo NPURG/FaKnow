@@ -10,6 +10,6 @@ Here are two ways to preprocess datasets:
 .. toctree::
    :maxdepth: 1
 
-   data_flow
-   text_based
-   multi_info_based
+   data/data_flow
+   data/text_based
+   data/multi_info_based
