@@ -13,10 +13,25 @@ from tqdm import tqdm
 
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.model import AbstractModel
-from faknow.utils.util import dict2str, seconds2str, now2str, check_loss_type, EarlyStopping
+from faknow.utils.util import (dict2str, seconds2str, now2str, check_loss_type,
+                               EarlyStopping)
 
 
 class AbstractTrainer:
+    """
+    Abstract trainer for FaKnow,
+    including training, validation, evaluation and save model.
+    All trainers should inherit from this class.
+
+    Attributes:
+        model (AbstractModel): faknow abstract model to train
+        evaluator (Evaluator): faknow evaluator for evaluation
+        optimizer (Optimizer): pytorch optimizer for training
+        scheduler (_LRScheduler): learning rate scheduler.
+        clip_grad_norm (Dict[str, Any]): key args for
+            torch.nn.utils.clip_grad_norm_.
+        device (torch.device): device to use.
+    """
     def __init__(self,
                  model: AbstractModel,
                  evaluator: Evaluator,
@@ -24,6 +39,17 @@ class AbstractTrainer:
                  scheduler: Optional[_LRScheduler] = None,
                  clip_grad_norm: Optional[Dict[str, Any]] = None,
                  device='cpu'):
+        """
+        Args:
+            model (AbstractModel): faknow abstract model to train
+            evaluator (Evaluator): faknow evaluator for evaluation
+            optimizer (Optimizer): pytorch optimizer for training
+            scheduler (_LRScheduler): learning rate scheduler. Defaults=None.
+            clip_grad_norm (Dict[str, Any]): key args for
+                torch.nn.utils.clip_grad_norm_. Defaults=None.
+            device (str): device to use. Defaults='cpu'.
+        """
+
         self.model = model
         self.optimizer = optimizer
         self.evaluator = evaluator
@@ -33,8 +59,14 @@ class AbstractTrainer:
         self.model.to(self.device)
 
     @torch.no_grad()
-    def evaluate(self, data: DataLoader):
-        """evaluate after training"""
+    def evaluate(self, loader: DataLoader):
+        """
+        evaluate after training
+
+        Args:
+            loader (DataLoader): data to evaluate
+        """
+
         raise NotImplementedError
 
     def fit(self,
@@ -43,19 +75,65 @@ class AbstractTrainer:
             validate_loader: Optional[DataLoader] = None,
             save=False,
             save_path=None):
+        """
+        train model
+
+        Args:
+            train_loader (DataLoader): training data
+            num_epochs (int): number of epochs to train
+            validate_loader (DataLoader): validation data.
+                If None, no validation. Defaults=None.
+            save (bool): whether to save model. Defaults=False.
+            save_path (str): path to save model, if save=True.
+                Defaults=None.
+        """
+
         raise NotImplementedError
 
     def to(self, device: str, **kwargs):
+        """
+        move model and data to device
+
+        Args:
+            device (str): device to use
+            **kwargs: other args for nn.Module.to
+        """
+
         self.device = torch.device(device)
         self.model.to(self.device, **kwargs)
 
     def cuda(self, device='cuda:0', **kwargs):
+        """
+        move model and data to cuda
+
+        Args:
+            device (str): cuda device to use. Defaults='cuda:0'.
+            **kwargs: other args for nn.Module.to
+        """
+
         self.to(device, **kwargs)
 
     def cpu(self, **kwargs):
+        """
+        move model and data to cpu
+
+        Args:
+            **kwargs: other args for nn.Module.to
+        """
+
         self.to('cpu', **kwargs)
 
     def _move_data_to_device(self, batch_data) -> Any:
+        """
+        move input batch data to device
+
+        Args:
+            batch_data (Any): input batch data
+
+        Returns:
+            Any: batch data on device
+        """
+
         if type(batch_data) is dict:
             for k, v in batch_data.items():
                 if type(v) is torch.Tensor:
@@ -71,6 +149,24 @@ class AbstractTrainer:
 
 
 class BaseTrainer(AbstractTrainer):
+    """
+    Base trainer for FaKnow, which inherits from AbstractTrainer
+    and can be applied to most common tasks.
+
+    Attributes:
+        model (AbstractModel): faknow abstract model to train
+        evaluator (Evaluator): faknow evaluator for evaluation
+        optimizer (Optimizer): pytorch optimizer for training
+        scheduler (_LRScheduler): learning rate scheduler.
+        clip_grad_norm (Dict[str, Any]): key args for
+            torch.nn.utils.clip_grad_norm_.
+        device (torch.device): device to use.
+        early_stopping (EarlyStopping): early stopping for training.
+        best_score (float): best validation score for saving best model.
+        best_epoch (int): best epoch for saving best model.
+        writer (SummaryWriter): tensorboard writer.
+        logger (logging.Logger): logger for logging in console and file.
+    """
     def __init__(self,
                  model: AbstractModel,
                  evaluator: Evaluator,
@@ -79,6 +175,19 @@ class BaseTrainer(AbstractTrainer):
                  clip_grad_norm: Optional[Dict[str, Any]] = None,
                  device='cpu',
                  early_stopping: Optional[EarlyStopping] = None):
+        """
+        Args:
+            model (AbstractModel): faknow abstract model to train
+            evaluator (Evaluator): faknow evaluator for evaluation
+            optimizer (Optimizer): pytorch optimizer for training
+            scheduler (_LRScheduler): learning rate scheduler. Defaults=None.
+            clip_grad_norm (Dict[str, Any]): key args for
+                torch.nn.utils.clip_grad_norm_. Defaults=None.
+            device (str): device to use. Defaults='cpu'.
+            early_stopping (EarlyStopping): early stopping for training.
+                If None, no early stopping will be performed. Defaults=None.
+        """
+
         super(BaseTrainer, self).__init__(model, evaluator, optimizer,
                                           scheduler, clip_grad_norm, device)
 
@@ -90,14 +199,26 @@ class BaseTrainer(AbstractTrainer):
         self.writer = None
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s')
         sh = logging.StreamHandler()
         sh.setFormatter(formatter)
         self.logger.addHandler(sh)
 
     def _train_epoch(self, loader: DataLoader,
                      epoch: int) -> Union[float, Dict[str, float]]:
-        """training for one epoch"""
+        """
+        training for one epoch, including gradient clipping
+
+        Args:
+            loader (DataLoader): training data
+            epoch (int): current epoch
+
+        Returns:
+            Union[float, Dict[str, float]]: loss of current epoch.
+                If multiple losses,
+                return a dict of losses with loss name as key.
+        """
 
         # switch model to train mode
         self.model.train()
@@ -132,23 +253,49 @@ class BaseTrainer(AbstractTrainer):
 
     def _validate_epoch(self, loader: DataLoader,
                         epoch: int) -> Tuple[float, Dict[str, float]]:
-        """validation after training for one epoch"""
+        """
+        Validate after training for one epoch and return evaluation metrics.
+        The accuracy will be taken as the validation score
+        if it is included in the evaluation metrics.
+        Otherwise, the first metric will be taken as default.
+
+        Args:
+            loader (DataLoader): validation data
+            epoch (int): current epoch
+
+        Returns:
+            tuple:
+                score (float): validation score
+                result (Dict[str, float]): evaluation metrics
+        """
+
         # evaluate
         result = self.evaluate(loader)
 
-        # get the first metric as the validation score if accuracy is not in result
+        # get the first metric as the validation score
+        # if accuracy is not in result
         if 'accuracy' in result:
             score = result['accuracy']
         else:
             if epoch == 0:
-                warnings.warn(
-                    'no accuracy in result, use the first metric as the validation score'
-                )
+                warnings.warn('no accuracy in result, use the first metric \
+                        as the validation score')
             score = list(result.values())[0]
         return score, result
 
     @torch.no_grad()
     def evaluate(self, loader: DataLoader):
+        """
+        Evaluate model performance on testing or validation data.
+
+        Args:
+            loader (DataLoader): data to evaluate,
+                where each batch data is a dict with key 'label'
+
+        Returns:
+            Dict[str, float]: evaluation metrics
+        """
+
         self.model.eval()
 
         outputs = []
@@ -168,12 +315,31 @@ class BaseTrainer(AbstractTrainer):
             validate_loader: Optional[DataLoader] = None,
             save_best: Optional[bool] = None,
             save_path: Optional[str] = None):
+        """
+        Fit the model, including training, validation and save model.
+        Results will be logged in console, log file and tensorboard.
+        Early stopping has higher priority than save_best if it is not None.
+
+        Args:
+            train_loader (DataLoader): training data
+            num_epochs (int): number of epochs to train
+            validate_loader (DataLoader): validation data.
+                If None, no validation. Defaults=None.
+            save_best (bool): whether to save model with best validation score.
+                If False, save the last epoch model.
+                If None, do not save any model.
+                Defaults=None.
+            save_path (str): path to save model, if save_best is not None.
+                If None, save in './save/model_name-current_time.pth'.
+                Defaults=None.
+        """
 
         result_file_name = f"{self.model.__class__.__name__}-{now2str()}"
 
         # 未指定保存路径时，取fit开始时刻作为文件名
-        if save_best is not None and save_path is None:
-            save_path = os.path.join(os.getcwd(), f"save/{result_file_name}.pth")
+        if save_path is None:
+            save_path = os.path.join(os.getcwd(),
+                                     f"save/{result_file_name}.pth")
 
         # log
         tb_logs_path = f"tb_logs/{result_file_name}"
@@ -201,14 +367,15 @@ class BaseTrainer(AbstractTrainer):
                 validation_score, validation_result = self._validate_epoch(
                     validate_loader, epoch)
 
-                save_best = self._find_best_score(epoch, validation_score, save_best, save_path)
+                save_best = self._find_best_score(epoch, validation_score,
+                                                  save_best, save_path)
 
                 self._show_validation_result(validation_result,
-                                             validation_score,
-                                             epoch,
+                                             validation_score, epoch,
                                              save_best)
 
-                if self.early_stopping is not None and self.early_stopping.early_stop:
+                if self.early_stopping is not None and \
+                   self.early_stopping.early_stop:
                     break
 
             # learning rate scheduler
@@ -224,6 +391,14 @@ class BaseTrainer(AbstractTrainer):
             self.save(save_path)
 
     def save(self, save_path: Optional[str] = None):
+        """
+        save the model
+
+        Args:
+            save_path (str): path to save model.
+                If None, save in './save/model_name-current_time.pth'.
+                Defaults=None.
+        """
 
         # default save path: './save/model_name-current_time.pth'
         if save_path is None:
@@ -239,16 +414,33 @@ class BaseTrainer(AbstractTrainer):
 
         self.logger.info(f'\nmodel is saved in {save_path}')
 
-    def _find_best_score(self, epoch: int, validation_score: float, save_best: bool, save_path: str) -> bool:
+    def _find_best_score(self, epoch: int, validation_score: float,
+                         save_best: bool, save_path: str) -> bool:
+        """
+        Whether the current validation score is the best score,
+        and save the model if so.
+
+        Args:
+            epoch (int): current epoch
+            validation_score (float): current validation score
+            save_best (bool): whether to save model with best validation score.
+                If False, save the last epoch model.
+            save_path (str): path to save model, if save_best is not None.
+
+        Returns:
+            bool: whether to save model with best validation score.
+        """
 
         improvement = False
         if self.early_stopping is not None:
+            # early stopping
             save_best = True
             improvement = self.early_stopping(validation_score)
         elif save_best:
+            # validation score improved
             improvement = validation_score > self.best_score
 
-        # save best model
+        # save best model if save_best is True and validation score improved
         if save_best and improvement:
             self.best_score = validation_score
             self.best_epoch = epoch
@@ -256,10 +448,22 @@ class BaseTrainer(AbstractTrainer):
 
         return save_best
 
-    def _show_train_result(self,
-                           train_result: Union[float, Dict[str, float]],
-                           cost_time_str: str,
-                           epoch: int):
+    def _show_train_result(self, train_result: Union[float, Dict[str, float]],
+                           cost_time_str: str, epoch: int):
+        """
+        Show training results in logging and tensorboard.
+
+        Args:
+            train_result (Union[float, Dict[str, float]]): training loss.
+                If multiple losses,
+                return a dict of losses with loss name as key.
+            cost_time_str (str): training time in string format
+            epoch (int): current epoch
+
+        Raises:
+            TypeError: train_result type error:
+                must be float or Dict[str, float]
+        """
 
         self.logger.info(f'training time={cost_time_str}')
 
@@ -274,7 +478,8 @@ class BaseTrainer(AbstractTrainer):
             self.logger.info(f"training loss : {dict2str(train_result)}")
         else:
             raise TypeError(
-                f"train_result type error: must be float or Dict[str, float], but got {type(train_result)}"
+                f"train_result type error: must be float or Dict[str, float],\
+                    but got {type(train_result)}"
             )
 
     def _show_validation_result(self,
@@ -282,20 +487,43 @@ class BaseTrainer(AbstractTrainer):
                                 validation_score: float,
                                 epoch: int,
                                 save_best: Optional[bool] = None):
+        """
+        Show validation results in logging and tensorboard.
+        If save_best=True or self.early stopping is not None,
+        show best validation score and epoch.
+
+        Args:
+            validation_result (Dict[str, float]): evaluate metrics
+            validation_score (float): validation score
+            epoch (int): current epoch
+            save_best (bool): whether to save model with best validation score.
+                Defaults=None.
+        """
+
         for metric, value in validation_result.items():
             self.writer.add_scalar("Validation/" + metric, value, epoch)
         self.logger.info("validation result : " + dict2str(validation_result))
 
         score_info = f"current score : {validation_score:.6f}\n"
         if save_best:
-            score_info = score_info + f", best score : {self.best_score:.6f}, best epoch : {str(self.best_epoch)}"
+            score_info = score_info + f", best score : {self.best_score:.6f},\
+                best epoch : {str(self.best_epoch)}"
         if self.early_stopping is not None and self.early_stopping.early_stop:
             score_info = score_info + f"\nearly stopping at epoch {epoch}!"
+
         self.logger.info(score_info)
 
     def _show_data_size(self,
                         train_loader: DataLoader,
                         validate_loader: Optional[DataLoader] = None):
+        """
+        show training data size and validation data size
+
+        Args:
+            train_loader (DataLoader): training data
+            validate_loader (DataLoader): validation data. Defaults=None.
+        """
+
         train_set_size = len(train_loader.dataset)
         self.logger.info(f'training data size={train_set_size}')
         if validate_loader is not None:
@@ -303,6 +531,13 @@ class BaseTrainer(AbstractTrainer):
             self.logger.info(f'validation data size={validate_set_size}')
 
     def __add_file_log(self, file_name: str):
+        """
+        add file log handler to logger
+
+        Args:
+            file_name (str): file name of log file
+        """
+
         logs_dir = os.path.join(os.getcwd(), "logs")
         if not os.path.exists(logs_dir):
             os.makedirs(logs_dir)
