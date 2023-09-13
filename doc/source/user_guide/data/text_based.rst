@@ -1,6 +1,6 @@
 Text based false news detection
 --------------------------------
-Faknow adopts a unique processing method for text datasets, implemented through the `TextDataset <http://127.0.0.1:8000/faknow/faknow.data.dataset.html#faknow.data.dataset.text.TextDataset>`_. This class
+Faknow adopts a unique processing method for text datasets, implemented through the ``TextDataset``. This class
 inherits from PyTorch's Dataset class and can therefore be used together with PyTorch's DataLoader.
 TextDataset implements a text dataset class for loading and processing datasets containing text features.
 It supports preprocessing operations on text features, such as word segmentation, encoding, etc.,

@@ -43,5 +43,5 @@ Your yaml config file should be like:
     train_path: train.json # the path of training set file
     test_path: test.json # the path of testing set file
 
-Please refer to `Config Introduction <http://127.0.0.1:8000/user_guide/config_intro.html>`_ for more details about
+Please refer to :doc:`../config_intro`, for more details about
 config settings.

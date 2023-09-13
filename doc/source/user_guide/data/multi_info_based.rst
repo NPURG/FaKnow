@@ -1,8 +1,7 @@
 Multimodal information based false news detection
 --------------------------------------------------
-Faknow also adopts a unique processing method for multimodal datasets, implemented through the
-`MultiModalDataset <http://127.0.0.1:8000/faknow/faknow.data.dataset.html#faknow.data.dataset.multi_modal.MultiModalDataset>`_ class.
-This class inherits the `TextDataset <http://127.0.0.1:8000/faknow/faknow.data.dataset.html#faknow.data.dataset.text.TextDataset>`_ class, so it can preprocess text data. In addition, the MultiModalDataset class also
+Faknow also adopts a unique processing method for multimodal datasets, implemented through the ``MultiModalDataset`` class.
+This class inherits the ``TextDataset`` class, so it can preprocess text data. In addition, the MultiModalDataset class also
 supports simultaneous image processing. By specifying the names of text and image features, as well as the corresponding
 text tokenize and image transform methods, data can be transformed into the vector form required by the model,
 achieving loading and preprocessing of multimodal datasets.
