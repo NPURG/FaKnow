@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
+
 """
 layers for transformer, including:
 Feed-Forward Networks
@@ -107,6 +108,7 @@ class FFN(nn.Module):
     """
     Feed-Forward Networks
     """
+
     def __init__(self,
                  input_size: int,
                  hidden_size: int,
@@ -141,6 +143,7 @@ class AddNorm(nn.Module):
     """
     residual add and layernorm
     """
+
     def __init__(self,
                  normalized_shape: Union[int, List[int], torch.Size],
                  dropout=0.):
@@ -169,6 +172,7 @@ class ScaledDotProductAttention(nn.Module):
     """
     Scaled Dot Product Attention
     """
+
     def __init__(self, dropout=0., epsilon=0.):
         """
         Args:
@@ -198,7 +202,7 @@ class ScaledDotProductAttention(nn.Module):
         """
         d = queries.shape[-1]
         scores = torch.bmm(queries, keys.transpose(
-            1, 2)) / (d**0.5 + self.epsilon)
+            1, 2)) / (d ** 0.5 + self.epsilon)
         self.attention_weights = masked_softmax(scores, valid_lens)
         return torch.bmm(self.dropout(self.attention_weights), values)
 
@@ -207,6 +211,7 @@ class MultiHeadAttention(nn.Module):
     """
     Multi-head Attention with ScaledDotProductAttention
     """
+
     def __init__(self,
                  input_size: int,
                  k_out_size: int,
@@ -337,39 +342,43 @@ class EncoderLayer(nn.Module):
         y = self.addnorm1(x, self.attention(x, x, x, valid_lens))
         return self.addnorm2(y, self.ffn(y))
 
+
 class PositionalEncoding(nn.Module):
     """
-
     Positionalencoding for inputs of transformer
     """
+
     def __init__(self, dim: int, dropout=0., max_len=1000):
         """
-
-        dim(int): the embedding dimension of input.
-        dropout(float): dropout rate, Default=0.
-        max_len(int): the max length of sequence length, Default=1000.
+        Args:
+            dim(int): the embedding dimension of input.
+            dropout(float): dropout rate, Default=0.
+            max_len(int): the max length of sequence length, Default=1000.
         """
+
         super().__init__()
         pe = torch.zeros(max_len, dim).float()
         position = torch.arange(0, max_len).unsqueeze(1).float()
         dimension = torch.arange(0, dim).float()
-        div_term = 10000 ** (2 * dimension /dim)
+        div_term = 10000 ** (2 * dimension / dim)
         pe[:, 0::2] = torch.sin(position / div_term[0::2])
         pe[:, 1::2] = torch.cos(position / div_term[1::2])
         self.register_buffer('pe', pe)
         self.dropout = nn.Dropout(p=dropout)
         self.dim = dim
 
-
     def forward(self, inputs: Tensor, step=None):
         """
+        Args:
+            inputs(Tensor):input tensor shape=(batch_size, length, embedding_dim)
+            step(int): the cutting step of position encoding, Default=None
 
-        inputs(Tensor):input tensor shape=[batch_size, length, embedding_dim].
-        step(int): the cutting step of position encoding, Default=None.
+        Returns:
+            Tensor: shape=(batch_size, length, embedding_dim)
         """
         if step is None:
             inputs = inputs + self.pe[:inputs.size(1), :]
         else:
-            inputs = inputs + self.pe[: , step]
+            inputs = inputs + self.pe[:, step]
         inputs = self.dropout(inputs)
         return inputs

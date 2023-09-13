@@ -12,9 +12,12 @@ from faknow.data.dataset.multi_modal import MultiModalDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.hmcan import HMCAN
 from faknow.train.trainer import BaseTrainer
-from faknow.utils.util import dict2str, read_stop_words
+from faknow.utils.util import dict2str
 
-__all__ = ['TokenizerHMCAN', 'transform_hmcan', 'run_hmcan', 'run_hmcan_from_yaml']
+__all__ = [
+    'TokenizerHMCAN', 'transform_hmcan', 'run_hmcan', 'run_hmcan_from_yaml'
+]
+
 
 class TokenizerHMCAN:
     """
@@ -31,7 +34,7 @@ class TokenizerHMCAN:
         self.max_len = max_len
         self.tokenizer = BertTokenizer.from_pretrained(bert)
 
-    def __call__(self, texts: List[str]) -> Dict[str,torch.Tensor]:
+    def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
         """
 
         tokenize texts
@@ -40,7 +43,8 @@ class TokenizerHMCAN:
             texts(List[str]): texts to be tokenized
 
         Returns:
-            Dict[str, torch.Tensor]: tokenized texts with key 'token_id' and 'mask'
+            Dict[str, torch.Tensor]: tokenized texts
+                with key 'token_id' and 'mask'
         """
 
         inputs = self.tokenizer(texts,
@@ -50,7 +54,11 @@ class TokenizerHMCAN:
                                 padding='max_length',
                                 truncation=True)
 
-        return {'token_id': inputs['input_ids'], 'mask': inputs['attention_mask']}
+        return {
+            'token_id': inputs['input_ids'],
+            'mask': inputs['attention_mask']
+        }
+
 
 def transform_hmcan(path: str) -> torch.Tensor:
     """
@@ -73,16 +81,17 @@ def transform_hmcan(path: str) -> torch.Tensor:
         ])
         return trans(img)
 
+
 def run_hmcan(train_path: str,
               max_len=20,
-              left_num_layers = 2,
-              left_num_heads = 12,
-              dropout = 0.1,
-              right_num_layers = 2,
-              right_num_heads = 12,
-              alpha = 0.7,
+              left_num_layers=2,
+              left_num_heads=12,
+              dropout=0.1,
+              right_num_layers=2,
+              right_num_heads=12,
+              alpha=0.7,
               batch_size=256,
-              lr = 0.001,
+              lr=0.001,
               num_epochs=150,
               bert='bert-base-uncased',
               metrics: List = None,
@@ -96,22 +105,29 @@ def run_hmcan(train_path: str,
     Args:
         train_path (str): path of the training set
         max_len (int): max length of the text, default=20
-        left_num_layers(int): the numbers of  the left Attention&FFN layer in the Contextual Transformer, Default=2.
-        left_num_heads(int): the numbers of head in the Multi-Head Attention layer(in the left Attention&FFN), Default=12.
+        left_num_layers(int): the numbers of  the left Attention&FFN layer
+            in Contextual Transformer, Default=2.
+        left_num_heads(int): the numbers of head in
+            Multi-Head Attention layer(in the left Attention&FFN), Default=12.
         dropout(float): dropout rate, Default=0.1.
-        right_num_layers(int): the numbers of  the right Attention&FFN layer in the Contextual Transformer, Default=2.
-        right_num_heads(int): the numbers of head in the Multi-Head Attention layer(in the right Attention&FFN), Default=12.
-        alpha(float): the weight of the first Attention&FFN layer's output, Default=0.7.
+        right_num_layers(int): the numbers of  the right Attention&FFN layer
+            in Contextual Transformer, Default=2.
+        right_num_heads(int): the numbers of head in
+            Multi-Head Attention layer(in the right Attention&FFN), Default=12.
+        alpha(float): the weight of the first Attention&FFN layer's output,
+            Default=0.7.
         batch_size (int): batch size, default=256
         lr (float): learning rate, default=0.001
         num_epochs (int): number of epochs, default=150
-        metrics (List): metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default=None
+        bert (str): bert model name, default='bert-base-uncased'
+        metrics (List): metrics, if None,
+            ['accuracy', 'precision', 'recall', 'f1'] is used, default=None
         validate_path (str): path of the validation set, default=None
         test_path (str): path of the test set, default=None
         device (str): device, default='cpu'
-
     """
-    tokenizer = TokenizerHMCAN(max_len,bert)
+
+    tokenizer = TokenizerHMCAN(max_len, bert)
     train_set = MultiModalDataset(train_path, ['text'], tokenizer, ['image'],
                                   transform_hmcan)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
@@ -127,10 +143,7 @@ def run_hmcan(train_path: str,
                   right_num_layers, right_num_heads, alpha)
     optimizer = torch.optim.Adam(model.parameters(), lr)
     evaluator = Evaluator(metrics)
-    trainer = BaseTrainer(model,
-                          evaluator,
-                          optimizer,
-                          device=device)
+    trainer = BaseTrainer(model, evaluator, optimizer, device=device)
     trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 
     if test_path is not None:
