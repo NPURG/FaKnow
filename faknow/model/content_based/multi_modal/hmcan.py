@@ -7,7 +7,7 @@ import torchvision
 
 from transformers import BertModel
 from faknow.model.model import AbstractModel
-from faknow.model.layers.transformer import AddNorm, MultiHeadAttention, FFN
+from faknow.model.layers.transformer import AddNorm, MultiHeadAttention, FFN, PositionalEncoding
 
 class HMCAN(AbstractModel):
     r"""
@@ -74,11 +74,13 @@ class HMCAN(AbstractModel):
          Args:
             token_id (Tensor): text token ids
             image (Tensor): image pixels
-            mask (Tensor): text masks
+            mask (torch.Tensor): text masks
 
         Returns:
             class_output (Tensor): prediction of being fake news, shape=(batch_size, 2)
         """
+
+        mask = torch.ones_like(mask) # ban mask
 
         semantics = self.bert(token_id,
                               attention_mask=mask).hidden_states[1:]  # extract features from all the 12 block in bert-base model
@@ -138,45 +140,7 @@ class HMCAN(AbstractModel):
         image = data_without_label['image']
         pred = self.forward(token_id, mask, image)
         pred = torch.softmax(pred, dim=-1)
-        pred = torch.argmax(pred, dim=-1)
-        return pred.detach().numpy()
-
-class PositionalEncoding(nn.Module):
-    """
-
-    Positionalencoding for inputs of contextual transformer
-    """
-    def __init__(self, dim: int, dropout=0., max_len=1000):
-        """
-
-        dim(int): the embedding dimension of input.
-        dropout(float): dropout rate, Default=0.
-        max_len(int): the max length of sequence length, Default=1000.
-        """
-        super().__init__()
-        pe = torch.zeros(max_len, dim).float()
-        position = torch.arange(0, max_len).unsqueeze(1).float()
-        dimension = torch.arange(0, dim).float()
-        div_term = 10000 ** (2 * dimension /dim)
-        pe[:, 0::2] = torch.sin(position / div_term[0::2])
-        pe[:, 1::2] = torch.cos(position / div_term[1::2])
-        self.register_buffer('pe', pe)
-        self.dropout = nn.Dropout(p=dropout)
-        self.dim = dim
-
-
-    def forward(self, input: Tensor, step=None):
-        """
-
-        input(Tensor):input tensor shape=[batch_size, length, embedding_dim].
-        step(int): the cutting step of position encoding, Default=None.
-        """
-        if step is None:
-            input = input + self.pe[:input.size(1), :]
-        else:
-            input = input + self.pe[: , step]
-        input = self.dropout(input)
-        return input
+        return pred
 
 class TextImage_Transformer(nn.Module):
     """
@@ -216,6 +180,7 @@ class TextImage_Transformer(nn.Module):
         right_features(Tensor): the right transformer's input, shape=[batch_size, length, embedding_dim].
         left_mask(Union[Tensor, None]): the mask of right input, shape=[batch_size, ...]
         """
+
         left_features = self.input_norm(left_features)
         left_features = self.embedding(left_features)
         left_features = self.transformer1(left_features, left_features, left_features, left_mask)

@@ -42,22 +42,15 @@ class TokenizerHMCAN:
         Returns:
             Dict[str, torch.Tensor]: tokenized texts with key 'token_id' and 'mask'
         """
-        token_id = []
-        attention_mask = []
-        for _, text in enumerate(texts):
-            inputs = self.tokenizer(text,
-                                    return_tensors='pt',
-                                    max_length=self.max_len,
-                                    add_special_tokens=True,
-                                    padding='max_length',
-                                    truncation=True)
-            token_id.append(inputs['input_ids'])
-            attention_mask.append(inputs['attention_mask'])
 
-        token_id = torch.cat(token_id, dim=0)
-        attention_mask = torch.cat(attention_mask, dim=0)
+        inputs = self.tokenizer(texts,
+                                return_tensors='pt',
+                                max_length=self.max_len,
+                                add_special_tokens=True,
+                                padding='max_length',
+                                truncation=True)
 
-        return {'token_id': token_id, 'mask': attention_mask}
+        return {'token_id': inputs['input_ids'], 'mask': inputs['attention_mask']}
 
 def transform_hmcan(path: str) -> torch.Tensor:
     """
@@ -138,7 +131,7 @@ def run_hmcan(train_path: str,
                           evaluator,
                           optimizer,
                           device=device)
-    trainer.fit(train_loader, num_epochs,validate_loader=val_loader)
+    trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 
     if test_path is not None:
         test_set = MultiModalDataset(test_path, ['text'], tokenizer, ['image'],
