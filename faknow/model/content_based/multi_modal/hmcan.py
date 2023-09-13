@@ -89,10 +89,8 @@ class HMCAN(AbstractModel):
             Tensor: prediction of being fake news, shape=(batch_size, 2)
         """
 
-        mask = torch.ones_like(mask)  # ban mask
-
         semantics = self.bert(token_id, attention_mask=mask).hidden_states[
-            1:]  # extract features from all the 12 block in bert-base model
+                    1:]  # extract features from all the 12 block in bert-base model
         text_embeding = []
         for i in range(3):
             text_excerpt = semantics[0 + i] + semantics[1 + i] + semantics[
@@ -107,6 +105,7 @@ class HMCAN(AbstractModel):
         image_features = image_features.permute(0, 2,
                                                 1)  # [batch_size, 16, 768]
 
+        mask = torch.ones_like(mask)  # ban mask
         output = []
         for i in range(3):
             text_image = self.contextual_transform1(text_embeding[i], mask,
@@ -114,7 +113,7 @@ class HMCAN(AbstractModel):
             image_text = self.contextual_transform2(image_features, None,
                                                     text_embeding[i], mask)
             output_feature = self.alpha * text_image + (
-                1 - self.alpha) * image_text
+                    1 - self.alpha) * image_text
             output.append(output_feature)
 
         classifier_input = torch.cat((output[0], output[1], output[2]), dim=1)
@@ -168,14 +167,12 @@ class _TextImageTransformer(nn.Module):
                  right_num_layers: int, right_num_heads: int, dropout: float,
                  feature_dim: int):
         """
-        left_num_layers(int): the num of layer for the left transformer block.
-        left_num_heads(int): the numbers of heads in the
-            left multi-head attention layer.
-        right_num_layers(int): the num of layer for the right transformer block.
-        right_num_heads(int): the numbers of heads in the
-            right multi-head attention layer.
+        left_num_layers(int): layer num of the left transformer block.
+        left_num_heads(int): heads num in the left transformer block.
+        right_num_layers(int): layer num of the right transformer block.
+        right_num_heads(int): heads num of the right transformer block.
         dropout(float): dropout rate.
-        feature_dim(int): the feature dimension of input.
+        feature_dim(int): feature dimension of input.
         """
 
         super().__init__()
@@ -201,7 +198,7 @@ class _TextImageTransformer(nn.Module):
         right_features(Tensor): the right transformer's input,
             shape=(batch_size, length, embedding_dim).
         left_mask(Union[Tensor, None]): the mask of right input,
-            shape=(batch_size, ...)
+            shape=(batch_size, ...).
         """
 
         left_features = self.input_norm(left_features)
@@ -219,19 +216,19 @@ class _TextImageTransformer(nn.Module):
 
 class _TransformerEncoder(nn.Module):
     """
-    single Transformer block for TextImage_Transformer(Contextual Transformer)
+    Transformer for TextImage_Transformer(Contextual Transformer)
     """
 
     def __init__(self, num_layers: int, input_dim: int, num_heads: int,
                  feature_dims: int, dropout: float):
         """
-
-        num_layer(int): the layer's nums of attention block.
+        num_layer(int): layer num of attention block.
         input_dim(int): input dimension.
-        num_heads(int): the head's num of multihead attention.
-        feature_dims(int): the feature dim of multihead attention passing to FFN.
+        num_heads(int): head num of attention block.
+        feature_dims(int): dim of attention block's outputs.
         dropout(float): dropout rate.
         """
+
         super().__init__()
         self.input_dim = input_dim
         assert num_layers > 0
@@ -243,12 +240,12 @@ class _TransformerEncoder(nn.Module):
     def forward(self, query: Tensor, key: Tensor, value: Tensor,
                 mask: Union[Tensor, None]):
         """
-
         query(Tensor): shape=(batch_size, q_num, d)
         key(Tensor): shape=(batch_size, k-v_num, d)
         value(Tensor): shape=(batch_size, k-v_num, v-dim)
         mask(Union[Tensor, None]): shape=(batch_size, ...)
         """
+
         if mask is not None:
             mask = mask.sum(-1, keepdim=False)
         sources = None
@@ -258,6 +255,10 @@ class _TransformerEncoder(nn.Module):
 
 
 class _TransformerEncoderLayer(nn.Module):
+    """
+    Transformer block for each Contextual Transformer
+    """
+
     def __init__(self,
                  input_dim: int,
                  ffn_hidden_size: int,
@@ -266,15 +267,15 @@ class _TransformerEncoderLayer(nn.Module):
                  bias=False):
         """
         Args:
-            input_dim (int): input dimension
-            ffn_hidden_size (int): hidden layer dimension of FFN
-            head_num (int): number of attention heads
+            input_dim (int): input dimension.
+            ffn_hidden_size (int): hidden layer dimension of FFN.
+            head_num (int): number of attention heads.
             dropout (float): dropout rate, default=0.
-            bias (bool): whether to use bias in Linear layers, default=False
+            bias (bool): whether to use bias in Linear layers, default=False.
         """
 
         super(_TransformerEncoderLayer, self).__init__()
-        assert input_dim % head_num == 0,\
+        assert input_dim % head_num == 0, \
             f"model dim {input_dim} not divisible by {head_num} heads"
 
         self.attention = MultiHeadAttention(input_dim,
