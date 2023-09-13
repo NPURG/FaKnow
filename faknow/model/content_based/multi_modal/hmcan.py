@@ -108,10 +108,10 @@ class HMCAN(AbstractModel):
         mask = torch.ones_like(mask)  # ban mask
         output = []
         for i in range(3):
-            text_image = self.contextual_transform1(text_embeding[i], mask,
-                                                    image_features, None)
-            image_text = self.contextual_transform2(image_features, None,
-                                                    text_embeding[i], mask)
+            text_image = self.contextual_transform1(text_embeding[i],
+                                                    image_features, mask, None)
+            image_text = self.contextual_transform2(image_features,
+                                                    text_embeding[i], None, mask)
             output_feature = self.alpha * text_image + (
                     1 - self.alpha) * image_text
             output.append(output_feature)
@@ -167,12 +167,13 @@ class _TextImageTransformer(nn.Module):
                  right_num_layers: int, right_num_heads: int, dropout: float,
                  feature_dim: int):
         """
-        left_num_layers(int): layer num of the left transformer block.
-        left_num_heads(int): heads num in the left transformer block.
-        right_num_layers(int): layer num of the right transformer block.
-        right_num_heads(int): heads num of the right transformer block.
-        dropout(float): dropout rate.
-        feature_dim(int): feature dimension of input.
+        Args:
+            left_num_layers(int): layer num of the left transformer block.
+            left_num_heads(int): heads num in the left transformer block.
+            right_num_layers(int): layer num of the right transformer block.
+            right_num_heads(int): heads num of the right transformer block.
+            dropout(float): dropout rate.
+            feature_dim(int): feature dimension of input.
         """
 
         super().__init__()
@@ -188,17 +189,24 @@ class _TextImageTransformer(nn.Module):
                                                 right_num_heads, input_dim,
                                                 dropout)
 
-    def forward(self, left_features: Tensor, left_mask: Union[Tensor, None],
-                right_features: Tensor, right_mask: Union[Tensor, None]):
+    def forward(self,
+                left_features: Tensor,
+                right_features: Tensor,
+                left_mask: Optional[Tensor] = None,
+                right_mask: Optional[Tensor] = None):
         """
-        left_features(Tensor): the left transformer's input,
-            shape=(batch_size, length, embedding_dim).
-        left_mask(Union[Tensor, None]): the mask of left input,
-            shape=(batch_size, ...).
-        right_features(Tensor): the right transformer's input,
-            shape=(batch_size, length, embedding_dim).
-        left_mask(Union[Tensor, None]): the mask of right input,
-            shape=(batch_size, ...).
+        Args:
+            left_features(Tensor): the left transformer's input,
+                shape=(batch_size, length, embedding_dim).
+            right_features(Tensor): the right transformer's input,
+                shape=(batch_size, length, embedding_dim).
+            left_mask(Union[Tensor, None]): the mask of left input,
+                shape=(batch_size, ...).
+            right_mask(Union[Tensor, None]): the mask of right input,
+                shape=(batch_size, ...)
+
+        Returns:
+            Tensor: shape=(batch_size, 2 * embedding_dim)
         """
 
         left_features = self.input_norm(left_features)
