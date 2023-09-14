@@ -182,13 +182,12 @@ class PositionalEncoding(nn.Module):
         """
 
         super().__init__()
-        pe = torch.zeros(max_len, dim).float()
+        self.pe = torch.zeros(max_len, dim).float()
         position = torch.arange(0, max_len).unsqueeze(1).float()
         dimension = torch.arange(0, dim).float()
         div_term = 10000 ** (2 * dimension / dim)
-        pe[:, 0::2] = torch.sin(position / div_term[0::2])
-        pe[:, 1::2] = torch.cos(position / div_term[1::2])
-        self.register_buffer('pe', pe)
+        self.pe[:, 0::2] = torch.sin(position / div_term[0::2])
+        self.pe[:, 1::2] = torch.cos(position / div_term[1::2])
         self.dropout = nn.Dropout(p=dropout)
         self.dim = dim
 
