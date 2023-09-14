@@ -8,10 +8,18 @@ from faknow.utils.pgd import PGD
 
 
 class MFANTrainer(BaseTrainer):
+    """
+    Trainer for MFAN model with PGD defence,
+    which inherits from BaseTrainer and modifies the '_train_epoch' method.
+    """
+
     def _train_epoch(self, data: DataLoader, epoch: int) -> Dict[str, float]:
         self.model.train()
 
-        pgd_word = PGD(self.model, emb_name='word_embedding', epsilon=6, alpha=1.8)
+        pgd_word = PGD(self.model,
+                       emb_name='word_embedding',
+                       epsilon=6,
+                       alpha=1.8)
         losses = loss_defence = loss_adv = None
 
         for batch_id, batch_data in enumerate(data):

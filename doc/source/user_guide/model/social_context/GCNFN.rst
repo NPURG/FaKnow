@@ -1,0 +1,89 @@
+GCNFN
+=====
+Introduction
+-------------
+`[paper] <https://arxiv.org/abs/1902.06673>`_
+
+**Title:** Fake News Detection on Social Media using Geometric Deep Learning
+
+**Authors:** Federico Monti, Fabrizio Frasca, Davide Eynard, Damon Mannion, Michael M. Bronstein
+
+**Abstract:** Social media are nowadays one of the main news sources for millions of people around the globe due to their
+low cost, easy access and rapid dissemination. This however comes at the cost of dubious trustworthiness and significant
+risk of exposure to 'fake news', intentionally written to mislead the readers. Automatically detecting fake news poses
+challenges that defy existing content-based analysis approaches. One of the main reasons is that often the interpretation
+of the news requires the knowledge of political or social context or 'common sense', which current NLP algorithms are still
+missing. Recent studies have shown that fake and real news spread differently on social media, forming propagation patterns
+that could be harnessed for the automatic fake news detection. Propagation-based approaches have multiple advantages compared
+to their content-based counterparts, among which is language independence and better resilience to adversarial attacks.
+In this paper we show a novel automatic fake news detection model based on geometric deep learning. The underlying core
+algorithms are a generalization of classical CNNs to graphs, allowing the fusion of heterogeneous data such as content,
+user profile and activity, social graph, and news propagation. Our model was trained and tested on news stories, verified
+by professional fact-checking organizations, that were spread on Twitter. Our experiments indicate that social network
+structure and propagation are important features allowing highly accurate (92.7% ROC AUC) fake news detection. Second,
+we observe that fake news can be reliably detected at an early stage, after just a few hours of propagation. Third, we
+test the aging of our model on training and testing data separated in time. Our results point to the promise of
+propagation-based approaches for fake news detection as an alternative or complementary strategy to content-based approaches.
+
+.. image:: ../../../media/GCNFN.png
+    :align: center
+
+Running with Faknow
+---------------------
+**Model Hyper-Parameters:**
+
+- ``name (str)`` : The name of the graph set (:obj:`"politifact"`, :obj:`"gossipcop"`)
+
+- ``feature (str)`` : The node feature type (:obj:`"profile"`, :obj:`"spacy"`, :obj:`"bert"`, :obj:`"content"`)
+        If set to :obj:`"profile"`, the 10-dimensional node feature
+        is composed of ten Twitter user profile attributes.
+        If set to :obj:`"spacy"`, the 300-dimensional node feature is
+        composed of Twitter user historical tweets encoded by
+        the `spaCy word2vec encoder
+        <https://spacy.io/models/en#en_core_web_lg>`_.
+        If set to :obj:`"bert"`, the 768-dimensional node feature is
+        composed of Twitter user historical tweets encoded by the
+        `bert-as-service <https://github.com/hanxiao/bert-as-service>`_.
+        If set to :obj:`"content"`, the 310-dimensional node feature is
+        composed of a 300-dimensional "spacy" vector plus a
+        10-dimensional "profile" vector.
+
+- ``splits (List[str])`` : dataset split, including 'train', 'val' and 'test'.
+        If None, ['train', 'val', 'test'] will be used. Default = ``None``
+
+- ``batch_size (int)`` : batch size, default = ``128``
+
+- ``epochs (int)`` : number of epochs, default = ``110``
+
+- ``hidden_size (int)`` : dimension of hidden layer, default = ``128``
+
+- ``lr (float)`` : learning rate, default = ``0.001``
+
+- ``weight_decay (float)`` : weight decay, default = ``0.01``
+
+- ``metrics (List)`` : evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default = ``None``
+
+- ``device (str)`` : device, default = ``'cpu'``
+
+**A Running Example:**
+
+Write the following code to a python file, such as run.py
+
+.. code:: python
+
+    from faknow.run.social_context import run_gcnfn
+
+    run_gcnfn(root=, name=, feature=)
+
+And then:
+
+.. code:: bash
+
+   python run.py
+
+If you want to change parameters, dataset or evaluation settings, take a look at
+
+- :doc:`../../../../user_guide/config_intro`
+- :doc:`../../../../user_guide/data_intro`
+- :doc:`../../../../user_guide/train_eval_intro`
+- :doc:`../../../../user_guide/usage`
