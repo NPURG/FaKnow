@@ -25,6 +25,6 @@ the common usage in Python, which is **lazy loading**, only load when needed, av
 and program crashes caused by loading all image data (especially large datasets and high-resolution images) into memory
 at once.
 
-.. image:: ../../media/lazy_loading.png
+.. image:: ../../media/lazyloading.png
     :align: center
 

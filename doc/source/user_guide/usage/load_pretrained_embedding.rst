@@ -3,7 +3,7 @@ Load Pre-trained Embedding
 Using pre trained models is a very effective approach. Here, we use SpotFake as an example to introduce how to use pre
 trained models.
 
-The following is the running code for SpotFake:
+The following is the running code for :doc:`../model/content_based/SpotFake`:
 
 .. code:: python
 

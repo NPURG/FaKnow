@@ -30,8 +30,9 @@ Welcome to FaKnow's documentation!
    :maxdepth: 2
    :caption: Developer Guide:
 
-   run/multimodal
-
+   developer_guide/customize_models
+   developer_guide/customize_trainers
+   developer_guide/customize_dataloaders
 
 .. toctree::
    :maxdepth: 1

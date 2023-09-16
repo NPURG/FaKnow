@@ -15,7 +15,7 @@ For example, ``MFANTrainer`` is a trainer written specifically for MFAN, which m
 
 Evaluation introduction
 ------------------------
-Faknow has designed a validator Evaluator in the validation module, which uses the input model output tensor ``outputs``
+Faknow has designed a validator ``Evaluator`` in the validation module, which uses the input model output tensor ``outputs``
 and the real label tensor ``y`` to evaluate the model's indicators such as ``accuracy``, ``precision``, ``recall``, and ``f1``.
 
 Training and validation visualization can be found in :doc:`./usage/save_and_visualization`
