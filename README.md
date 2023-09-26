@@ -1,7 +1,7 @@
 # FaKnow
 
 **FaKnow** (**Fa**ke **Know**), a unified *Fake News Detection* algorithms library based on PyTorch, is designed for
-reproducing and developing fake news detection algorithms. It includes **17 models**(see at **Integrated Models**), covering **3 categories**:
+reproducing and developing fake news detection algorithms. It includes **19 models**(see at **Integrated Models**), covering **3 categories**:
 
 - content based
 - social context
@@ -51,7 +51,7 @@ pip install -e . --verbose
 ### Quick Start
 
 We provide several methods to **run integrated models** quickly with passing only few arguments. For hyper parameters
-like learning rate, values from the open source code of the paper are taken as default. You can also passing your own
+like learning rate, values from the open source code of the paper are taken as default. You can also pass your own
 defined hyper parameters to these methods.
 
 #### run
@@ -69,7 +69,7 @@ kargs = {'train_path': 'train.json', 'test_path': 'test.json'}  # dict arguments
 run(model, **kargs)
 ```
 
-the json file for *mdfend* shoule be like:
+the json file for *mdfend* should be like:
 
 ```json
 [
@@ -105,8 +105,9 @@ test_path: test.json # the path of testing set file
 
 #### run specific models
 
-You can also run specific models using `run_model` and `run_model_from_yaml` methods by passing paramter, where `model`
-is the short name of the integrated model you want to use. The usages are the same as `run` and `run_from_yaml`.
+You can also run specific models using `run_$model$` and `run_$model$_from_yaml` methods by passing parameter,
+where `$model$` should be the lowercase name of the integrated model you want to use.
+The usages are the same as `run` and `run_from_yaml`.
 Following is an example to run *mdfend*.
 
 ```python
@@ -188,6 +189,8 @@ print(trainer.evaluate(test_loader))
 |                 | [SAFE: Similarity-Aware Multi-Modal Fake News Detection](https://dl.acm.org/doi/abs/10.1007/978-3-030-47436-2_27)                                            | PAKDD              | 2020         | [Jindi0/SAFE](https://github.com/Jindi0/SAFE)                                                                                       | [SAFE](faknow/model/content_based/multi_modal/safe.py)         |
 |                 | [SpotFake: A Multimodal Framework for Fake News Detection](https://ieeexplore.ieee.org/document/8919302)                                                     | BigMM              | 2019         | [shiivangii/SpotFake](https://github.com/shiivangii/SpotFake)                                                                       | [SpotFake](faknow/model/content_based/multi_modal/spotfake.py) |
 |                 | [Multimodal Fusion with Co-Attention Networks for Fake News Detection](https://aclanthology.org/2021.findings-acl.226/)                                      | ACL                | 2021         | [wuyang45/MCAN_code](https://github.com/wuyang45/MCAN_code)                                                                         | [MCAN](faknow/model/content_based/multi_modal/mcan.py)         |
+|                 | [HMCAN: Hierarchical Multi-modal Contextual Attention Network for fake news Detection](https://dl.acm.org/doi/10.1145/3404835.3462871)                       | SIGIR              | 2021         | [wangjinguang502/HMCAN](https://github.com/wangjinguang502/HMCAN)                                                                   | [HMCAN](faknow/model/content_based/multi_modal/hmcan.py)       |
+|                 | [Generalizing to the Future: Mitigating Entity Bias in Fake News Detection](https://dl.acm.org/doi/10.1145/3477495.3531816)                                  | SIGIR              | 2022         | [ICTMCG/ENDEF-SIGIR2022](https://github.com/ICTMCG/ENDEF-SIGIR2022)                                                                 | [ENDEF](faknow/model/content_based/endef.py)                   |
 | Social Context  | [Semi-Supervised Classification with Graph Convolutional Networks](https://ieeexplore.ieee.org/document/8953909)                                             | CVPR               | 2019         | [safe-graph/GNN-FakeNews](https://github.com/safe-graph/GNN-FakeNews)                                                               | [GCN](faknow/model/social_context/base_gnn.py)                 |
 |                 | [Inductive Representation Learning on Large Graphs](https://dl.acm.org/doi/10.5555/3294771.3294869)                                                          | NeurIPS            | 2017         | [safe-graph/GNN-FakeNews](https://github.com/safe-graph/GNN-FakeNews)                                                               | [SAGE](faknow/model/social_context/base_gnn.py)                |
 |                 | [Graph Attention Networks](https://openreview.net/forum?id=rJXMpikCZ)                                                                                        | ICLR               | 2018         | [safe-graph/GNN-FakeNews](https://github.com/safe-graph/GNN-FakeNews)                                                               | [GAT](faknow/model/social_context/base_gnn.py)                 |
