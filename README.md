@@ -1,5 +1,9 @@
 # FaKnow
 
+[Docs]
+
+[Docs]: https://jialiangwww.github.io/faknow.io/
+
 **FaKnow** (**Fa**ke **Know**), a unified *Fake News Detection* algorithms library based on PyTorch, is designed for
 reproducing and developing fake news detection algorithms. It includes **19 models**(see at **Integrated Models**), covering **3 categories**:
 
