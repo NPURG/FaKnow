@@ -1,5 +1,4 @@
-from typing import Dict, List
-from transformers import BertTokenizer
+from typing import List
 
 import torch
 import yaml
@@ -9,55 +8,13 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from faknow.data.dataset.multi_modal import MultiModalDataset
+from faknow.data.process.text_process import TokenizerForBert
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.hmcan import HMCAN
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
-__all__ = [
-    'TokenizerHMCAN', 'transform_hmcan', 'run_hmcan', 'run_hmcan_from_yaml'
-]
-
-
-class TokenizerHMCAN:
-    """
-
-    Tokenizer for HMCAN
-    """
-    def __init__(self, max_len=20, bert="bert-base-uncased"):
-        """
-
-        Args:
-            max_len(int): max length of input text, default=20.
-            bert(str): bert model name, default = "bert-base-uncased"
-        """
-        self.max_len = max_len
-        self.tokenizer = BertTokenizer.from_pretrained(bert)
-
-    def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
-        """
-
-        tokenize texts
-
-        Args:
-            texts(List[str]): texts to be tokenized
-
-        Returns:
-            Dict[str, torch.Tensor]: tokenized texts
-                with key 'token_id' and 'mask'
-        """
-
-        inputs = self.tokenizer(texts,
-                                return_tensors='pt',
-                                max_length=self.max_len,
-                                add_special_tokens=True,
-                                padding='max_length',
-                                truncation=True)
-
-        return {
-            'token_id': inputs['input_ids'],
-            'mask': inputs['attention_mask']
-        }
+__all__ = ['transform_hmcan', 'run_hmcan', 'run_hmcan_from_yaml']
 
 
 def transform_hmcan(path: str) -> torch.Tensor:
@@ -127,7 +84,7 @@ def run_hmcan(train_path: str,
         device (str): device, default='cpu'
     """
 
-    tokenizer = TokenizerHMCAN(max_len, bert)
+    tokenizer = TokenizerForBert(max_len, bert)
     train_set = MultiModalDataset(train_path, ['text'], tokenizer, ['image'],
                                   transform_hmcan)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)

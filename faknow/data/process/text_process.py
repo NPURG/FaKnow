@@ -7,6 +7,8 @@ import jieba
 import numpy as np
 from nltk import word_tokenize, PorterStemmer, WordNetLemmatizer
 from nltk.corpus import stopwords
+import torch
+from transformers import BertTokenizer
 
 default_chinese_stop_words_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stop_words',
                                                'stop_words.txt')
@@ -75,3 +77,44 @@ def padding_vec_and_idx(word_vectors: np.ndarray, word_idx: Dict[str, int]):
         [np.zeros((1, word_vectors.shape[1]), dtype='float32'), word_vectors])
     word_idx_map = {word: index + 1 for word, index in word_idx.items()}
     return word_vectors, word_idx_map
+
+
+class TokenizerForBert:
+    """
+    Tokenizer for Bert with fixed length,
+    return token_id and mask
+    """
+
+    def __init__(self, max_len: int, bert: str):
+        """
+
+        Args:
+            max_len (int): max length of input text
+            bert (str): bert model name
+        """
+
+        self.max_len = max_len
+        self.tokenizer = BertTokenizer.from_pretrained(bert)
+
+    def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
+        """
+        tokenize texts
+
+        Args:
+            texts (List[str]): texts to be tokenized
+
+        Returns:
+            Dict[str, torch.Tensor]: tokenized texts
+                with key 'token_id' and 'mask'
+        """
+
+        inputs = self.tokenizer(texts,
+                                return_tensors='pt',
+                                max_length=self.max_len,
+                                add_special_tokens=True,
+                                padding='max_length',
+                                truncation=True)
+        return {
+            'token_id': inputs['input_ids'],
+            'mask': inputs['attention_mask']
+        }

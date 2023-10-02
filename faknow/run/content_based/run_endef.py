@@ -1,11 +1,11 @@
-from typing import List, Dict, Optional
+from typing import List, Optional
 
 import torch
 import yaml
 from torch.utils.data import DataLoader
-from transformers import BertTokenizer
 
 from faknow.data.dataset.text import TextDataset
+from faknow.data.process.text_process import TokenizerForBert
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.endef import ENDEF
 from faknow.model.content_based.mdfend import MDFEND
@@ -13,49 +13,7 @@ from faknow.model.model import AbstractModel
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
-__all__ = ['TokenizerENDEF', 'run_endef', 'run_endef_from_yaml']
-
-
-class TokenizerENDEF:
-    """Tokenizer for ENDEF"""
-
-    def __init__(self, max_len=170, bert="hfl/chinese-roberta-wwm-ext"):
-        """
-        Args:
-            max_len(int): max length of input text, default=170
-            bert(str): bert model name, default="hfl/chinese-roberta-wwm-ext"
-        """
-        self.max_len = max_len
-        self.tokenizer = BertTokenizer.from_pretrained(bert)
-
-    def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
-        """
-
-        tokenize texts
-
-        Args:
-            texts(List[str]): texts to be tokenized
-
-        Returns:
-            Dict[str, torch.Tensor]: tokenized texts with key 'token_id' and 'mask'
-        """
-
-        token_id = []
-        attention_mask = []
-        for _, text in enumerate(texts):
-            inputs = self.tokenizer(text,
-                                    return_tensors='pt',
-                                    max_length=self.max_len,
-                                    add_special_tokens=True,
-                                    padding='max_length',
-                                    truncation=True)
-            token_id.append(inputs['input_ids'])
-            attention_mask.append(inputs['attention_mask'])
-
-        token_id = torch.cat(token_id, dim=0)
-        attention_mask = torch.cat(attention_mask, dim=0)
-
-        return {'token_id': token_id, 'mask': attention_mask}
+__all__ = ['run_endef', 'run_endef_from_yaml']
 
 
 def run_endef(train_path: str,
@@ -93,7 +51,7 @@ def run_endef(train_path: str,
         device (str): device to run model, default='cpu'
     """
 
-    tokenizer = TokenizerENDEF(max_len, bert)
+    tokenizer = TokenizerForBert(max_len, bert)
     train_set = TextDataset(train_path, ['text', 'entity'], tokenizer)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
 
