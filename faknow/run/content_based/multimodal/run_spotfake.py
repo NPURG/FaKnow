@@ -9,9 +9,9 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from transformers import BertTokenizer
 
 from faknow.data.dataset.multi_modal import MultiModalDataset
+from faknow.data.process.text_process import TokenizerForBert
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.spotfake import SpotFake
 from faknow.train.trainer import BaseTrainer
