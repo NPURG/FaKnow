@@ -15,10 +15,10 @@ __all__ = ['run_bigcn', 'run_bigcn_from_yaml']
 
 def run_bigcn(root: str,
               name: str,
-              feature: str,
+              feature='bert',
               splits: List[str] = None,
               batch_size=128,
-              epochs=45,
+              epochs=50,
               hidden_size=128,
               td_drop_rate=0.2,
               bu_drop_rate=0.2,
@@ -45,7 +45,7 @@ def run_bigcn(root: str,
             `bert-as-service <https://github.com/hanxiao/bert-as-service>`_.
             If set to :obj:`"content"`, the 310-dimensional node feature is
             composed of a 300-dimensional "spacy" vector plus a
-            10-dimensional "profile" vector.
+            10-dimensional "profile" vector. default='bert'
         splits (List[str]): dataset split, including 'train', 'val' and 'test'.
             If None, ['train', 'val', 'test'] will be used. Default=None
         batch_size (int): batch size, default=128
