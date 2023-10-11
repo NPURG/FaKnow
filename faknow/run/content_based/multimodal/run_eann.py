@@ -16,8 +16,7 @@ from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str, read_stop_words
 
 __all__ = [
-    'TokenizerEANN', 'transform_eann', 'adjust_lr_eann', 'run_eann',
-    'run_eann_from_yaml'
+    'TokenizerEANN', 'transform_eann', 'run_eann', 'run_eann_from_yaml'
 ]
 
 
@@ -115,20 +114,6 @@ def transform_eann(path: str) -> torch.Tensor:
         return trans(img)
 
 
-def adjust_lr_eann(epoch: int) -> float:
-    """
-    adjust learning rate for EANN
-
-    Args:
-        epoch (int): current epoch
-
-    Returns:
-        float: learning rate
-    """
-
-    return 0.001 / (1. + 10 * (float(epoch) / 100))**0.75
-
-
 def run_eann(train_path: str,
              vocab: Dict[str, int],
              stop_words: List[str],
@@ -183,13 +168,10 @@ def run_eann(train_path: str,
     model = EANN(event_num, embed_weight=word_vectors)
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, list(model.parameters())), lr)
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
-                                                  lr_lambda=adjust_lr_eann)
     evaluator = Evaluator(metrics)
     trainer = BaseTrainer(model,
                           evaluator,
                           optimizer,
-                          scheduler,
                           device=device)
     trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 

@@ -12,7 +12,7 @@ from faknow.model.model import AbstractModel
 
 class EANN(AbstractModel):
     r"""
-    EANN: Multi-Modal Fake News Detection, KDD 2018
+    EANN: Event Adversarial Neural Networks for Multi-Modal Fake News Detection, KDD 2018
     paper: https://dl.acm.org/doi/abs/10.1145/3219819.3219903
     code: https://github.com/yaqingwang/EANN-KDD18
     """
@@ -31,22 +31,19 @@ class EANN(AbstractModel):
         """
         super(EANN, self).__init__()
 
-        self.loss_funcs = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss()]
-        self.loss_weights = [1.0, 1.0]
-
         self.event_num = event_num
         self.embed_dim = embed_weight.shape[-1]
         self.hidden_size = hidden_size
         self.reverse_lambda = reverse_lambda
 
         # text
-        self.embed = nn.Embedding.from_pretrained(embed_weight, freeze=False)
+        self.embed = nn.Embedding.from_pretrained(embed_weight)
 
         filter_num = 20
         window_size = [1, 2, 3, 4]
-        self.text_ccn_layer = TextCNNLayer(self.embed_dim, filter_num,
+        self.text_cnn_layer = TextCNNLayer(self.embed_dim, filter_num,
                                            window_size, F.leaky_relu)
-        self.text_ccn_fc = nn.Linear(
+        self.text_fc = nn.Linear(
             len(window_size) * filter_num, self.hidden_size)
 
         # image
@@ -88,8 +85,8 @@ class EANN(AbstractModel):
         # text CNN
         text = self.embed(token_id)
         text = text * mask.unsqueeze(2).expand_as(text)
-        text = self.text_ccn_layer(text)
-        text = F.leaky_relu(self.text_ccn_fc(text))
+        text = self.text_cnn_layer(text)
+        text = F.leaky_relu(self.text_fc(text))
 
         # combine Text and Image
         text_image = torch.cat((text, image), 1)
@@ -120,10 +117,10 @@ class EANN(AbstractModel):
         event_label = data['domain']
         label = data['label']
         class_output, domain_output = self.forward(token_id, mask, image)
-        class_loss = self.loss_funcs[0](class_output,
-                                        label) * self.loss_weights[0]
-        domain_loss = self.loss_funcs[1](domain_output,
-                                         event_label) * self.loss_weights[1]
+
+        criterion = nn.CrossEntropyLoss()
+        class_loss = criterion(class_output, label)
+        domain_loss = criterion(domain_output, event_label)
         loss = class_loss + domain_loss
 
         return {'total_loss': loss, 'class_loss': class_loss, 'domain_loss': domain_loss}
