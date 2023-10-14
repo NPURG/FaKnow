@@ -9,6 +9,7 @@ import yaml
 
 __all__ = ['run_fang', 'run_fang_from_yaml']
 
+
 def run_fang(data_root: str,
              metrics=None,
              lr=1e-4,
@@ -47,23 +48,23 @@ def run_fang(data_root: str,
     fang_data = FangDataset(data_root)
     train_idxs = fang_data.train_idxs
     train_loader = torch.utils.data.DataLoader(train_idxs,
-                                              batch_size=batch_size,
-                                              shuffle=True
-                                              )
+                                               batch_size=batch_size,
+                                               shuffle=True
+                                               )
     if fang_data.dev_idxs is not None:
         val_data = fang_data.dev_idxs
         val_label = [fang_data.news_labels[val_node] for val_node in val_data]
-        val_indexs =  FangTrainDataSet(val_data, val_label)
+        val_indexs = FangTrainDataSet(val_data, val_label)
         val_loader = torch.utils.data.DataLoader(val_indexs,
                                                  batch_size=batch_size,
                                                  shuffle=False)
 
     model = FANG(fang_data, input_size, embedding_size, num_stance, num_stance_hidden,
-                 timestamp_size,num_classes,dropout)
+                 timestamp_size, num_classes, dropout)
     optimizer = torch.optim.Adam(params=model.parameters(), lr=lr,
                                  weight_decay=weight_decay)
     evaluator = Evaluator(metrics)
-    trainer = BaseTrainer(model, evaluator, optimizer,device=device)
+    trainer = BaseTrainer(model, evaluator, optimizer, device=device)
 
     trainer.fit(train_loader, num_epochs=num_epochs, validate_loader=val_loader)
 
@@ -76,6 +77,7 @@ def run_fang(data_root: str,
                                                   shuffle=False)
         test_result = trainer.evaluate(test_loader)
         print(f"test result: {dict2str(test_result)}")
+
 
 def run_fang_from_yaml(path: str):
     """

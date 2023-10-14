@@ -12,12 +12,14 @@ NAME_WEIGHT_DELIMITER = "#"
 STANCE_DELIMITER = "_"
 USER_TAG, NEWS_TAG, SOURCE_TAG, COMMUNITY_TAG = "user", "news", "source", "community"
 
+
 def encode_class_idx_label(label_map: dict):
     """ encode label to one_hot embedding"""
     classes = list(sorted(set(label_map.values())))
     class2idx = {c: i for i, c in enumerate(classes)}
     labels_onehot_map = {k: class2idx[v] for k, v in label_map.items()}
     return labels_onehot_map, len(classes), class2idx
+
 
 def row_normalize(mtx: numpy.array):
     """Row-normalize sparse matrix"""
@@ -27,12 +29,13 @@ def row_normalize(mtx: numpy.array):
     row_mtx_inv = sp.diags(sum_inv)
     return row_mtx_inv.dot(mtx)
 
+
 def is_tag(entity_type: str, entity: str):
     """ find whether the entity is tagged."""
     return entity.startswith(entity_type)
 
 
-def read_csv(path: str, load_header: bool=False, delimiter: str= ","):
+def read_csv(path: str, load_header: bool = False, delimiter: str = ","):
     content = []
     with open(path, "r", encoding="utf-8") as f:
         csv_reader = csv.reader(f, delimiter=delimiter, quotechar='"')
@@ -42,18 +45,22 @@ def read_csv(path: str, load_header: bool=False, delimiter: str= ","):
             [content.append(row) for i, row in enumerate(csv_reader) if i > 0]
     return content
 
+
 def load_text_as_list(input_path: str):
     with open(input_path, 'r', encoding="utf-8") as f:
         return f.read().splitlines()
+
 
 def load_json(input_path: str):
     with open(input_path, "rb") as f:
         return json.load(f)
 
+
 class FangDataset(Dataset):
     """
     construct global graph from tsv, txt and csv
     """
+
     def __init__(self, root_path: str):
 
         self.root_path = root_path
@@ -105,7 +112,7 @@ class FangDataset(Dataset):
 
         return stance_map
 
-    def get_news_label_map(self,news_info_path: str):
+    def get_news_label_map(self, news_info_path: str):
         news_info_data = read_csv(news_info_path, True, "\t")
         news_label_map = {row[0]: row[1] for row in news_info_data}
         return news_label_map
@@ -205,10 +212,12 @@ class FangDataset(Dataset):
     def __getitem__(self, index):
         return self.entities[index]
 
+
 class FangTrainDataSet(Dataset):
     """
     DataSet used for train, validate and test
     """
+
     def __init__(self, data_batch: list, label: list):
         super().__init__()
         self.data_batch = data_batch
@@ -216,8 +225,8 @@ class FangTrainDataSet(Dataset):
 
     def __len__(self):
         return len(self.data_batch)
+
     def __getitem__(self, idx):
         item = {'data': self.data_batch[idx],
                 'label': self.label[idx]}
         return item
-

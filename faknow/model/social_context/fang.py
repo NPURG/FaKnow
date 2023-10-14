@@ -15,6 +15,7 @@ class GraphSAGE(nn.Module):
     """
     graphsage model with 2 conv layers
     """
+
     def __init__(self, input_size: int, output_size: int):
         super(GraphSAGE, self).__init__()
 
@@ -64,6 +65,7 @@ class _FakeNewsClassifier(nn.Module):
     """
     Fakenews classifier for news features after inferred by graphsage
     """
+
     def __init__(self, embedding_size: int, hidden_size: int, num_stance: int, timestamp_size: int, num_classes: int,
                  dropout: float):
         """
@@ -96,7 +98,8 @@ class _FakeNewsClassifier(nn.Module):
         last_input_dim = 2 * hidden_size + embedding_size
         self.output_layer = nn.Linear(last_input_dim, num_classes)
 
-    def forward(self, news: torch.Tensor, source: torch.Tensor, user: torch.Tensor, stances: torch.Tensor, timestamps: torch.Tensor, masked_attn: torch.Tensor):
+    def forward(self, news: torch.Tensor, source: torch.Tensor, user: torch.Tensor, stances: torch.Tensor,
+                timestamps: torch.Tensor, masked_attn: torch.Tensor):
         """
         Args:
             news(torch.Tensor):  news features.
@@ -132,7 +135,8 @@ class FANG(AbstractModel):
     paper: https://dl.acm.org/doi/10.1145/3340531.3412046
     code: https://github.com/nguyenvanhoang7398/FANG
     """
-    def __init__(self,fang_data: FangDataset,
+
+    def __init__(self, fang_data: FangDataset,
                  input_size=100,
                  embedding_size=16,
                  num_stance=4,
@@ -153,13 +157,14 @@ class FANG(AbstractModel):
         """
         super(FANG, self).__init__()
 
-        self.Q = 10 # used for compute unsupvised loss.
+        self.Q = 10  # used for compute unsupvised loss.
         self.fang_data = fang_data
         self.embedding_size = embedding_size
         self.graph_sage = GraphSAGE(input_size, embedding_size)
         self.stance_classifier = _StanceClassifier(embedding_size, num_stance, num_stance_hidden)
         self.news_classifier = _FakeNewsClassifier(embedding_size, int(embedding_size / 2), num_stance,
-                                                   timestamp_size, num_classes, dropout)     # hidden_size = embedding_size/2, so that lstm output can add with graphsage output directly.
+                                                   timestamp_size, num_classes,
+                                                   dropout)  # hidden_size = embedding_size/2, so that lstm output can add with graphsage output directly.
 
         self.news_loss = nn.CrossEntropyLoss()
         self.stance_loss = nn.CrossEntropyLoss()
@@ -337,7 +342,7 @@ class FANG(AbstractModel):
 
         news_batch = [n for n in data_batch if n in self.fang_data.news]
 
-        edge_list = [[],[]]
+        edge_list = [[], []]
         for edge in self.fang_data.edge_list:
             edge_list[0].append(edge[0])
             edge_list[1].append(edge[1])
@@ -408,7 +413,6 @@ class FANG(AbstractModel):
                                                                              4,
                                                                              4,
                                                                              1)
-
 
         extended_news_source_batch = list(set([i for x in positive_pairs for i in x])
                                           | set([i for x in negative_pairs for i in x]))
@@ -488,7 +492,7 @@ class FANG(AbstractModel):
 
         return news_loss + stance_loss + unsup_loss
 
-    def predict(self, data_without_label:dict):
+    def predict(self, data_without_label: dict):
 
         data_without_label = data_without_label['data']
         nodes = [int(n) for n in data_without_label]
