@@ -1,6 +1,7 @@
 import pickle
 import re
 from typing import Dict, List, Any
+import warnings
 
 import jieba
 import torch
@@ -157,6 +158,8 @@ def run_eann(train_path: str,
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
     if event_num is None:
         event_num = torch.max(train_set.data['domain']).item() + 1
+        warnings.warn(f"event_num is not specified,"
+                      f"use max domain number in training set + 1: {event_num} as event_num")
 
     if validate_path is not None:
         val_set = MultiModalDataset(validate_path, ['text'], tokenizer,
@@ -180,7 +183,7 @@ def run_eann(train_path: str,
                                      transform_eann)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f"test result: {dict2str(test_result)}")
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
