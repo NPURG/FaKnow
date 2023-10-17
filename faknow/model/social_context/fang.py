@@ -11,13 +11,13 @@ import torch
 import random
 
 
-class GraphSAGE(nn.Module):
+class _GraphSAGE(nn.Module):
     """
     graphsage model with 2 conv layers
     """
 
     def __init__(self, input_size: int, output_size: int):
-        super(GraphSAGE, self).__init__()
+        super(_GraphSAGE, self).__init__()
 
         self.conv1 = SAGEConv(input_size, output_size)
         self.conv2 = SAGEConv(output_size, output_size)
@@ -131,7 +131,7 @@ class _FakeNewsClassifier(nn.Module):
 
 class FANG(AbstractModel):
     r"""
-    FANG: Leveraging Social Context for Fake News Detection Using Graph Representation
+    FANG: Leveraging Social Context for Fake News Detection Using Graph Representation, CIKM 2020
     paper: https://dl.acm.org/doi/10.1145/3340531.3412046
     code: https://github.com/nguyenvanhoang7398/FANG
     """
@@ -160,7 +160,7 @@ class FANG(AbstractModel):
         self.Q = 10  # used for compute unsupvised loss.
         self.fang_data = fang_data
         self.embedding_size = embedding_size
-        self.graph_sage = GraphSAGE(input_size, embedding_size)
+        self.graph_sage = _GraphSAGE(input_size, embedding_size)
         self.stance_classifier = _StanceClassifier(embedding_size, num_stance, num_stance_hidden)
         self.news_classifier = _FakeNewsClassifier(embedding_size, int(embedding_size / 2), num_stance,
                                                    timestamp_size, num_classes,
@@ -377,10 +377,15 @@ class FANG(AbstractModel):
 
         return logits, entity_embedding, news_label, news_embedding, news, sources, all_engage_users, news_attention
 
-    def calculate_loss(self, data: list):
+    def calculate_loss(self, data: list) -> torch.Tensor:
         """
+        calculate total loss
+
         Args:
             data(list): nodes' idx list
+
+        Returns:
+            Torch.Tensor: news_loss + stance_loss + unsup_loss
         """
 
         nodes = data
@@ -492,8 +497,16 @@ class FANG(AbstractModel):
 
         return news_loss + stance_loss + unsup_loss
 
-    def predict(self, data_without_label: dict):
+    def predict(self, data_without_label: dict) -> torch.Tensor:
+        """
+        predict the probability of being fake news
 
+        Args:
+            data_without_label(dict): batch data
+
+        Returns:
+            torch.Tensor: predict probability, shape=(batch_size, 2)
+        """
         data_without_label = data_without_label['data']
         nodes = [int(n) for n in data_without_label]
         logits, _, _, _, _, _, _, _ = self.forward(nodes)

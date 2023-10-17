@@ -213,9 +213,9 @@ class FangDataset(Dataset):
         return self.entities[index]
 
 
-class FangTrainDataSet(Dataset):
+class FangEvaluateDataSet(Dataset):
     """
-    DataSet used for train, validate and test
+    DataSet used for validate and test
     """
 
     def __init__(self, data_batch: list, label: list):

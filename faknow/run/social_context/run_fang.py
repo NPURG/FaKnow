@@ -1,4 +1,4 @@
-from faknow.data.dataset.fang_dataset import FangDataset, FangTrainDataSet
+from faknow.data.dataset.fang_dataset import FangDataset, FangEvaluateDataSet
 from faknow.model.social_context.fang import FANG
 from faknow.evaluate.evaluator import Evaluator
 from faknow.train.trainer import BaseTrainer
@@ -54,7 +54,7 @@ def run_fang(data_root: str,
     if fang_data.dev_idxs is not None:
         val_data = fang_data.dev_idxs
         val_label = [fang_data.news_labels[val_node] for val_node in val_data]
-        val_indexs = FangTrainDataSet(val_data, val_label)
+        val_indexs = FangEvaluateDataSet(val_data, val_label)
         val_loader = torch.utils.data.DataLoader(val_indexs,
                                                  batch_size=batch_size,
                                                  shuffle=False)
@@ -71,7 +71,7 @@ def run_fang(data_root: str,
     if fang_data.test_idxs is not None:
         test_data = fang_data.test_idxs
         test_label = [fang_data.news_labels[test_node] for test_node in test_data]
-        test_indexs = FangTrainDataSet(test_data, test_label)
+        test_indexs = FangEvaluateDataSet(test_data, test_label)
         test_loader = torch.utils.data.DataLoader(test_indexs,
                                                   batch_size=batch_size,
                                                   shuffle=False)
