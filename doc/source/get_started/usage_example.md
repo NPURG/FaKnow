@@ -2,9 +2,9 @@
 
 ## Quick Start
 
-We provide several methods to **run integrated models** quickly with passing only few arguments. For hyper parameters
-like learning rate, values from the open source code of the paper are taken as default. You can also passing your own
-defined hyper parameters to these methods.
+We provide several methods to **run integrated models** quickly with passing only few arguments. For hyperparameters
+like learning rate, values from the open source code of the paper are taken as default. You can also pass your own
+defined hyperparameters to these methods.
 
 ### run
 
