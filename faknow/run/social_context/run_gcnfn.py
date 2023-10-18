@@ -15,10 +15,10 @@ __all__ = ['run_gcnfn', 'run_gcnfn_from_yaml']
 
 def run_gcnfn(root: str,
               name: str,
-              feature: str,
+              feature='content',
               splits=None,
               batch_size=128,
-              epochs=110,
+              epochs=100,
               hidden_size=128,
               lr=0.001,
               weight_decay=0.01,
@@ -43,11 +43,11 @@ def run_gcnfn(root: str,
             `bert-as-service <https://github.com/hanxiao/bert-as-service>`_.
             If set to :obj:`"content"`, the 310-dimensional node feature is
             composed of a 300-dimensional "spacy" vector plus a
-            10-dimensional "profile" vector.
+            10-dimensional "profile" vector. default='content'
         splits (List[str]): dataset split, including 'train', 'val' and 'test'.
             If None, ['train', 'val', 'test'] will be used. Default=None
         batch_size (int): batch size, default=128
-        epochs (int): number of epochs, default=110
+        epochs (int): number of epochs, default=100
         hidden_size (int): dimension of hidden layer, default=128
         lr (float): learning rate, default=0.001
         weight_decay (float): weight decay, default=0.01

@@ -16,11 +16,11 @@ __all__ = ['run_upfd', 'run_upfd_from_yaml']
 
 def run_upfd(root: str,
              name: str,
-             feature: str,
+             feature='bert',
              splits=None,
              base_model='sage',
              batch_size=128,
-             epochs=75,
+             epochs=30,
              lr=0.01,
              weight_decay=0.01,
              metrics: List = None,
@@ -44,12 +44,12 @@ def run_upfd(root: str,
             `bert-as-service <https://github.com/hanxiao/bert-as-service>`_.
             If set to :obj:`"content"`, the 310-dimensional node feature is
             composed of a 300-dimensional "spacy" vector plus a
-            10-dimensional "profile" vector.
+            10-dimensional "profile" vector. default='bert'
         splits (List[str]): dataset split, including 'train', 'val' and 'test'.
             If None, ['train', 'val', 'test'] will be used, default=None
         base_model (str): base model for UPFD, including 'sage', 'gcn', 'gat', 'gcnfn', default='sage'
         batch_size (int): batch size, default=128
-        epochs (int): number of epochs, default=75
+        epochs (int): number of epochs, default=30
         lr (float): learning rate, default=0.01
         weight_decay (float): weight decay, default=0.01
         metrics (List): evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default=None

@@ -15,12 +15,12 @@ __all__ = ['run_gnncl', 'run_gnncl_from_yaml']
 
 def run_gnncl(root: str,
               name: str,
-              feature: str,
+              feature='profile',
               splits=None,
               batch_size=128,
               max_nodes=500,
-              lr=0.1,
-              epochs=70,
+              lr=0.001,
+              epochs=60,
               metrics: List = None,
               device='cpu'):
     r"""
@@ -42,13 +42,13 @@ def run_gnncl(root: str,
             `bert-as-service <https://github.com/hanxiao/bert-as-service>`_.
             If set to :obj:`"content"`, the 310-dimensional node feature is
             composed of a 300-dimensional "spacy" vector plus a
-            10-dimensional "profile" vector.
+            10-dimensional "profile" vector. default='profile'
         splits (List[str]): dataset split, including 'train', 'val' and 'test'.
             If None, ['train', 'val', 'test'] will be used. Default=None
         batch_size (int): batch size, default=128
         max_nodes (int): max number of nodes, default=500
-        lr (float): learning rate, default=0.1
-        epochs (int): number of epochs, default=70
+        lr (float): learning rate, default=0.001
+        epochs (int): number of epochs, default=60
         metrics (List): evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default=None
         device (str): device, default='cpu'
     """

@@ -8,53 +8,18 @@ from PIL import Image
 from scipy.fftpack import fft, dct
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
-from transformers import get_linear_schedule_with_warmup, BertTokenizer
+from transformers import get_linear_schedule_with_warmup
 
 from faknow.data.dataset.multi_modal import MultiModalDataset
+from faknow.data.process.text_process import TokenizerForBert
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.mcan import MCAN
 from faknow.train.trainer import BaseTrainer
 
 __all__ = [
-    'TokenizerMCAN', 'transform_mcan', 'process_dct_mcan',
+    'transform_mcan', 'process_dct_mcan',
     'get_optimizer_mcan', 'run_mcan', 'run_mcan_from_yaml'
 ]
-
-
-class TokenizerMCAN:
-    """Tokenizer for MCAN"""
-    def __init__(self, max_len=160, bert="bert-base-chinese"):
-        """
-
-        Args:
-            max_len (int): max length of input text
-            bert (str): bert model name, default="bert-base-chinese"
-        """
-
-        self.max_len = max_len
-        self.tokenizer = BertTokenizer.from_pretrained(bert)
-
-    def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
-        """
-        tokenize texts
-
-        Args:
-            texts (List[str]): texts to be tokenized
-
-        Returns:
-            Dict[str, torch.Tensor]: tokenized texts with key 'token_id' and 'mask'
-        """
-
-        inputs = self.tokenizer(texts,
-                                return_tensors='pt',
-                                max_length=self.max_len,
-                                add_special_tokens=True,
-                                padding='max_length',
-                                truncation=True)
-        return {
-            'token_id': inputs['input_ids'],
-            'mask': inputs['attention_mask']
-        }
 
 
 def transform_mcan(path: str) -> Dict[str, torch.Tensor]:
@@ -336,14 +301,16 @@ def run_mcan(train_path: str,
         max_len (int): max length of text, default=255
         batch_size (int): batch size, default=16
         num_epochs (int): number of epochs, default=100
-        metrics (List): metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] will be used, default=None
+        metrics (List): metrics,
+            if None, ['accuracy', 'precision', 'recall', 'f1'] will be used,
+            default=None
         validate_path (str): path of validation data, default=None
         test_path (str): path of test data, default=None
         device (str): device, default='cpu'
         **optimizer_kargs: optimizer kargs
     """
 
-    tokenizer = TokenizerMCAN(max_len, bert)
+    tokenizer = TokenizerForBert(max_len, bert)
 
     train_dataset = MultiModalDataset(train_path, ['text'], tokenizer,
                                       ['image'], transform_mcan)
