@@ -3,7 +3,7 @@ Data Flow
 Faknow is mainly composed of three modules: :doc:`../data_intro`, :doc:`../model_intro`, and
 :doc:`../train_eval_intro`.
 The data module is responsible for preprocessing the user input data and feeding it into the algorithm model module;
-There are several classic false information recognition algorithms in the algorithm model module; The data is trained
+There are several classic false information recognition algorithms in the algorithm model module; The data are trained
 through an embedded algorithm model, and the performance of the algorithm model is evaluated by verifying its various
 indicators. Finally, the final algorithm model is saved.
 
