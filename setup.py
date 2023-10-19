@@ -30,8 +30,8 @@ if on_rtd:
 
 setup(
     name="faknow",
-    version="0.0.1",  # edit faknow/__init__.py in response
-    description="A unified fake news detection library",
+    version="0.0.2",  # edit faknow/__init__.py in response
+    description="None",
     url="https://github.com/NPURG/FaKnow",
     author="NPURG",
     author_email="faknow@outlook.com",
