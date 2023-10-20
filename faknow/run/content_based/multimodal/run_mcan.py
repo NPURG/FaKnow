@@ -15,6 +15,7 @@ from faknow.data.process.text_process import TokenizerForBert
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.mcan import MCAN
 from faknow.train.trainer import BaseTrainer
+from faknow.utils.util import dict2str
 
 __all__ = [
     'transform_mcan', 'process_dct_mcan',
@@ -351,7 +352,7 @@ def run_mcan(train_path: str,
                                  batch_size=batch_size,
                                  shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(test_result)
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_mcan_from_yaml(path: str):

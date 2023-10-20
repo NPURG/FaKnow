@@ -144,7 +144,7 @@ def run_textcnn(train_path: str,
         test_set = TextDataset(test_path, ['text'], tokenizer, ['image'])
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f"test result: {dict2str(test_result)}")
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:

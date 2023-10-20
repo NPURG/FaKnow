@@ -73,7 +73,7 @@ def run_safe(
         test_set = SAFENumpyDataset(test_path)
         test_loader = DataLoader(dataset=test_set, batch_size=batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f"test result: {dict2str(test_result)}")
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_safe_from_yaml(path: str):

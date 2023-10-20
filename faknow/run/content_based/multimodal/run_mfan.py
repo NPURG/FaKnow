@@ -197,7 +197,7 @@ def run_mfan(train_path: str,
                                       transform_mfan)
         test_loader = DataLoader(test_data, batch_size, True)
         test_result = trainer.evaluate(test_loader)
-        print('test result: ', dict2str(test_result))
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:

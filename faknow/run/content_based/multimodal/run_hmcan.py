@@ -108,7 +108,7 @@ def run_hmcan(train_path: str,
                                      transform_hmcan)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f"test result: {dict2str(test_result)}")
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_hmcan_from_yaml(path: str):
