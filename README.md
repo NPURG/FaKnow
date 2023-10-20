@@ -79,11 +79,13 @@ the json file for *mdfend* should be like:
 [
     {
         "text": "this is a sentence.",
-        "domain": 9
+        "domain": 9,
+        "label": 1
     },
     {
         "text": "this is a sentence.",
-        "domain": 1
+        "domain": 1,
+        "label": 0
     }
 ]
 ```
@@ -202,6 +204,7 @@ print(trainer.evaluate(test_loader))
 |                 | [Fake News Detection on Social Media using Geometric Deep Learning](https://arxiv.org/abs/1902.06673)                                                        | arXiv              | 2019         | [safe-graph/GNN-FakeNews](https://github.com/safe-graph/GNN-FakeNews)                                                               | [GCNFN](faknow/model/social_context/gcnfn.py)                  |
 |                 | [Graph neural networks with continual learning for fake news detection from social media](https://arxiv.org/abs/2007.03316)                                  | arXiv              | 2020         | [safe-graph/GNN-FakeNews](https://github.com/safe-graph/GNN-FakeNews)                                                               | [GNNCL](faknow/model/social_context/gnncl.py)                  |
 |                 | [User Preference-aware Fake News Detection](https://dl.acm.org/doi/abs/10.1145/3404835.3462990)                                                              | SIGIR              | 2021         | [safe-graph/GNN-FakeNews](https://github.com/safe-graph/GNN-FakeNews)                                                               | [UPFD](faknow/model/social_context/upfd.py)                    |
+|                 | [FANG: Leveraging Social Context for Fake News Detection Using Graph Representation](https://dl.acm.org/doi/10.1145/3340531.3412046)                         | CIKM               | 2020         | [nguyenvanhoang7398/FANG](https://github.com/nguyenvanhoang7398/FANG)                                                               | [Fang](faknow/model/social_context/fang.py)                    |
 |                 | [Embracing Domain Differences in Fake News: Cross-domain Fake News Detection using Multi-modal Data](https://ojs.aaai.org/index.php/AAAI/article/view/16134) | AAAI               | 2021         | [amilasilva92/cross-domain-fake-news-detection-aaai2021](https://github.com/amilasilva92/cross-domain-fake-news-detection-aaai2021) | [EDDFN](faknow/model/social_context/eddfn.py)                  |
 |                 | [Zoom Out and Observe: News Environment Perception for Fake News Detection](https://aclanthology.org/2022.acl-long.311/)                                     | ACL                | 2022         | [ictmcg/news-environment-perception](https://github.com/ICTMCG/News-Environment-Perception)                                         | [NEP](faknow/model/social_context/nep.py)                      |
 | Knowledge Aware | [Towards Fine-Grained Reasoning for Fake News Detection ](https://aaai.org/papers/05746-towards-fine-grained-reasoning-for-fake-news-detection/)             | AAAI               | 2022         | [Ahren09/FinerFact ](https://github.com/Ahren09/FinerFact)                                                                          | [FinerFact](faknow/model/knowledge_aware/finerfact.py)         |
