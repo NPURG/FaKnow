@@ -7,6 +7,7 @@ from typing import List, Dict
 import numpy as np
 import torch
 from sklearn.metrics.pairwise import cosine_similarity
+from torch_geometric.data import Batch
 
 
 def calculate_cos_matrix(matrix1: torch.Tensor, matrix2: torch.Tensor):
@@ -247,17 +248,28 @@ class EarlyStopping:
 
 
 class DropEdge:
-    def __init__(self, td_drop_rate, bu_drop_rate):
+    """
+    randomly drop out edges for BiGCN
+    """
+    def __init__(self, td_drop_rate: float, bu_drop_rate: float):
         """
-            Drop edge operation from BiGCN (Rumor Detection on Social Media with Bi-Directional Graph Convolutional Networks)
-            1) Generate TD and BU edge indices
-            2) Drop out edges
-            Code from https://github.com/TianBian95/BiGCN/blob/master/Process/dataset.py
+        Args:
+            td_drop_rate (float): drop rate of drop edge in top-down direction
+            bu_drop_rate (float): drop rate of drop edge in bottom-up direction
         """
+
         self.td_drop_rate = td_drop_rate
         self.bu_drop_rate = bu_drop_rate
 
-    def __call__(self, data):
+    def __call__(self, data: Batch) -> Batch:
+        """
+        Args:
+            data (Batch): The batch data in pyg.
+
+        Returns:
+            Batch: The batch data with dropped edges.
+        """
+
         edge_index = data.edge_index
 
         if self.td_drop_rate > 0:
