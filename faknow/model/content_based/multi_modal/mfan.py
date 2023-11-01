@@ -9,7 +9,7 @@ from faknow.model.layers.layer import SignedGAT, TextCNNLayer
 from faknow.model.layers.transformer import (FFN, ScaledDotProductAttention,
                                              transpose_qkv, transpose_output)
 from faknow.model.model import AbstractModel
-from faknow.utils.util import calculate_cos_matrix
+from faknow.data.process.process import calculate_cos_matrix
 
 
 class _TransformerBlock(nn.Module):
