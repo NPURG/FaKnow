@@ -15,7 +15,7 @@ from faknow.data.process.text_process import TokenizerForBert
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.mcan import MCAN
 from faknow.train.trainer import BaseTrainer
-from faknow.utils.util import dict2str
+from faknow.utils.util import dict2str, EarlyStopping
 
 __all__ = [
     'transform_mcan', 'process_dct_mcan',
@@ -291,6 +291,7 @@ def run_mcan(train_path: str,
              metrics: List = None,
              validate_path: str = None,
              test_path: str = None,
+             patience=10,
              device='cpu',
              **optimizer_kargs):
     """
@@ -307,6 +308,7 @@ def run_mcan(train_path: str,
             default=None
         validate_path (str): path of validation data, default=None
         test_path (str): path of test data, default=None
+        patience (int): patience of early stopping, default=10
         device (str): device, default='cpu'
         **optimizer_kargs: optimizer kargs
     """
@@ -334,13 +336,15 @@ def run_mcan(train_path: str,
     scheduler = get_scheduler(len(train_loader), num_epochs, optimizer)
     evaluator = Evaluator(metrics)
     clip_grad_norm = {'max_norm': 1.0}
+    early_stopping = EarlyStopping(patience)
 
     trainer = BaseTrainer(model,
                           evaluator,
                           optimizer,
                           scheduler,
                           clip_grad_norm,
-                          device=device)
+                          device=device,
+                          early_stopping=early_stopping)
     trainer.fit(train_loader,
                 num_epochs=num_epochs,
                 validate_loader=val_loader)
