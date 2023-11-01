@@ -178,21 +178,6 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
     return final_selected_ids
 
 
-def read_stop_words(path: str) -> List[str]:
-    """
-    Read stop words from a file.
-
-    Args:
-        path (str): The path to the file containing stop words.
-
-    Returns:
-        List[str]: A list of stop words.
-    """
-    with open(path, 'r', encoding='utf-8') as f:
-        stop_words = [str(line).strip() for line in f.readlines()]
-    return stop_words
-
-
 class EarlyStopping:
     """
     Early stopping to stop the training when the score does not improve after
