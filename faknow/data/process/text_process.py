@@ -10,6 +10,21 @@ import torch
 from transformers import BertTokenizer
 
 
+def read_stop_words(path: str) -> List[str]:
+    """
+    Read stop words from a file.
+
+    Args:
+        path (str): The path to the file containing stop words.
+
+    Returns:
+        List[str]: A list of stop words.
+    """
+    with open(path, 'r', encoding='utf-8') as f:
+        stop_words = [str(line).strip() for line in f.readlines()]
+    return stop_words
+
+
 def chinese_tokenize(text: str,
                      stop_words: Optional[List[str]] = None) -> List[str]:
     """
