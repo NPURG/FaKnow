@@ -1,5 +1,5 @@
 import os
-
+import numpy as np
 import torch.utils.data
 from torch.utils.data import ConcatDataset, random_split
 from torchvision.datasets.folder import find_classes, is_image_file
@@ -90,3 +90,23 @@ def re_split_dataset(datasets: List[torch.utils.data.Dataset],
                      lengths: List[int]):
     all_dataset = ConcatDataset(datasets)
     return random_split(all_dataset, lengths)
+
+
+def load_embeddings(language, embeddings_file):
+    assert language in ['Chinese', 'English']
+
+    embeddings_index = {}
+    with open(embeddings_file, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+        lines = [l.strip() for l in lines]
+
+        lines = lines if language == 'English' else lines[1:]
+
+        for line in lines:
+            word, coefs = line.split(maxsplit=1)
+            coefs = np.fromstring(coefs, 'f', sep=' ')
+            embeddings_index[word] = coefs
+
+    print('File: {}, there are {} vectors'.format(
+        embeddings_file, len(embeddings_index)))
+    return embeddings_index
