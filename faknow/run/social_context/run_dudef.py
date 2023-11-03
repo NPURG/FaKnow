@@ -14,17 +14,20 @@ __all__ = ['run_dudef', 'run_dudef_from_yaml']
 
 
 def run_dudef(data_dir: str,
+              embeddings_index,
               MAX_NUM_WORDS = 6000,
-              epochs=50,
+              epochs = 50,
               batch_size = 64,
               lr_param = 0.01,
               metrics: List = None,
               device='cpu'):
+
     """
        run DUDEF
 
        Args:
            data_dir(str): Root directory where the dataset should be saved
+           embeddings_index(torch.Tensor): word vectors
            MAX_NUM_WORDS(int): size of senmantics, default=6000
            epochs (int): number of epochs, default=50
            batch_size (int): batch size, default=64
@@ -36,7 +39,7 @@ def run_dudef(data_dir: str,
     DudefDataset.get_label(data_dir)
     DudefDataset.get_dualemotion(data_dir)
     data_path = os.path.join(data_dir, 'data')
-    DudefDataset.get_senmantics(data_path,MAX_NUM_WORDS)
+    DudefDataset.get_senmantics(data_path,MAX_NUM_WORDS,embeddings_index)
     (train_data, val_data, test_data, train_label, val_label, test_label,
      data, label, semantics_embedding_matrix) = DudefDataset.load_dataset(
         data_path, input_types=['emotions','semantics'])
@@ -67,7 +70,6 @@ def run_dudef(data_dir: str,
         test_dataset[i]['label'] = test_label[i][1]
     test_loader = DataLoader(test_dataset, batch_size, shuffle=True)
 
-    # train_label = torch.from_numpy(train_label).float()
     model = DUDEF(input_size = semantics_embedding_matrix.shape[1],
                   emotion_len = train_data[0].shape[1],
                   hidden_size=32,
