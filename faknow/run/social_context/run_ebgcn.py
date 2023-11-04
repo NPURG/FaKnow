@@ -1,7 +1,7 @@
 from faknow.model.social_context.ebgcn import EBGCN
 from faknow.data.dataset.ebgcn_dataset import EBGCNDataset
 from faknow.evaluate.evaluator import Evaluator
-from faknow.train.trainer import BaseTrainer
+from faknow.train.base_gnn_trainer import BaseGNNTrainer
 from faknow.utils.util import dict2str
 from torch_geometric.loader import DataLoader
 from typing import Tuple, Optional, Dict
@@ -93,7 +93,7 @@ def run_ebgcn(train_data: list,
     ], lr=lr, weight_decay=weight_decay)
 
     evaluator = Evaluator(metrics)
-    trainer = BaseTrainer(model, evaluator, optimizer, device=device)
+    trainer = BaseGNNTrainer(model, evaluator, optimizer, device=device)
     trainer.fit(train_loader, num_epochs=num_epochs, validate_loader=val_loader)
 
     if test_data is not None:

@@ -6,6 +6,7 @@ from torch_geometric.nn import GCNConv
 from collections import OrderedDict
 from torch_scatter import scatter_mean
 from faknow.model.model import AbstractModel
+from torch_geometric.data.batch import Batch
 
 
 class _RumorGCN(nn.Module):
@@ -136,6 +137,7 @@ class _RumorGCN(nn.Module):
         logp_x = F.log_softmax(edge_pred, dim=-1)
         p_y = F.softmax(edge_y, dim=-1)
         unsup_loss = self.unsup_loss(logp_x, p_y)
+
         return unsup_loss, torch.mean(edge_pred, dim=-1).squeeze(1)
 
 
@@ -166,21 +168,16 @@ class EBGCN(AbstractModel):
             edge_loss_weight(float): the weight of edge loss. default=0.2.
             device(str): device. default='cpu'.
         """
-        super(EBGCN, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.output_size = output_size
-        self.edge_num = edge_num
-        self.dropout = dropout
-        self.num_class = num_class
-        self.edge_loss_weight = edge_loss_weight
-        self.device = device
 
-        self.TDRumorGCN = _RumorGCN(self.input_size, self.hidden_size, self.output_size,
-                                    self.edge_num, self.dropout, self.device)
-        self.BURumorGCN = _RumorGCN(self.input_size, self.hidden_size, self.output_size,
-                                    self.edge_num, self.dropout, self.device)
-        self.fc = nn.Linear((self.hidden_size + self.output_size) * 2, self.num_class)
+        super(EBGCN, self).__init__()
+
+        self.edge_loss_weight = edge_loss_weight
+
+        self.TDRumorGCN = _RumorGCN(input_size, hidden_size, output_size,
+                                    edge_num, dropout, device)
+        self.BURumorGCN = _RumorGCN(input_size, hidden_size, output_size,
+                                    edge_num, dropout, device)
+        self.fc = nn.Linear((hidden_size + output_size) * 2, num_class)
 
     def forward(self, node_features: Tensor, TD_edge_index: Tensor,
                 BU_edge_index: Tensor, root_index: Tensor,
@@ -204,12 +201,12 @@ class EBGCN(AbstractModel):
         BU_node_features, BU_edge_loss = self.BURumorGCN(node_features, BU_edge_index,
                                                          root_index, batch_size)
 
-        self.fc_input = torch.cat((BU_node_features, TD_node_features), 1)
-        output = self.fc(self.fc_input)
+        fc_input = torch.cat((BU_node_features, TD_node_features), 1)
+        output = self.fc(fc_input)
         output = F.log_softmax(output, dim=1)
         return output, TD_edge_loss, BU_edge_loss
 
-    def calculate_loss(self, data: dict) -> Tensor:
+    def calculate_loss(self, data: Batch) -> Tensor:
         """
         calculate loss for EBGCN
 
@@ -219,21 +216,15 @@ class EBGCN(AbstractModel):
         Returns:
             Tensor: loss
         """
-        node_features = data.x
-        TD_edge_index = data.edge_index
-        BU_edge_index = data.BU_edge_index
-        root_index = data.root_index
-        label = data.y
-        batch_size = data.batch
 
-        output, TD_edge_loss, BU_edge_loss = self.forward(node_features, TD_edge_index, BU_edge_index,
-                                                          root_index, batch_size)
-        pred_loss = F.nll_loss(output, label)
+        output, TD_edge_loss, BU_edge_loss = self.forward(data.x, data.edge_index, data.BU_edge_index,
+                                                          data.root_index, data.batch)
+        pred_loss = F.nll_loss(output, data.y)
         total_loss = pred_loss + self.edge_loss_weight * (TD_edge_loss + BU_edge_loss)
 
         return total_loss
 
-    def predict(self, data_without_label: dict) -> Tensor:
+    def predict(self, data_without_label: Batch) -> Tensor:
         """
          predict the probability of being fake news
 
@@ -243,12 +234,11 @@ class EBGCN(AbstractModel):
         Returns:
             Tensor: softmax probability, shape=(batch_size, num_classes)
         """
-        node_features = data_without_label.x
-        TD_edge_index = data_without_label.edge_index
-        BU_edge_index = data_without_label.BU_edge_index
-        root_index = data_without_label.root_index
-        data_batch = data_without_label.batch
-        output, _, _ = self.forward(node_features, TD_edge_index, BU_edge_index,
-                                    root_index, data_batch)
+
+        output, _, _ = self.forward(data_without_label.x,
+                                    data_without_label.edge_index,
+                                    data_without_label.BU_edge_index,
+                                    data_without_label.root_index,
+                                    data_without_label.batch)
 
         return output
