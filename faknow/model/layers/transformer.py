@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
+from zmq import device
 
 """
 layers for transformer, including:
@@ -201,9 +202,9 @@ class PositionalEncoding(nn.Module):
             Tensor: shape=(batch_size, length, embedding_dim)
         """
         if step is None:
-            inputs = inputs + self.pe[:inputs.size(1), :]
+            inputs = inputs + self.pe[:inputs.size(1), :].to(inputs.device)
         else:
-            inputs = inputs + self.pe[:, step]
+            inputs = inputs + self.pe[:, step].to(inputs.device)
         inputs = self.dropout(inputs)
         return inputs
 
