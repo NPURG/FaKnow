@@ -1,4 +1,3 @@
-import os
 import re
 from collections import defaultdict
 from typing import Dict, List, Optional
@@ -10,29 +9,55 @@ from nltk.corpus import stopwords
 import torch
 from transformers import BertTokenizer
 
-default_chinese_stop_words_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stop_words',
-                                               'stop_words.txt')
 
+def read_stop_words(path: str) -> List[str]:
+    """
+    Read stop words from a file.
 
-def get_stop_words(filepath=default_chinese_stop_words_path):
-    with open(filepath, 'r', encoding='utf-8') as f:
+    Args:
+        path (str): The path to the file containing stop words.
+
+    Returns:
+        List[str]: A list of stop words.
+    """
+    with open(path, 'r', encoding='utf-8') as f:
         stop_words = [str(line).strip() for line in f.readlines()]
     return stop_words
 
 
-def chinese_tokenize(text,
-                     stop_words: Optional[List[str]] = None,
-                     stop_words_path=default_chinese_stop_words_path) -> List[str]:
+def chinese_tokenize(text: str,
+                     stop_words: Optional[List[str]] = None) -> List[str]:
+    """
+    tokenize chinese text with jieba and regex to remove punctuation
+
+    Args:
+        text (str): text to be tokenized
+        stop_words (List[str]): stop words, default=None
+
+    Returns:
+        List[str]: tokenized text
+    """
+
     cleaned_text = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "",
                           text).strip().lower()
 
     split_words = jieba.lcut(cleaned_text)
     if stop_words is None:
-        stop_words = get_stop_words(stop_words_path)
+        return split_words
     return [word for word in split_words if word not in stop_words]
 
 
 def english_tokenize(text: str) -> List[str]:
+    """
+    tokenize english text with nltk and regex to remove punctuation
+
+    Args:
+        text (str): text to be tokenized
+
+    Returns:
+        List[str]: tokenized text
+    """
+
     text = text.lower()
     text = re.sub(r'\d+', '', text)
     remove_chars = '[0-9’!"#$%&\'()*+,-./:;<=>?@，。?★、…【】《》？“”‘’！[\\]^_`{|}~]+'
@@ -43,11 +68,10 @@ def english_tokenize(text: str) -> List[str]:
     tokens = word_tokenize(text)
     tokens = [token for token in tokens if token not in stop_words]
 
-    # 提取词干
+    # porter stemmer and lemmatizer
     stemmer = PorterStemmer()
     tokens = [stemmer.stem(token) for token in tokens]
 
-    # 同义词替换
     lemmatizer = WordNetLemmatizer()
     tokens = [lemmatizer.lemmatize(token) for token in tokens]
 
