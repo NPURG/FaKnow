@@ -15,6 +15,9 @@ __all__ = ['run_dudef', 'run_dudef_from_yaml']
 
 def run_dudef(data_dir: str,
               embeddings_index,
+              baidu_arr,
+              dalianligong_arr,
+              auxilary_features,
               MAX_NUM_WORDS = 6000,
               epochs = 50,
               batch_size = 64,
@@ -35,11 +38,10 @@ def run_dudef(data_dir: str,
            metrics (List): evaluation metrics, if None, use default metrics, default=None
            device (str): device, default='cpu'
     """
-
-    DudefDataset.get_label(data_dir)
-    DudefDataset.get_dualemotion(data_dir)
+    DudefDataset.get_label(data_dir,baidu_arr, dalianligong_arr, auxilary_features)
+    DudefDataset.get_dualemotion(data_dir,baidu_arr, dalianligong_arr, auxilary_features)
     data_path = os.path.join(data_dir, 'data')
-    DudefDataset.get_senmantics(data_path,MAX_NUM_WORDS,embeddings_index)
+    DudefDataset.get_senmantics(data_path,MAX_NUM_WORDS,embeddings_index,baidu_arr, dalianligong_arr, auxilary_features)
     (train_data, val_data, test_data, train_label, val_label, test_label,
      data, label, semantics_embedding_matrix) = DudefDataset.load_dataset(
         data_path, input_types=['emotions','semantics'])
