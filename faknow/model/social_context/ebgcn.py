@@ -1,3 +1,4 @@
+from typing import Tuple
 import torch
 import copy
 import torch.nn.functional as F
@@ -13,8 +14,8 @@ class _RumorGCN(nn.Module):
     """
     GCN layer with edged weighted inferring
     """
-
-    def __init__(self, input_size: int, hidden_size: int, output_size: int, edge_num: int, dropout: float, device: str):
+    def __init__(self, input_size: int, hidden_size: int, output_size: int,
+                 edge_num: int, dropout: float, device: str):
         """
         input_size(int): the feature size of input.
         hidden_size(int): the feature size of hidden embedding.
@@ -32,7 +33,8 @@ class _RumorGCN(nn.Module):
         self.device = device
 
         self.conv1 = GCNConv(self.input_size, self.hidden_size)
-        self.conv2 = GCNConv(self.input_size + self.hidden_size, self.output_size)
+        self.conv2 = GCNConv(self.input_size + self.hidden_size,
+                             self.output_size)
         self.sim_network = nn.Sequential(self.create_network('sim_val'))
         self.W_mean = nn.Sequential(self.create_network('W_mean'))
         self.W_bias = nn.Sequential(self.create_network('W_bias'))
@@ -44,8 +46,9 @@ class _RumorGCN(nn.Module):
         self.unsup_loss = nn.KLDivLoss(reduction='batchmean')
         self.bn1 = nn.BatchNorm1d(self.hidden_size + self.input_size)
 
-    def forward(self, node_features: Tensor, edge_index: Tensor, root_index: Tensor, batch_size: Tensor) -> tuple[
-        Tensor, Tensor]:
+    def forward(self, node_features: Tensor, edge_index: Tensor,
+                root_index: Tensor,
+                batch_size: Tensor) -> Tuple[Tensor, Tensor]:
         """
         Args:
             node_features(Tensor): features of graph nodes.
@@ -62,7 +65,8 @@ class _RumorGCN(nn.Module):
 
         edge_loss, edge_pred = self.edge_infer(node_features, edge_index)
 
-        root_extend = torch.zeros(len(batch_size), node_features1.size(1)).to(self.device)
+        root_extend = torch.zeros(len(batch_size),
+                                  node_features1.size(1)).to(self.device)
         batch_num = max(batch_size) + 1
         for num_batch in range(batch_num):
             index = (torch.eq(batch_size, num_batch))
@@ -73,7 +77,8 @@ class _RumorGCN(nn.Module):
         node_features = F.relu(node_features)
         node_features = self.conv2(node_features, edge_index, edge_pred)
         node_features = F.relu(node_features)
-        root_extend = torch.zeros(len(batch_size), node_features2.size(1)).to(self.device)
+        root_extend = torch.zeros(len(batch_size),
+                                  node_features2.size(1)).to(self.device)
         for num_batch in range(batch_num):
             index = (torch.eq(batch_size, num_batch))
             root_extend[index] = node_features2[root_index[num_batch]]
@@ -98,14 +103,16 @@ class _RumorGCN(nn.Module):
                                               out_channels=self.hidden_size,
                                               kernel_size=1,
                                               bias=False)
-        layer_list[name + 'norm'] = nn.BatchNorm1d(num_features=self.hidden_size)
+        layer_list[name +
+                   'norm'] = nn.BatchNorm1d(num_features=self.hidden_size)
         layer_list[name + 'relu'] = nn.LeakyReLU()
         layer_list[name + 'conv_out'] = nn.Conv1d(in_channels=self.hidden_size,
                                                   out_channels=1,
                                                   kernel_size=1)
         return layer_list
 
-    def edge_infer(self, node_features: Tensor, edge_index: Tensor) -> tuple[Tensor, Tensor]:
+    def edge_infer(self, node_features: Tensor,
+                   edge_index: Tensor) -> Tuple[Tensor, Tensor]:
         """
         infer edge weight and unsupervised loss
 
@@ -128,7 +135,8 @@ class _RumorGCN(nn.Module):
         b_mean = self.B_mean(x_ij)
         b_bias = self.B_bias(x_ij)
         logit_mean = w_mean * sim_val + b_mean
-        logit_var = torch.log((sim_val ** 2) * torch.exp(w_bias) + torch.exp(b_bias))
+        logit_var = torch.log((sim_val**2) * torch.exp(w_bias) +
+                              torch.exp(b_bias))
         logit_var = torch.abs(logit_var)
         edge_y = torch.normal(logit_mean, logit_var)
         edge_y = torch.sigmoid(edge_y)
@@ -147,7 +155,6 @@ class EBGCN(AbstractModel):
     paper: https://arxiv.org/pdf/2107.11934.pdf
     code: https://github.com/weilingwei96/EBGCN
     """
-
     def __init__(self,
                  input_size=5000,
                  hidden_size=64,
@@ -180,8 +187,7 @@ class EBGCN(AbstractModel):
         self.fc = nn.Linear((hidden_size + output_size) * 2, num_class)
 
     def forward(self, node_features: Tensor, TD_edge_index: Tensor,
-                BU_edge_index: Tensor, root_index: Tensor,
-                batch_size: Tensor):
+                BU_edge_index: Tensor, root_index: Tensor, batch_size: Tensor):
         """
         Args:
             node_features(Tensor): feature of node in claims.
@@ -196,10 +202,10 @@ class EBGCN(AbstractModel):
             BU_edge_loss(Tensor): edge loss of graph with direction from bottom to top.
         """
 
-        TD_node_features, TD_edge_loss = self.TDRumorGCN(node_features, TD_edge_index,
-                                                         root_index, batch_size)
-        BU_node_features, BU_edge_loss = self.BURumorGCN(node_features, BU_edge_index,
-                                                         root_index, batch_size)
+        TD_node_features, TD_edge_loss = self.TDRumorGCN(
+            node_features, TD_edge_index, root_index, batch_size)
+        BU_node_features, BU_edge_loss = self.BURumorGCN(
+            node_features, BU_edge_index, root_index, batch_size)
 
         fc_input = torch.cat((BU_node_features, TD_node_features), 1)
         output = self.fc(fc_input)
@@ -217,10 +223,12 @@ class EBGCN(AbstractModel):
             Tensor: loss
         """
 
-        output, TD_edge_loss, BU_edge_loss = self.forward(data.x, data.edge_index, data.BU_edge_index,
-                                                          data.root_index, data.batch)
+        output, TD_edge_loss, BU_edge_loss = self.forward(
+            data.x, data.edge_index, data.BU_edge_index, data.root_index,
+            data.batch)
         pred_loss = F.nll_loss(output, data.y)
-        total_loss = pred_loss + self.edge_loss_weight * (TD_edge_loss + BU_edge_loss)
+        total_loss = pred_loss + self.edge_loss_weight * (TD_edge_loss +
+                                                          BU_edge_loss)
 
         return total_loss
 

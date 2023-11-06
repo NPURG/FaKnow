@@ -4,19 +4,18 @@ from faknow.evaluate.evaluator import Evaluator
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
 from faknow.utils.util import dict2str
 from torch_geometric.loader import DataLoader
-from typing import Tuple, Optional, Dict
-from torch import Tensor
+from typing import Optional, Dict
 import torch
 import yaml
 
-
 __all__ = ['run_ebgcn', 'run_ebgcn_from_yaml']
+
 
 def run_ebgcn(train_data: list,
               val_data: Optional[list] = None,
               test_data: Optional[list] = None,
               data_path='./dataset/example/EBGCN/Twitter15graph/',
-              treeDic: Dict=None,
+              treeDic: Dict = None,
               batch_size=128,
               input_size=5000,
               hidden_size=64,
@@ -31,8 +30,7 @@ def run_ebgcn(train_data: list,
               lr_scale_td=1,
               metrics=None,
               num_epochs=200,
-              device='cpu'
-              ):
+              device='cpu'):
     """
     run EBGCN, including training, validation and testing.
     If validate_path and test_path are None, only training is performed.
@@ -73,28 +71,38 @@ def run_ebgcn(train_data: list,
     else:
         val_loader = None
 
-    model = EBGCN(input_size, hidden_size,
-                  output_size, edge_num,
-                  dropout, num_class,
-                  edge_loss_weight,
-                  device)
+    model = EBGCN(input_size, hidden_size, output_size, edge_num, dropout,
+                  num_class, edge_loss_weight, device)
 
     TD_params = list(map(id, model.TDRumorGCN.conv1.parameters()))
     TD_params += list(map(id, model.TDRumorGCN.conv2.parameters()))
     BU_params = list(map(id, model.BURumorGCN.conv1.parameters()))
     BU_params += list(map(id, model.BURumorGCN.conv2.parameters()))
-    base_params = filter(lambda p: id(p) not in BU_params + TD_params, model.parameters())
-    optimizer = torch.optim.Adam([
-        {'params': base_params},
-        {'params': model.BURumorGCN.conv1.parameters(), 'lr': lr / lr_scale_bu},
-        {'params': model.BURumorGCN.conv2.parameters(), 'lr': lr / lr_scale_bu},
-        {'params': model.TDRumorGCN.conv1.parameters(), 'lr': lr / lr_scale_td},
-        {'params': model.TDRumorGCN.conv2.parameters(), 'lr': lr / lr_scale_td}
-    ], lr=lr, weight_decay=weight_decay)
+    base_params = filter(lambda p: id(p) not in BU_params + TD_params,
+                         model.parameters())
+    optimizer = torch.optim.Adam([{
+        'params': base_params
+    }, {
+        'params': model.BURumorGCN.conv1.parameters(),
+        'lr': lr / lr_scale_bu
+    }, {
+        'params': model.BURumorGCN.conv2.parameters(),
+        'lr': lr / lr_scale_bu
+    }, {
+        'params': model.TDRumorGCN.conv1.parameters(),
+        'lr': lr / lr_scale_td
+    }, {
+        'params': model.TDRumorGCN.conv2.parameters(),
+        'lr': lr / lr_scale_td
+    }],
+                                 lr=lr,
+                                 weight_decay=weight_decay)
 
     evaluator = Evaluator(metrics)
     trainer = BaseGNNTrainer(model, evaluator, optimizer, device=device)
-    trainer.fit(train_loader, num_epochs=num_epochs, validate_loader=val_loader)
+    trainer.fit(train_loader,
+                num_epochs=num_epochs,
+                validate_loader=val_loader)
 
     if test_data is not None:
         test_set = EBGCNDataset(test_data, treeDic, data_path=data_path)
@@ -105,7 +113,8 @@ def run_ebgcn(train_data: list,
         test_result = trainer.evaluate(test_loader)
         print(f"test result: {dict2str(test_result)}")
 
-def run_ebgcn_from_yaml(path:str):
+
+def run_ebgcn_from_yaml(path: str):
     """
     run EBGCN from yaml config file
 
