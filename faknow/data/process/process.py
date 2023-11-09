@@ -1,11 +1,11 @@
 import random
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Tuple
 from collections import defaultdict
 
 import numpy as np
 import torch
 from torch.utils.data import Subset, random_split
-from torch_geometric.data import Batch
+from torch_geometric.data import Data
 from sklearn.metrics.pairwise import cosine_similarity
 
 from faknow.data.dataset.text import TextDataset
@@ -61,7 +61,9 @@ def split_dataset(data_path: str,
     return random_split(dataset, sizes)
 
 
-def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, hash_dimension=10) -> List[int]:
+def lsh_data_selection(domain_embeddings: torch.Tensor,
+                       labelling_budget=100,
+                       hash_dimension=10) -> List[int]:
     """
     Local sensitive hash (LSH) selection for training dataset.
 
@@ -78,13 +80,14 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
 
     if labelling_budget > domain_embeddings.shape[0]:
         raise RuntimeError(
-            f"labelling budget({labelling_budget}) is greater than data pool size({domain_embeddings.shape[0]})")
+            f"labelling budget({labelling_budget}) is greater than data pool size({domain_embeddings.shape[0]})"
+        )
 
     embedding_size = domain_embeddings.shape[1]
     final_selected_ids = []
     is_final_selected = defaultdict(lambda: False)
 
-    random_distribution = [3 ** 0.5, 0.0, 0.0, 0.0, 0.0, -(3 ** 0.5)]
+    random_distribution = [3**0.5, 0.0, 0.0, 0.0, 0.0, -(3**0.5)]
 
     while len(final_selected_ids) < labelling_budget:
         # Generate random vectors
@@ -94,7 +97,8 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
             random_vectors.append(torch.tensor(vec))
 
         # Create hash table
-        code_dict = defaultdict(lambda: [])  # {str(h-dim hash value): [domain_id]}
+        code_dict = defaultdict(
+            lambda: [])  # {str(h-dim hash value): [domain_id]}
         for i, item in enumerate(domain_embeddings):
             code = ''
             # Skip if the item is already selected
@@ -112,7 +116,8 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
         # Pick one item from each item bin
         for item in code_dict:
             selected_item = random.choice(code_dict[item])
-            selected_ids.append(selected_item)  # 添加domain id，即domain embedding中的行号
+            selected_ids.append(
+                selected_item)  # 添加domain id，即domain embedding中的行号
             is_selected[selected_item] = True
 
         # Remove a set of instances randomly to meet the labelling budget
@@ -161,26 +166,43 @@ class DropEdge:
         self.td_drop_rate = td_drop_rate
         self.bu_drop_rate = bu_drop_rate
 
-    def __call__(self, data: Batch) -> Batch:
+    @staticmethod
+    def _random_sample(row: List[int], col: List[int],
+                       drop_rate: float) -> Tuple[List[int], List[int]]:
         """
+
         Args:
-            data (Batch): The batch data in pyg.
+            row (List[int]): a list of origins in edges index
+            col (List[int]): a list of destinations in edges index
+            drop_rate (float): drop out rate
 
         Returns:
-            Batch: The batch data with dropped edges.
+            Tuple[List[int], List[int]]: edges index after drop out
+        """
+
+        length = len(row)
+        pos_list = random.sample(range(length), int(length * (1 - drop_rate)))
+        pos_list = sorted(pos_list)
+        new_row = list(np.array(row)[pos_list])
+        new_col = list(np.array(col)[pos_list])
+
+        return new_row, new_col
+
+    def __call__(self, data: Data) -> Data:
+        """
+        Args:
+            data (Data): The data in pyg.
+
+        Returns:
+            Batch: The data with dropped edges.
         """
 
         edge_index = data.edge_index
 
         if self.td_drop_rate > 0:
-            row = list(edge_index[0])
-            col = list(edge_index[1])
-            length = len(row)
-            poslist = random.sample(range(length),
-                                    int(length * (1 - self.td_drop_rate)))
-            poslist = sorted(poslist)
-            row = list(np.array(row)[poslist])
-            col = list(np.array(col)[poslist])
+            row, col = self._random_sample(list(edge_index[0]),
+                                           list(edge_index[1]),
+                                           self.td_drop_rate)
             new_edge_index = [row, col]
         else:
             new_edge_index = edge_index
@@ -188,12 +210,7 @@ class DropEdge:
         bu_row = list(edge_index[1])
         bu_col = list(edge_index[0])
         if self.bu_drop_rate > 0:
-            length = len(bu_row)
-            poslist = random.sample(range(length),
-                                    int(length * (1 - self.bu_drop_rate)))
-            poslist = sorted(poslist)
-            row = list(np.array(bu_row)[poslist])
-            col = list(np.array(bu_col)[poslist])
+            row, col = self._random_sample(bu_row, bu_col, self.bu_drop_rate)
             bu_new_edge_index = [row, col]
         else:
             bu_new_edge_index = [bu_row, bu_col]
