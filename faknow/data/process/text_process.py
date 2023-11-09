@@ -1,9 +1,7 @@
 import re
-from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 
 import jieba
-import numpy as np
 from nltk import word_tokenize, PorterStemmer, WordNetLemmatizer
 from nltk.corpus import stopwords
 import torch
@@ -78,45 +76,25 @@ def english_tokenize(text: str) -> List[str]:
     return tokens
 
 
-def generate_frequency_vocabulary(texts):
-    vocab = defaultdict(int)
-    for sentence in texts:
-        for word in sentence:
-            vocab[word] += 1
-    return vocab
-
-
-def add_unknown_words(word_vector_dict: Dict[str, np.ndarray], frequency_vocab: Dict[str, int], min_df=1, k=32):
-    """
-    For words that occur in at least min_df documents, create a separate word vector.
-    0.25 is chosen so the unknown vectors have (approximately) same variance as pre-trained ones
-    """
-    for word in frequency_vocab:
-        if word not in word_vector_dict and frequency_vocab[word] >= min_df:
-            word_vector_dict[word] = np.random.uniform(-0.25, 0.25, k)
-
-
-def padding_vec_and_idx(word_vectors: np.ndarray, word_idx: Dict[str, int]):
-    word_vectors = np.concatenate(
-        [np.zeros((1, word_vectors.shape[1]), dtype='float32'), word_vectors])
-    word_idx_map = {word: index + 1 for word, index in word_idx.items()}
-    return word_vectors, word_idx_map
-
-
 class TokenizerForBert:
     """
     Tokenizer for Bert with fixed length,
     return token_id and mask
     """
-
-    def __init__(self, max_len: int, bert: str):
+    def __init__(self,
+                 max_len: int,
+                 bert: str,
+                 text_preprocessing: Optional[Callable[[List[str]],
+                                                       List[str]]] = None):
         """
-
         Args:
             max_len (int): max length of input text
             bert (str): bert model name
+            text_preprocessing (Optional[Callable[[List[str]], List[str]]]):
+                text preprocessing function. Defaults to None.
         """
 
+        self.text_preprocessing = text_preprocessing
         self.max_len = max_len
         self.tokenizer = BertTokenizer.from_pretrained(bert)
 
@@ -131,6 +109,8 @@ class TokenizerForBert:
             Dict[str, torch.Tensor]: tokenized texts
                 with key 'token_id' and 'mask'
         """
+        if self.text_preprocessing is not None:
+            texts = self.text_preprocessing(texts)
 
         inputs = self.tokenizer(texts,
                                 return_tensors='pt',

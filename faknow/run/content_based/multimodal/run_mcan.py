@@ -1,3 +1,4 @@
+import re
 from typing import List, Dict
 
 import numpy as np
@@ -15,12 +16,18 @@ from faknow.data.process.text_process import TokenizerForBert
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.mcan import MCAN
 from faknow.train.trainer import BaseTrainer
-from faknow.utils.util import dict2str, EarlyStopping
+from faknow.utils.util import dict2str
 
 __all__ = [
-    'transform_mcan', 'process_dct_mcan',
+    'transform_mcan', 'process_dct_mcan', 'text_preprocessing',
     'get_optimizer_mcan', 'run_mcan', 'run_mcan_from_yaml'
 ]
+
+
+def text_preprocessing(texts: List[str]):
+    reg = r"(http|https)((\W+)(\w+)(\W+)(\w*)(\W+)(\w*)|(\W+)(\w+)(\W+)|(\W+))"
+    texts = [re.sub(reg, "", text) for text in texts]
+    return texts
 
 
 def transform_mcan(path: str) -> Dict[str, torch.Tensor]:
@@ -291,7 +298,6 @@ def run_mcan(train_path: str,
              metrics: List = None,
              validate_path: str = None,
              test_path: str = None,
-             patience=10,
              device='cpu',
              **optimizer_kargs):
     """
@@ -308,12 +314,11 @@ def run_mcan(train_path: str,
             default=None
         validate_path (str): path of validation data, default=None
         test_path (str): path of test data, default=None
-        patience (int): patience of early stopping, default=10
         device (str): device, default='cpu'
         **optimizer_kargs: optimizer kargs
     """
 
-    tokenizer = TokenizerForBert(max_len, bert)
+    tokenizer = TokenizerForBert(max_len, bert, text_preprocessing)
 
     train_dataset = MultiModalDataset(train_path, ['text'], tokenizer,
                                       ['image'], transform_mcan)
@@ -336,15 +341,13 @@ def run_mcan(train_path: str,
     scheduler = get_scheduler(len(train_loader), num_epochs, optimizer)
     evaluator = Evaluator(metrics)
     clip_grad_norm = {'max_norm': 1.0}
-    early_stopping = EarlyStopping(patience)
 
     trainer = BaseTrainer(model,
                           evaluator,
                           optimizer,
                           scheduler,
                           clip_grad_norm,
-                          device=device,
-                          early_stopping=early_stopping)
+                          device=device)
     trainer.fit(train_loader,
                 num_epochs=num_epochs,
                 validate_loader=val_loader)
