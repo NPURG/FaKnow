@@ -14,7 +14,8 @@ from faknow.model.model import AbstractModel
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
-__all__ = ['run_endef', 'run_endef_from_yaml']
+__all__ = ['run_endef', 'run_endef_from_yaml', 'TokenizerENDEF']
+
 
 class TokenizerENDEF:
     """Tokenizer for ENDEF"""
@@ -56,6 +57,7 @@ class TokenizerENDEF:
         attention_mask = torch.cat(attention_mask, dim=0)
 
         return {'token_id': token_id, 'mask': attention_mask}
+
 
 def run_endef(train_path: str,
               base_model: Optional[AbstractModel] = MDFEND('hfl/chinese-roberta-wwm-ext', domain_num=8),
