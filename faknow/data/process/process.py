@@ -134,17 +134,17 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
 
 def calculate_cos_matrix(matrix1: torch.Tensor, matrix2: torch.Tensor):
     """
-    Calculate the cosine similarity matrix between two matrices.
+    Calculate the pairwise cosine similarity matrix between two matrices.
 
     Args:
-        matrix1 (torch.Tensor): The first matrix.
-        matrix2 (torch.Tensor): The second matrix.
+        matrix1 (torch.Tensor): The first matrix, shape=(n, d)
+        matrix2 (torch.Tensor): The second matrix, shape=(m, d)
 
     Returns:
-        torch.Tensor: The cosine similarity matrix.
+        torch.Tensor: The cosine similarity matrix, shape=(n, m)
     """
     return torch.from_numpy(cosine_similarity(matrix1.numpy(),
-                                              matrix2.numpy()))
+                                              matrix2.numpy())).to(device=matrix1.device)
 
 
 class DropEdge:
