@@ -7,4 +7,5 @@ tqdm>=4.64.1
 jieba>=0.42.1
 gensim>=4.2.0
 pillow>=9.3.0
+nltk>=3.7
 sphinx-markdown-tables>=0.0.17

@@ -185,11 +185,10 @@ def run_mfan(train_path: str,
     model = MFAN(word_vectors,
                  node_num,
                  node_embedding,
-                 adj_matrix,
-                 device=device)
+                 adj_matrix)
     optimizer = torch.optim.Adam(model.parameters(), lr)
     evaluator = Evaluator(metrics)
-    trainer = MFANTrainer(model, evaluator, optimizer)
+    trainer = MFANTrainer(model, evaluator, optimizer, device=device)
     trainer.fit(train_loader, num_epochs, validate_loader)
 
     if test_path is not None:
@@ -197,7 +196,7 @@ def run_mfan(train_path: str,
                                       transform_mfan)
         test_loader = DataLoader(test_data, batch_size, True)
         test_result = trainer.evaluate(test_loader)
-        print('test result: ', dict2str(test_result))
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:

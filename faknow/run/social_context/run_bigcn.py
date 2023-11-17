@@ -8,7 +8,8 @@ from torch_geometric.loader import DataLoader
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.bigcn import BiGCN
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
-from faknow.utils.util import DropEdge
+from faknow.data.process.process import DropEdge
+from faknow.utils.util import dict2str
 
 __all__ = ['run_bigcn', 'run_bigcn_from_yaml']
 
@@ -102,7 +103,7 @@ def run_bigcn(root: str,
                                  batch_size=batch_size,
                                  shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f'test result={test_result}')
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_bigcn_from_yaml(path: str):

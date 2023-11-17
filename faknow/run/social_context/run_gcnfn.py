@@ -9,6 +9,7 @@ from torch_geometric.transforms import ToUndirected
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.gcnfn import GCNFN
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
+from faknow.utils.util import dict2str
 
 __all__ = ['run_gcnfn', 'run_gcnfn_from_yaml']
 
@@ -84,8 +85,7 @@ def run_gcnfn(root: str,
                                  batch_size=batch_size,
                                  shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f'test result={test_result}')
-
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 def run_gcnfn_from_yaml(path: str):
     """

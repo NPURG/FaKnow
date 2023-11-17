@@ -97,7 +97,7 @@ def run_hmcan(train_path: str,
         val_loader = None
 
     model = HMCAN(max_len, left_num_layers, left_num_heads, dropout,
-                  right_num_layers, right_num_heads, alpha)
+                  right_num_layers, right_num_heads, alpha, bert)
     optimizer = torch.optim.Adam(model.parameters(), lr)
     evaluator = Evaluator(metrics)
     trainer = BaseTrainer(model, evaluator, optimizer, device=device)
@@ -108,7 +108,7 @@ def run_hmcan(train_path: str,
                                      transform_hmcan)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f"test result: {dict2str(test_result)}")
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_hmcan_from_yaml(path: str):

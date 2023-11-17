@@ -10,7 +10,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.eddfn import EDDFN
 from faknow.train.trainer import BaseTrainer
-from faknow.utils.util import lsh_data_selection
+from faknow.data.process.process import lsh_data_selection
 
 __all__ = ['run_eddfn', 'run_eddfn_from_yaml']
 

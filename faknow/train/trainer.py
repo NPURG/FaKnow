@@ -269,7 +269,6 @@ class BaseTrainer(AbstractTrainer):
                 result (Dict[str, float]): evaluation metrics
         """
 
-        # evaluate
         result = self.evaluate(loader)
 
         # get the first metric as the validation score
@@ -504,7 +503,7 @@ class BaseTrainer(AbstractTrainer):
             self.writer.add_scalar("Validation/" + metric, value, epoch)
         self.logger.info("validation result : " + dict2str(validation_result))
 
-        score_info = f"current score : {validation_score:.6f}\n"
+        score_info = f"current score : {validation_score:.6f}"
         if save_best:
             score_info = score_info + f", best score : {self.best_score:.6f},\
                 best epoch : {str(self.best_epoch)}"

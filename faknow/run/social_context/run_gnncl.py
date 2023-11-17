@@ -9,6 +9,7 @@ from torch_geometric.transforms import ToUndirected, ToDense
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.gnncl import GNNCL
 from faknow.train.dense_gnn_trainer import DenseGNNTrainer
+from faknow.utils.util import dict2str
 
 __all__ = ['run_gnncl', 'run_gnncl_from_yaml']
 
@@ -97,7 +98,7 @@ def run_gnncl(root: str,
                                       batch_size=batch_size,
                                       shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f'test result={test_result}')
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_gnncl_from_yaml(path: str):

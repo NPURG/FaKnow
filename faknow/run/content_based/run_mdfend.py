@@ -80,7 +80,7 @@ def run_mdfend(train_path: str,
         test_set = TextDataset(test_path, ['text'], tokenizer)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print('test result: ', dict2str(test_result))
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_mdfend_from_yaml(path: str):

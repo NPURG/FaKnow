@@ -14,7 +14,8 @@ from faknow.data.dataset.multi_modal import MultiModalDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.eann import EANN
 from faknow.train.trainer import BaseTrainer
-from faknow.utils.util import dict2str, read_stop_words
+from faknow.utils.util import dict2str
+from faknow.data.process.text_process import read_stop_words
 
 __all__ = [
     'TokenizerEANN', 'transform_eann', 'run_eann', 'run_eann_from_yaml'
