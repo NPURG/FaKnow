@@ -4,11 +4,11 @@ from torch.autograd import Variable
 import tqdm
 import torch.nn as nn
 import numpy as np
-from .layers import *
+from faknow.model.layers.layers_m3fend import *
 from sklearn.metrics import *
 from transformers import BertModel
 from transformers import RobertaModel
-from utils.utils import data2gpu, Averager, metrics, Recorder
+from faknow.utils.utils_m3fend import data2gpu, Averager, metrics, Recorder
 import logging
 import math
 from sklearn.cluster import KMeans
