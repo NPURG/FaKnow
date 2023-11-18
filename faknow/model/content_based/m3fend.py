@@ -155,7 +155,6 @@ class M3FENDModel(AbstractModel):
 
         self.classifier = MLP(320, mlp_dims, dropout)
 
-
     def save_feature(self, **kwargs):
         '''
         这段代码的作用是将所有样本的归一化特征按照它们的领域（domain）信息保存在self.all_feature 字典中。
@@ -232,7 +231,6 @@ class M3FENDModel(AbstractModel):
         all_feature = norm(all_feature)
         self.domain_memory.write(all_feature, category)
 
-
     def forward(self, **kwargs):
         content = kwargs['content']
         content_masks = kwargs['content_masks']
@@ -292,7 +290,8 @@ class M3FENDModel(AbstractModel):
         loss = self.loss_fn(label_pred, label.float())
         return loss
 
-
+    def predict(self, data_without_label) -> Tensor:
+        # todo
 
 
 class Trainer():
