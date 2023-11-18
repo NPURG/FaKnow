@@ -4,6 +4,7 @@ from torch.autograd import Variable
 import tqdm
 import torch.nn as nn
 import numpy as np
+from faknow.model.model import AbstractModel
 from faknow.model.layers.layers_m3fend import *
 from sklearn.metrics import *
 from transformers import BertModel
@@ -82,9 +83,10 @@ class MemoryNetwork(torch.nn.Module):
             self.domain_memory[i] = self.domain_memory[i] - 0.05 * topic_att * self.domain_memory[i] + 0.05 * new_mem
 
 
-class M3FENDModel(torch.nn.Module):
+class M3FENDModel(AbstractModel):
     def __init__(self, emb_dim, mlp_dims, dropout, semantic_num, emotion_num, style_num, LNN_dim, domain_num, dataset):
         super(M3FENDModel, self).__init__()
+        self.loss_fn = torch.nn.BCELoss()
         self.domain_num = domain_num
         self.gamma = 10
         self.memory_num = 10
@@ -152,56 +154,6 @@ class M3FENDModel(torch.nn.Module):
 
         self.classifier = MLP(320, mlp_dims, dropout)
 
-    def forward(self, **kwargs):
-        content = kwargs['content']
-        content_masks = kwargs['content_masks']
-
-        content_emotion = kwargs['content_emotion']
-        comments_emotion = kwargs['comments_emotion']
-        emotion_gap = kwargs['emotion_gap']
-        style_feature = kwargs['style_feature']
-        emotion_feature = torch.cat([content_emotion, comments_emotion, emotion_gap], dim=1)
-        category = kwargs['category']
-
-        content_feature = self.bert(content, attention_mask=content_masks)[0]
-
-        gate_input_feature, _ = self.attention(content_feature, content_masks)
-        memory_att = self.domain_memory(torch.cat([gate_input_feature, emotion_feature, style_feature], dim=-1),
-                                        category)
-        domain_emb_all = self.domain_embedder(torch.LongTensor(range(self.domain_num)).cuda())
-        general_domain_embedding = torch.mm(memory_att.squeeze(1), domain_emb_all)
-
-        idxs = torch.tensor([index for index in category]).view(-1, 1).cuda()
-        domain_embedding = self.domain_embedder(idxs).squeeze(1)
-        gate_input = torch.cat([domain_embedding, general_domain_embedding], dim=-1)
-
-        gate_value = self.gate(gate_input).view(content_feature.size(0), 1, self.LNN_dim)
-
-        shared_feature = []
-        for i in range(self.semantic_num_expert):
-            shared_feature.append(self.content_expert[i](content_feature).unsqueeze(1))
-
-        for i in range(self.emotion_num_expert):
-            shared_feature.append(self.emotion_expert[i](emotion_feature).unsqueeze(1))
-
-        for i in range(self.style_num_expert):
-            shared_feature.append(self.style_expert[i](style_feature).unsqueeze(1))
-
-        shared_feature = torch.cat(shared_feature, dim=1)
-
-        embed_x_abs = torch.abs(shared_feature)
-        embed_x_afn = torch.add(embed_x_abs, 1e-7)
-        embed_x_log = torch.log1p(embed_x_afn)
-
-        lnn_out = torch.matmul(self.weight, embed_x_log)
-        lnn_exp = torch.expm1(lnn_out)
-        shared_feature = lnn_exp.contiguous().view(-1, self.LNN_dim, 320)
-
-        shared_feature = torch.bmm(gate_value, shared_feature).squeeze()
-
-        deep_logits = self.classifier(shared_feature)
-
-        return torch.sigmoid(deep_logits.squeeze(1))
 
     def save_feature(self, **kwargs):
         '''
@@ -278,6 +230,68 @@ class M3FENDModel(torch.nn.Module):
         all_feature = torch.cat([content_feature, emotion_feature, style_feature], dim=1)
         all_feature = norm(all_feature)
         self.domain_memory.write(all_feature, category)
+
+
+    def forward(self, **kwargs):
+        content = kwargs['content']
+        content_masks = kwargs['content_masks']
+
+        content_emotion = kwargs['content_emotion']
+        comments_emotion = kwargs['comments_emotion']
+        emotion_gap = kwargs['emotion_gap']
+        style_feature = kwargs['style_feature']
+        emotion_feature = torch.cat([content_emotion, comments_emotion, emotion_gap], dim=1)
+        category = kwargs['category']
+
+        content_feature = self.bert(content, attention_mask=content_masks)[0]
+
+        gate_input_feature, _ = self.attention(content_feature, content_masks)
+        memory_att = self.domain_memory(torch.cat([gate_input_feature, emotion_feature, style_feature], dim=-1),
+                                        category)
+        domain_emb_all = self.domain_embedder(torch.LongTensor(range(self.domain_num)).cuda())
+        general_domain_embedding = torch.mm(memory_att.squeeze(1), domain_emb_all)
+
+        idxs = torch.tensor([index for index in category]).view(-1, 1).cuda()
+        domain_embedding = self.domain_embedder(idxs).squeeze(1)
+        gate_input = torch.cat([domain_embedding, general_domain_embedding], dim=-1)
+
+        gate_value = self.gate(gate_input).view(content_feature.size(0), 1, self.LNN_dim)
+
+        shared_feature = []
+        for i in range(self.semantic_num_expert):
+            shared_feature.append(self.content_expert[i](content_feature).unsqueeze(1))
+
+        for i in range(self.emotion_num_expert):
+            shared_feature.append(self.emotion_expert[i](emotion_feature).unsqueeze(1))
+
+        for i in range(self.style_num_expert):
+            shared_feature.append(self.style_expert[i](style_feature).unsqueeze(1))
+
+        shared_feature = torch.cat(shared_feature, dim=1)
+
+        embed_x_abs = torch.abs(shared_feature)
+        embed_x_afn = torch.add(embed_x_abs, 1e-7)
+        embed_x_log = torch.log1p(embed_x_afn)
+
+        lnn_out = torch.matmul(self.weight, embed_x_log)
+        lnn_exp = torch.expm1(lnn_out)
+        shared_feature = lnn_exp.contiguous().view(-1, self.LNN_dim, 320)
+
+        shared_feature = torch.bmm(gate_value, shared_feature).squeeze()
+
+        deep_logits = self.classifier(shared_feature)
+
+        return torch.sigmoid(deep_logits.squeeze(1))
+
+    def calculate_loss(self, batch):
+        batch_data = data2gpu(batch, self.use_cuda)
+        label = batch_data['label']
+        category = batch_data['category']
+        label_pred = self.forward(**batch_data)
+        loss = self.loss_fn(label_pred, label.float())
+        return loss
+
+    
 
 
 class Trainer():
