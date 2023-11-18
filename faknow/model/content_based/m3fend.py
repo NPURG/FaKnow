@@ -1,5 +1,6 @@
 import os
 import torch
+from torch import Tensor
 from torch.autograd import Variable
 import tqdm
 import torch.nn as nn
@@ -283,7 +284,7 @@ class M3FENDModel(AbstractModel):
 
         return torch.sigmoid(deep_logits.squeeze(1))
 
-    def calculate_loss(self, batch):
+    def calculate_loss(self, batch) -> Tensor:
         batch_data = data2gpu(batch, self.use_cuda)
         label = batch_data['label']
         category = batch_data['category']
@@ -291,7 +292,7 @@ class M3FENDModel(AbstractModel):
         loss = self.loss_fn(label_pred, label.float())
         return loss
 
-    
+
 
 
 class Trainer():
