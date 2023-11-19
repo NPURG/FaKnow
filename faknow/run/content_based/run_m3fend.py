@@ -27,7 +27,7 @@ def _init_fn(worker_id):
     np.random.seed(2021)
 
 
-def getFileLogger(self, log_file):
+def getFileLogger(log_file):
     logger = logging.getLogger()
     logger.setLevel(level = logging.INFO)
     handler = logging.FileHandler(log_file)
@@ -58,16 +58,17 @@ def run_m3fend(
         param_log_dir: str = './logs/param',
         early_stop: int = 3,
         epochs: int = 50,
+        gpu: int = 0
 ):
     if dataset == 'en':
-        root_path = './data/en/'
+        root_path = '../../../dataset/example/M3FEND/en/'
         category_dict = {
             "gossipcop": 0,
             "politifact": 1,
             "COVID": 2,
         }
     elif dataset == 'ch':
-        root_path = './data/ch/'
+        root_path = '../../../dataset/example/M3FEND/ch/'
         if domain_num == 9:
             category_dict = {
                 "科技": 0,
@@ -98,12 +99,12 @@ def run_m3fend(
 
     print('lr: {}; model name: {}; batchsize: {}; epoch: {}; gpu: {}; domain_num: {}'.format(lr, 'm3fend',
                                                                                              batch_size, epochs,
-                                                                                             0, domain_num))
+                                                                                             gpu, domain_num))
     torch.backends.cudnn.enabled = False
     # 设置一个文件日志器（logger）
     if not os.path.exists(param_log_dir):
         os.makedirs(param_log_dir)
-    param_log_file = os.path.join(param_log_dir, 'm3fend' + '' + '_' + 'oneloss_param.txt')
+    param_log_file = os.path.join(param_log_dir, 'm3fend' + '_' + 'oneloss_param.txt')
     logger = getFileLogger(param_log_file)
 
     train_path = root_path + 'train.pkl'
@@ -120,7 +121,7 @@ def run_m3fend(
         worker_init_fn=_init_fn
     )
 
-    val_dataset = M3FENDDataSet(val_path, max_len)
+    val_dataset = M3FENDDataSet(val_path, max_len, category_dict, dataset)
     val_loader = DataLoader(
         dataset=val_dataset,
         batch_size=batch_size,
@@ -130,7 +131,7 @@ def run_m3fend(
         worker_init_fn=_init_fn
     )
 
-    test_dataset = M3FENDDataSet(test_path, max_len)
+    test_dataset = M3FENDDataSet(test_path, max_len, category_dict, dataset)
     test_loader = DataLoader(
         dataset=test_dataset,
         batch_size=batch_size,
@@ -185,4 +186,4 @@ def run_m3fend(
 
 
 if __name__ == '__main__':
-    run_m3fend()
+    run_m3fend(dataset='en', domain_num=3, lr=0.0001, gpu=0)
