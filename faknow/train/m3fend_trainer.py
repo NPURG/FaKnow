@@ -1,7 +1,7 @@
 import os
 
 import torch
-from tqdm import tqdm
+import tqdm
 
 from faknow.model.content_based.m3fend import M3FEND
 from faknow.utils.utils_m3fend import Recorder, data2gpu, Averager, metrics
