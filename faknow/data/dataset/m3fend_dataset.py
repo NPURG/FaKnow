@@ -53,7 +53,7 @@ class M3FENDDataSet(Dataset):
         self.content_token_ids, self.content_masks = word2input(self.content, self.max_len, self.dataset)
         self.comments_token_ids, self.comments_masks = word2input(self.content, self.max_len, self.dataset)
 
-        self.tensors = tuple(
+        self.tensors = (
             self.content_token_ids,
             self.content_masks,
             self.comments_token_ids,
