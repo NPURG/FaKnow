@@ -1,26 +1,63 @@
-from faknow.data.dataset.m3fend_dataset import M3FENDDataSet
+import json
+import logging
+import os
+import random
 
-__all__ = ['run_m3fend', 'run_m3fend_from_yaml']
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
+from faknow.data.dataset.m3fend_dataset import M3FENDDataSet
+from faknow.model.content_based.m3fend import M3FEND
+from faknow.train.m3fend_trainer import M3FENDTrainer
+from faknow.utils.utils_m3fend import Recorder, data2gpu, Averager, metrics
+
+seed = 2021
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+torch.backends.cudnn.benchmark = False # 将 PyTorch 中 cuDNN 库的自动优化设置为禁用
+torch.backends.cudnn.deterministic = True # 将 cuDNN 库的算法设置为确定性的
+# 在深度学习实验中，尤其是在涉及卷积神经网络（CNN）等使用 cuDNN 的模型时，禁用 cuDNN 的自动优化并启用确定性算法是为了确保实验结果的一致性，使得实验可复现。
+
+
+def _init_fn(worker_id):
+    np.random.seed(2021)
+
+
+def getFileLogger(self, log_file):
+    logger = logging.getLogger()
+    logger.setLevel(level = logging.INFO)
+    handler = logging.FileHandler(log_file)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
+
 
 def run_m3fend(
-        dataset : str = 'ch',
-        domain_num : int = 3,
-        emb_dim : int = 768,
-        mlp_dims : list = [384],
-        use_cuda : bool = True,
-        lr : float = 0.0001,
-        dropout : float = 0.2,
-        # train_loader : ,
-        # val_loader : ,
-        # test_loader : ,
-        weight_decay : float = 0.00005,
-        save_param_dir : str = './param_model',
-        semantic_num : int = 7,
-        emotion_num : int = 7,
-        style_num : int = 2,
-        lnn_dim : int = 50,
-        early_stop : int = 3,
-        epoches : int = 50
+        dataset: str = 'ch',
+        domain_num: int = 3,
+        emb_dim: int = 768,
+        mlp_dims: list = [384],
+        use_cuda: bool = True,
+        batch_size: int = 64,
+        num_workers: int = 4,
+        max_len: int = 170,
+        lr: float = 0.0001,
+        dropout: float = 0.2,
+        weight_decay: float = 0.00005,
+        semantic_num: int = 7,
+        emotion_num: int = 7,
+        style_num: int = 2,
+        lnn_dim: int = 50,
+        save_param_dir: str = './param_model',
+        param_log_dir: str = './logs/param',
+        early_stop: int = 3,
+        epochs: int = 50,
 ):
     if dataset == 'en':
         root_path = './data/en/'
@@ -58,4 +95,94 @@ def run_m3fend(
                 "医药健康": 1,  # 1000
                 "文体娱乐": 2,  # 1440
             }
-        data = M3FENDDataSet(root_path)
+
+    print('lr: {}; model name: {}; batchsize: {}; epoch: {}; gpu: {}; domain_num: {}'.format(lr, 'm3fend',
+                                                                                             batch_size, epochs,
+                                                                                             0, domain_num))
+    torch.backends.cudnn.enabled = False
+    # 设置一个文件日志器（logger）
+    if not os.path.exists(param_log_dir):
+        os.makedirs(param_log_dir)
+    param_log_file = os.path.join(param_log_dir, 'm3fend' + '' + '_' + 'oneloss_param.txt')
+    logger = getFileLogger(param_log_file)
+
+    train_path = root_path + 'train.pkl'
+    val_path = root_path + 'val.pkl'
+    test_path = root_path + 'test.pkl'
+
+    train_dataset = M3FENDDataSet(train_path, max_len, category_dict, dataset)
+    train_loader = DataLoader(
+        dataset=train_dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=True,
+        shuffle=True,
+        worker_init_fn=_init_fn
+    )
+
+    val_dataset = M3FENDDataSet(val_path, max_len)
+    val_loader = DataLoader(
+        dataset=val_dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=True,
+        shuffle=False,
+        worker_init_fn=_init_fn
+    )
+
+    test_dataset = M3FENDDataSet(test_path, max_len)
+    test_loader = DataLoader(
+        dataset=test_dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=True,
+        shuffle=False,
+        worker_init_fn=_init_fn
+    )
+
+    trainer = M3FENDTrainer(emb_dim=emb_dim, mlp_dims=mlp_dims, use_cuda=use_cuda, lr=lr,
+                            train_loader=train_loader, dropout=dropout, weight_decay=weight_decay,
+                            val_loader=val_loader, test_loader=test_loader, category_dict=category_dict,
+                            early_stop=early_stop, epochs=epochs,
+                            save_param_dir=os.path.join(save_param_dir, 'm3fend'),
+                            semantic_num=semantic_num, emotion_num=emotion_num, style_num=style_num,
+                            lnn_dim=lnn_dim, dataset=dataset)
+
+    # 简单的参数搜索过程，对于给定的参数进行多次训练，记录并比较它们的性能，最终输出最佳的参数配置和相应的模型
+    train_param = {
+        'lr': [lr] * 10
+    }
+    print(train_param)
+
+    param = train_param
+    best_param = []  # 用于存储每个参数的最佳取值
+
+    json_path = './logs/json/' + 'm3fend.json'
+    json_result = []
+    for p, vs in param.items():  # param是一个字典，键：参数名称，值：参数可能取值的列表
+        best_metric = {}
+        best_metric['metric'] = 0
+        best_v = vs[0]
+        best_model_path = None
+        for i, v in enumerate(vs):
+            setattr(trainer, p, v)
+            metrics, model_path = trainer.train(logger)
+            json_result.append(metrics)
+            if (metrics['metric'] > best_metric['metric']):
+                best_metric = metrics
+                best_v = v
+                best_model_path = model_path
+        best_param.append({p: best_v})
+
+        print("best model path:", best_model_path)
+        print("best metric:", best_metric)
+        logger.info("best model path:" + best_model_path)
+        logger.info("best param " + p + ": " + str(best_v))
+        logger.info("best metric:" + str(best_metric))
+        logger.info('--------------------------------------\n')
+    with open(json_path, 'w') as file:
+        json.dump(json_result, file, indent=4, ensure_ascii=False)
+
+
+if __name__ == '__main__':
+    run_m3fend()
