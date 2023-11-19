@@ -84,9 +84,9 @@ class MemoryNetwork(torch.nn.Module):
             self.domain_memory[i] = self.domain_memory[i] - 0.05 * topic_att * self.domain_memory[i] + 0.05 * new_mem
 
 
-class M3FENDModel(AbstractModel):
+class M3FEND(AbstractModel):
     def __init__(self, emb_dim, mlp_dims, dropout, semantic_num, emotion_num, style_num, LNN_dim, domain_num, dataset):
-        super(M3FENDModel, self).__init__()
+        super(M3FEND, self).__init__()
         self.loss_fn = torch.nn.BCELoss()
         self.domain_num = domain_num
         self.gamma = 10
@@ -346,7 +346,7 @@ class Trainer():
             logger.info('start training......')
 
         # 模型
-        self.model = M3FENDModel(self.emb_dim, self.mlp_dims, self.dropout, self.semantic_num, self.emotion_num,
+        self.model = M3FEND(self.emb_dim, self.mlp_dims, self.dropout, self.semantic_num, self.emotion_num,
                                  self.style_num, self.lnn_dim, len(self.category_dict), self.dataset)
         if self.use_cuda:
             self.model = self.model.cuda()
