@@ -1,3 +1,5 @@
+from faknow.data.dataset.m3fend_dataset import M3FENDDataSet
+
 __all__ = ['run_m3fend', 'run_m3fend_from_yaml']
 
 def run_m3fend(
@@ -56,3 +58,4 @@ def run_m3fend(
                 "医药健康": 1,  # 1000
                 "文体娱乐": 2,  # 1440
             }
+        data = M3FENDDataSet(root_path)
