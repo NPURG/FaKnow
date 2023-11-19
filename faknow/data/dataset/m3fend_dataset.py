@@ -35,8 +35,13 @@ def word2input(texts, max_len, dataset):
     return token_ids, masks
 
 class M3FENDDataSet(Dataset):
-    def __init__(self, path, category_dict):
-        self.data = df_filter(read_pkl(path), category_dict)
+    def __init__(self, path, max_len, category_dict, dataset):
+        self.path = path
+        self.max_len = max_len
+        self.category_dict = category_dict
+        self.dataset = dataset
+
+        self.data = df_filter(read_pkl(self.path), self.category_dict)
         self.content = self.data['content'].to_numpy()
         self.comments = self.data['comments'].to_numpy()
         self.content_emotion = torch.tensor(np.vstack(self.data['content_emotion']).astype('float32'))
@@ -47,6 +52,7 @@ class M3FENDDataSet(Dataset):
         self.category = torch.tensor(self.data['category'].apply(lambda c: self.category_dict[c]).to_numpy())
         self.content_token_ids, self.content_masks = word2input(self.content, self.max_len, self.dataset)
         self.comments_token_ids, self.comments_masks = word2input(self.content, self.max_len, self.dataset)
+
         self.tensors = tuple(
             self.content_token_ids,
             self.content_masks,
