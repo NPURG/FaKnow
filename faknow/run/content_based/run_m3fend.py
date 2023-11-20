@@ -141,7 +141,7 @@ def run_m3fend(
         worker_init_fn=_init_fn
     )
 
-    trainer = M3FENDTrainer(emb_dim=emb_dim, mlp_dims=mlp_dims, use_cuda=use_cuda, lr=lr,
+"""    trainer = M3FENDTrainer(emb_dim=emb_dim, mlp_dims=mlp_dims, use_cuda=use_cuda, lr=lr,
                             train_loader=train_loader, dropout=dropout, weight_decay=weight_decay,
                             val_loader=val_loader, test_loader=test_loader, category_dict=category_dict,
                             early_stop=early_stop, epochs=epochs,
@@ -182,7 +182,7 @@ def run_m3fend(
         logger.info("best metric:" + str(best_metric))
         logger.info('--------------------------------------\n')
     with open(json_path, 'w') as file:
-        json.dump(json_result, file, indent=4, ensure_ascii=False)
+        json.dump(json_result, file, indent=4, ensure_ascii=False)"""
 
 
 if __name__ == '__main__':
