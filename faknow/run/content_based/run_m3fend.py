@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import random
+from typing import List
 
 import numpy as np
 import torch
@@ -9,8 +10,11 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from faknow.data.dataset.m3fend_dataset import M3FENDDataSet
+from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.m3fend import M3FEND
 from faknow.train.m3fend_trainer import M3FENDTrainer
+from faknow.train.trainer import BaseTrainer
+from faknow.utils.util import EarlyStopping
 from faknow.utils.utils_m3fend import Recorder, data2gpu, Averager, metrics
 
 seed = 2021
@@ -58,7 +62,9 @@ def run_m3fend(
         param_log_dir: str = './logs/param',
         early_stop: int = 3,
         epochs: int = 50,
-        gpu: int = 0
+        device: str = 'cpu',
+        gpu: int = 0,
+        metrics: List = None,
 ):
     if dataset == 'en':
         root_path = '../../../dataset/example/M3FEND/en/'
@@ -111,6 +117,7 @@ def run_m3fend(
     val_path = root_path + 'val.pkl'
     test_path = root_path + 'test.pkl'
 
+    # dataset & dataloader
     train_dataset = M3FENDDataSet(train_path, max_len, category_dict, dataset)
     train_loader = DataLoader(
         dataset=train_dataset,
@@ -140,6 +147,50 @@ def run_m3fend(
         shuffle=False,
         worker_init_fn=_init_fn
     )
+
+    # model
+    model = M3FEND(emb_dim, mlp_dims, dropout, semantic_num, emotion_num, style_num, lnn_dim, len(category_dict), dataset)
+
+    # loss
+    # 在模型的 calculate_loss 函数中体现
+
+    # optimizer
+    optimizer = torch.optim.Adam(params=model.parameters(), lr=lr, weight_decay=weight_decay)
+
+    # scheduler
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.98)
+
+    # evaluator
+    evaluator = Evaluator(metrics)
+
+    # todo early_stopping
+    early_stopping = EarlyStopping(patience=3)
+
+    # 设置模型为训练模式
+    model.train()
+
+    # 创建进度条对象
+    train_data_iter = tqdm(train_loader)
+
+    # 循环遍历训练数据 : 将数据移动到GPU + 将所有样本的归一化特征按照它们的领域（domain）信息保存在self.all_feature 字典中
+    for step_n, batch in enumerate(train_data_iter):
+        batch_data = data2gpu(batch, use_cuda)
+        label_pred = model.save_feature(**batch_data)
+
+    # Domain Event Memory 初始化
+    model.init_memory()
+    print('initialization finished')
+
+    trainer = BaseTrainer(
+        model=model,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        evaluator=evaluator,
+        early_stopping=early_stopping,
+        device=device
+    )
+    trainer.fit(train_loader=train_loader, num_epochs=epochs, validate_loader=val_loader)
+
 
 """    trainer = M3FENDTrainer(emb_dim=emb_dim, mlp_dims=mlp_dims, use_cuda=use_cuda, lr=lr,
                             train_loader=train_loader, dropout=dropout, weight_decay=weight_decay,
@@ -183,6 +234,8 @@ def run_m3fend(
         logger.info('--------------------------------------\n')
     with open(json_path, 'w') as file:
         json.dump(json_result, file, indent=4, ensure_ascii=False)"""
+
+
 
 
 if __name__ == '__main__':
