@@ -141,7 +141,7 @@ class AbstractTrainer:
                 else:
                     # todo 递归字典的情况
                     batch_data[k] = self._move_data_to_device(v)
-        elif type(batch_data) is tuple:
+        elif type(batch_data) is tuple or type(batch_data) is list:
             batch_data = tuple(value.to(self.device) for value in batch_data)
         else:
             batch_data = batch_data.to(self.device)
