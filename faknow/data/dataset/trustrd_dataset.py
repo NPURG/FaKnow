@@ -29,12 +29,13 @@ class TRUSTRDDataset(Dataset):
                  upper=100000,
                  droprate=0):
         """
-        nodes_index(list): node index list.
-        treeDic(dict): dictionary of graph.
-        data_path(str): the path of data doc.
-        lower(int): the minimum of graph size. default=2.
-        upper(int): the maximum of graph size. default=100000.
-        droprate(float): the dropout rate of edge. default=0
+        Args:
+            nodes_index(list): node index list.
+            treeDic(dict): dictionary of graph.
+            data_path(str): the path of data doc.
+            lower(int): the minimum of graph size. default=2.
+            upper(int): the maximum of graph size. default=100000.
+            droprate(float): the dropout rate of edge. default=0
         """
         self.nodes_index = list(
             filter(
@@ -43,13 +44,7 @@ class TRUSTRDDataset(Dataset):
         self.treeDic = treeDic
         self.data_path = data_path
         self.droprate = droprate
-        self.nn = nn.Sequential(
-            nn.Linear(in_features=5000, out_features=64),
-            nn.ReLU(),
-            nn.Linear(in_features=64, out_features=4)
-        )
         self.mask_rate = nn.Parameter(torch.zeros(1))  # learnable parameter for masking nodes
-        self.edge_mask = nn.Parameter(torch.zeros(1))
 
     def __len__(self):
         return len(self.nodes_index)

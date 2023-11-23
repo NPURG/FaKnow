@@ -2,6 +2,7 @@ import torch
 import copy
 from torch import nn, Tensor
 import math
+from typing import Dict, Union, Any
 import torch.distributions as dist
 import torch.nn.functional as F
 from torch_scatter import scatter_mean
@@ -321,14 +322,9 @@ class TRUSTRD(AbstractModel):
             pred_probs.append(pred_prob)
         mean_pred_prob = torch.stack(pred_probs).mean(dim=0)
         x = torch.log(mean_pred_prob)
-        kl_div = 0.0
-        # calculate KL
-        for module in self.modules():
-            if hasattr(module, 'kl_loss'):
-                kl_div += module.kl_loss()
-        return x, pred_prob, kl_div
+        return x
 
-    def calculate_loss(self, data: Batch) -> Tensor:
+    def calculate_loss(self, data: Batch) -> Dict[str, Union[float, Any]]:
         """
         calculate loss
 
@@ -336,14 +332,19 @@ class TRUSTRD(AbstractModel):
             data(Batch): batch data
 
         Returns:
-            torch.Tensor: loss
+            dict: loss dict with key 'total_loss', 'pred_loss', 'kl_loss', 'para_loss', 'data_loss'
         """
+        kl_div = torch.zeros(1)
+        for module in self.modules():
+            if hasattr(module, 'kl_loss'):
+                kl_div += module.kl_loss()
+
         self.encoder.eval()
         _, batch_embed = self.encoder.encoder(data.x, data.edge_index, data.batch)
         noise = torch.randn_like(batch_embed) * self.sigma_m
         noisy_embed = batch_embed + self.eta * noise
-        loss_data = F.mse_loss(self.forward(noisy_embed, data)[0],
-                               self.forward(batch_embed, data)[0])
+        loss_data = F.mse_loss(self.forward(noisy_embed, data),
+                               self.forward(batch_embed, data))
         model_copy = copy.deepcopy(self)
 
         with torch.no_grad():
@@ -351,14 +352,15 @@ class TRUSTRD(AbstractModel):
                 noise = torch.randn_like(param)
                 noise = self.zeta * noise / noise.norm(p=2)
                 param_copy.data.add_(noise)
-        loss_para = F.mse_loss(self.forward(batch_embed, data)[0],
-                               model_copy(batch_embed, data)[0])
-        out_labels, pred_prob, kl_div = self.forward(batch_embed, data)
+        loss_para = F.mse_loss(self.forward(batch_embed, data),
+                               model_copy(batch_embed, data))
+        out_labels = self.forward(batch_embed, data)
         finalloss = F.nll_loss(out_labels, data.y)
 
         loss = finalloss + 0.5 * kl_div + 0.2 * loss_para + 0.2 * loss_data
 
-        return loss
+        return {'total_loss': loss, 'pred_loss': finalloss, 'kl_loss': kl_div,
+                'para_loss': loss_para, 'data_loss': loss_data}
 
     def predict(self, data_without_label: Batch) -> Tensor:
         """
@@ -372,6 +374,6 @@ class TRUSTRD(AbstractModel):
         """
         self.encoder.eval()
         batch_embed = self.encoder.encoder.get_embeddings(data_without_label)
-        pred_out, _, _ = self.forward(batch_embed, data_without_label)
+        pred_out = self.forward(batch_embed, data_without_label)
 
         return pred_out
