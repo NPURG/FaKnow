@@ -73,8 +73,8 @@ def metrics(y_true, y_pred, category, category_dict):
     return metrics_by_category
 
 
-def data2gpu(batch, use_cuda):
-    if use_cuda:
+def data2gpu(batch, device):
+    if device == 'cuda':
         batch_data = {
             'content': batch[0].cuda(),
             'content_masks': batch[1].cuda(),
