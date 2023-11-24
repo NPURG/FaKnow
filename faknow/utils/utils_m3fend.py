@@ -103,6 +103,22 @@ def data2gpu(batch, device):
     return batch_data
 
 
+def tuple2dict(batch):
+    batch_data = {
+        'content': batch[0],
+        'content_masks': batch[1],
+        'comments': batch[2].cuda(),
+        'comments_masks': batch[3],
+        'content_emotion': batch[4],
+        'comments_emotion': batch[5],
+        'emotion_gap': batch[6],
+        'style_feature': batch[7],
+        'label': batch[8],
+        'category': batch[9]
+    }
+    return batch_data
+
+
 class Averager():
 
     def __init__(self):
