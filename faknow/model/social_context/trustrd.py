@@ -332,12 +332,8 @@ class TRUSTRD(AbstractModel):
             data(Batch): batch data
 
         Returns:
-            dict: loss dict with key 'total_loss', 'pred_loss', 'kl_loss', 'para_loss', 'data_loss'
+            dict: loss dict with key 'total_loss', 'pred_loss', 'para_loss', 'data_loss'
         """
-        kl_div = torch.zeros(1)
-        for module in self.modules():
-            if hasattr(module, 'kl_loss'):
-                kl_div += module.kl_loss()
 
         self.encoder.eval()
         _, batch_embed = self.encoder.encoder(data.x, data.edge_index, data.batch)
@@ -357,9 +353,9 @@ class TRUSTRD(AbstractModel):
         out_labels = self.forward(batch_embed, data)
         finalloss = F.nll_loss(out_labels, data.y)
 
-        loss = finalloss + 0.5 * kl_div + 0.2 * loss_para + 0.2 * loss_data
+        loss = finalloss + 0.2 * loss_para + 0.2 * loss_data
 
-        return {'total_loss': loss, 'pred_loss': finalloss, 'kl_loss': kl_div,
+        return {'total_loss': loss, 'pred_loss': finalloss,
                 'para_loss': loss_para, 'data_loss': loss_data}
 
     def predict(self, data_without_label: Batch) -> Tensor:
