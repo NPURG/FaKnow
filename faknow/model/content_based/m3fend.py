@@ -10,7 +10,7 @@ from faknow.model.layers.layers_m3fend import *
 from sklearn.metrics import *
 from transformers import BertModel
 from transformers import RobertaModel
-from faknow.utils.utils_m3fend import data2gpu, Averager, metrics, Recorder
+from faknow.utils.utils_m3fend import data2gpu, Averager, metrics, Recorder, tuple2dict
 import logging
 import math
 from sklearn.cluster import KMeans
@@ -282,14 +282,13 @@ class M3FEND(AbstractModel):
 
         return torch.sigmoid(deep_logits.squeeze(1))
 
-    # todo
-    #def calculate_loss(self, batch) -> Tensor:
-    #    batch_data = data2gpu(batch, self.use_cuda)
-    #    label = batch_data['label']
-    #    category = batch_data['category']
-    #    label_pred = self.forward(**batch_data)
-    #    loss = self.loss_fn(label_pred, label.float())
-    #    return loss
+    def calculate_loss(self, batch_data) -> Tensor:
+        batch_data = tuple2dict(batch_data)
+        label = batch_data['label']
+        category = batch_data['category']
+        label_pred = self.forward(**batch_data)
+        loss = self.loss_fn(label_pred, label.float())
+        return loss
 
     # todo
     #def predict(self, data_without_label) -> Tensor:
