@@ -25,7 +25,8 @@ class HMCAN(AbstractModel):
                  dropout=0.1,
                  right_num_layers=2,
                  right_num_heads=12,
-                 alpha=0.7):
+                 alpha=0.7,
+                 pre_trained_bert_name='bert-base-uncased'):
         """
 
         Args:
@@ -43,6 +44,7 @@ class HMCAN(AbstractModel):
                 Default=12.
             alpha(float): the weight of the first Attention&FFN layer's output,
                 Default=0.7.
+            pre_trained_bert_name(str): the bert name str. default='bert-base-uncased'
         """
 
         super(HMCAN, self).__init__()
@@ -52,9 +54,8 @@ class HMCAN(AbstractModel):
         self.loss_func = nn.CrossEntropyLoss()
         # text
         self.bert = BertModel.from_pretrained(
-            'bert-base-uncased',
-            output_hidden_states=True,
-            output_attentions=True).requires_grad_(False)
+            pre_trained_bert_name,
+            output_hidden_states=True).requires_grad_(False)
 
         # image
         resnet50 = torchvision.models.resnet50(
