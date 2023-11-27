@@ -31,17 +31,6 @@ def _init_fn(worker_id):
     np.random.seed(2021)
 
 
-def getFileLogger(log_file):
-    logger = logging.getLogger()
-    logger.setLevel(level = logging.INFO)
-    handler = logging.FileHandler(log_file)
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    return logger
-
-
 def run_m3fend(
         dataset: str = 'ch',
         domain_num: int = 3,
