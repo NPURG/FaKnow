@@ -1,4 +1,3 @@
-from typing import Dict
 import torch
 from faknow.train.trainer import BaseTrainer
 import logging
@@ -34,6 +33,21 @@ class CafeTrainer(BaseTrainer):
                  clip_grad_norm: Optional[Dict[str, Any]] = None,
                  device='cuda:0',
                  early_stopping: Optional[EarlyStopping] = None):
+        """
+        Args:
+            model_1 (AbstractModel): the first faknow abstract model to train
+            model_2 (AbstractModel): the second faknow abstract model to train
+            evaluator_1 (Evaluator):  faknow evaluator for evaluation of the first model
+            evaluator_2 (Evaluator):  faknow evaluator for evaluation of the second model
+            optimizer_1 (Optimizer): pytorch optimizer for training of the first model
+            optimizer_2 (Optimizer): pytorch optimizer for training of the second model
+            scheduler (_LRScheduler): learning rate scheduler. Defaults=None.
+            clip_grad_norm (Dict[str, Any]): key args for
+                torch.nn.utils.clip_grad_norm_. Defaults=None.
+            device (str): device to use. Defaults='cuda:0'.
+            early_stopping (EarlyStopping): early stopping for training.
+                If None, no early stopping will be performed. Defaults=None.
+        """
 
         self.model_1 = model_1
         self.model_2 = model_2
@@ -63,7 +77,22 @@ class CafeTrainer(BaseTrainer):
             validate_loader: Optional[DataLoader] = None,
             save_best: Optional[bool] = None,
             save_path: Optional[str] = None):
-
+        """
+        Fit model_1 and model_2, including training, validation and save model.
+        Results will be logged in console, log file and tensorboard.
+        Args:
+            train_loader (DataLoader): training data
+            num_epochs (int): number of epochs to train
+            validate_loader (DataLoader): validation data.
+                If None, no validation. Defaults=None.
+            save_best (bool): whether to save model with best validation score.
+                If False, save the last epoch model.
+                If None, do not save any model.
+                Defaults=None.
+            save_path (str): path to save model, if save_best is not None.
+                If None, save in './save/model_name-current_time.pth'.
+                Defaults=None.
+        """
         result_file_name = f"{self.model_1.__class__.__name__}-{self.model_2.__class__.__name__}-{now2str()}"
 
         # 未指定保存路径时，取fit开始时刻作为文件名
@@ -86,14 +115,13 @@ class CafeTrainer(BaseTrainer):
 
             # train
             training_start_time = time()
-            train_result_1 = self._train_epoch(self.model_1, train_loader, epoch)
-
-            train_result_2 = self._train_epoch(self.model_2, train_loader, epoch)
+            self.model_1.train_result = self._train_epoch(self.model_1, train_loader, epoch)
+            self.model_2.train_result = self._train_epoch(self.model_2, train_loader, epoch)
 
             # show training result
             cost_time_str = seconds2str(time() - training_start_time)
-            train_result = [train_result_1, train_result_2]
-            self._show_train_result(train_result, cost_time_str, epoch)
+            for model in [self.model_1, self.model_2]:
+                self._show_train_result(model.train_result, cost_time_str, epoch)
 
             # validate
             if validate_loader is not None:
@@ -124,6 +152,19 @@ class CafeTrainer(BaseTrainer):
             self.save(save_path)
 
     def _train_epoch(self, model: AbstractModel, loader: DataLoader, epoch: int) -> Dict[str, float]:
+        """
+         training for one epoch, including gradient clipping
+
+         Args:
+             model (AbstractModel): training model
+             loader (DataLoader): training data
+             epoch (int): current epoch
+
+         Returns:
+             Union[float, Dict[str, float]]: loss of current epoch.
+                 If multiple losses,
+                 return a dict of losses with loss name as key.
+         """
         model.train()
         with tqdm(enumerate(loader),
                   total=len(loader),
@@ -154,41 +195,6 @@ class CafeTrainer(BaseTrainer):
             return loss.item()
 
         return {k: v.item() for k, v in losses.items()}
-
-    def _show_train_result(self, train_result: Union[float, list[str, float], Dict[str, float]],
-                           cost_time_str: str, epoch: int):
-        """
-        Show training results in logging and tensorboard.
-
-        Args:
-            train_result (Union[float, Dict[str, float]]): training loss.
-                If multiple losses,
-                return a dict of losses with loss name as key.
-            cost_time_str (str): training time in string format
-            epoch (int): current epoch
-
-        Raises:
-            TypeError: train_result type error:
-                must be float or Dict[str, float]
-        """
-
-        self.logger.info(f'training time={cost_time_str}')
-
-        for i in range(len(train_result)):
-            if type(train_result[i]) is float:
-                # single loss
-                self.writer.add_scalar("Train/loss", train_result[i], epoch)
-                self.logger.info(f"training loss : loss={train_result[i]:.6f}")
-            elif type(train_result[i]) is dict:
-                # multiple losses
-                for metric, value in train_result[i].items():
-                    self.writer.add_scalar("Train/" + metric, value, epoch)
-                self.logger.info(f"training loss : {dict2str(train_result[i])}")
-            else:
-                raise TypeError(
-                    f"train_result type error: must be float or Dict[str, float],\
-                        but got {type(train_result[i])}"
-                )
 
     def evaluate(self, loader: DataLoader):
         """

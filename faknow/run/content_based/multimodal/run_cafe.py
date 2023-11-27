@@ -7,6 +7,7 @@ from faknow.evaluate.evaluator import Evaluator
 from faknow.data.dataset.cafe_dataset import CafeDataset
 from faknow.model.content_based.multi_modal.cafe import SimilarityModule, DetectionModule
 
+
 def run_cafe(dataset_dir: str,
              num_workers=1,
              batch_size=64,
@@ -71,3 +72,7 @@ def run_cafe(dataset_dir: str,
     if test_loader is not None:
         test_result = trainer.evaluate(test_loader)
         print('test result: ', dict2str(test_result))
+
+
+if __name__ == "__main__":
+    run_cafe("D:\postgraduate\gitcode\FaKnow_1\dataset\example\CAFE")

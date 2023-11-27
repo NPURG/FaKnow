@@ -1,12 +1,15 @@
 import math
 import copy
+from typing import Tuple
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torch.distributions import Normal, Independent
 from torch.nn.functional import softplus
 from faknow.model.model import AbstractModel
 
 DEVICE = "cuda:0"
+
 
 class DetectionModule(AbstractModel):
     r"""
@@ -40,13 +43,14 @@ class DetectionModule(AbstractModel):
         )
         self.similarity_module = SimilarityModule()
 
-    def forward(self, text_raw, image_raw, text, image):
+    def forward(self, text_raw: torch.Tensor, image_raw: torch.Tensor,
+                text: torch.Tensor, image: torch.Tensor) -> Tensor:
         """
         Args:
-            text_raw (Tensor): the raw text
-            image_raw (Tensor): the raw image
-            text (Tensor): the aligned text
-            image (Tensor): the aligned image
+            text_raw (Tensor): the raw text, shape=(batch_size,30,200)
+            image_raw (Tensor): the raw image, shape=(batch_size,512)
+            text (Tensor): the aligned text, shape=(batch_size,64)
+            image (Tensor): the aligned image, shape=(batch_size,64)
         Returns:
             Tensor: prediction of being fake news, shape=(batch_size, 2)
         """
@@ -63,7 +67,7 @@ class DetectionModule(AbstractModel):
         pre_label = self.classifier_corre(final_corre)
         return pre_label
 
-    def calculate_loss(self, data):
+    def calculate_loss(self, data: Tuple[torch.Tensor, any]) -> Tensor:
         """
         process raw data using similarity_module
         calculate loss via CrossEntropyLoss
@@ -80,7 +84,7 @@ class DetectionModule(AbstractModel):
         loss_detection = self.loss_func_detection(pre_detection, label)
         return loss_detection
 
-    def predict(self, data):
+    def predict(self, data: Tuple[torch.Tensor, any]) -> Tensor:
         """
         Args:
             data (Tuple[Tensor, any]): batch data tuple,including text,image,label
@@ -114,12 +118,12 @@ class FastCNN(AbstractModel):
                 )
             )
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         """
         Args:
-            x (Tensor): processed text data
+            x (Tensor): processed text data, shape=(batch_size,30,200)
         Returns:
-            Tensor: FastCNN data,shape=(,128)
+            Tensor: FastCNN data,shape=(batch_size,128)
         """
         x = x.permute(0, 2, 1)
         x_out = []
@@ -171,14 +175,14 @@ class EncodingPart(AbstractModel):
             nn.ReLU()
         )
 
-    def forward(self, text, image):
+    def forward(self, text: Tensor, image: Tensor):
         """
         Args:
-            text (Tensor): batch text data
-            image (Tensor): batch image data
+            text (Tensor): batch text data, shape=(,30,200)
+            image (Tensor): batch image data, shape=(,512)
         Returns:
-            text_shared (Tensor): Encoding text data, shape=(batch_size,128)
-            image_shared (Tensor): Encoding image data, shape=(batch_size,128)
+            text_shared (Tensor): Encoding text data, shape=(,128)
+            image_shared (Tensor): Encoding image data, shape=(,128)
         """
         text_encoding = self.shared_text_encoding(text)
         text_shared = self.shared_text_linear(text_encoding)
@@ -188,6 +192,7 @@ class EncodingPart(AbstractModel):
 
 class SimilarityModule(AbstractModel):
     device = torch.device(DEVICE)
+
     def __init__(self, shared_dim=128, sim_dim=64):
         """
         Args:
@@ -222,11 +227,11 @@ class SimilarityModule(AbstractModel):
             nn.Linear(64, 2)
         )
 
-    def forward(self, text, image):
+    def forward(self, text: Tensor, image: Tensor):
         """
         Args:
-            text (Tensor): text data
-            image (Tensor): image data
+            text (Tensor): text data, shape=(,30,200)
+            image (Tensor): image data, shape=(,512)
         Returns:
             text_aligned (Tensor): aligned text, shape=(,64)
             image_aligned (Tensor): aligned image, shape=(,64)
@@ -240,7 +245,7 @@ class SimilarityModule(AbstractModel):
         pred_similarity = self.sim_classifier(sim_feature)
         return text_aligned, image_aligned, pred_similarity
 
-    def calculate_loss(self, data):
+    def calculate_loss(self, data: (Tuple[Tensor, any])) -> Tensor:
         device = torch.device(DEVICE)
         """
         calculate loss via CosineEmbeddingLoss
@@ -264,14 +269,14 @@ class SimilarityModule(AbstractModel):
         loss_similarity = self.loss_func_similarity(text_aligned_4_task1, image_aligned_4_task1, similarity_label_1)
         return loss_similarity
 
-    def prepare_data(self, data):
+    def prepare_data(self, data: (Tuple[Tensor, any])):
         """
         Args:
-            data (Tuple): batch data
+            data (Tuple[Tensor, any]): batch data, including text, image, label
         Returns:
-            fixed_text (Tensor): processed text data, shape=(len(nr_index),,)
-            matched_image (Tensor): processed match image data, shape=(len(nr_index),)
-            unmatched_image (Tensor): processed unmatch image data, shape=(len(nr_index),)
+            fixed_text (Tensor): processed text data, shape=(len(nr_index),30,200)
+            matched_image (Tensor): processed match image data, shape=(len(nr_index),512)
+            unmatched_image (Tensor): processed unmatch image data, shape=(len(nr_index),512)
         """
         text = data[0]
         image = data[1]
@@ -284,17 +289,19 @@ class SimilarityModule(AbstractModel):
         unmatched_image = copy.deepcopy(image_nr).roll(shifts=3, dims=0)
         return fixed_text, matched_image, unmatched_image
 
-    def predict(self, text, image):
+    def predict(self, data: (Tuple[Tensor, any])) -> Tensor:
         """
         predict the probability of being fake news
         Args:
-            data (Batch): batch data
+            data (Tuple[Tensor, any]): batch data, including text, image, label
         Returns:
             Tensor: softmax probability, shape=(, 2)
         """
-
+        text = data[0]
+        image = data[1]
         output = self.forward(text, image)
         return output
+
 
 class Encoder(AbstractModel):
     def __init__(self, z_dim=2):
@@ -311,10 +318,10 @@ class Encoder(AbstractModel):
             nn.Linear(64, z_dim * 2),
         )
 
-    def forward(self, x):
+    def forward(self, x: Tensor):
         """
         Args:
-            x: batch data
+            x (Tensor): batch data, shape=(batch_size,64)
         Returns:
             Independent: distribution of text or image
         """
@@ -331,11 +338,11 @@ class AmbiguityLearning(AbstractModel):
         self.encoder_text = Encoder()
         self.encoder_image = Encoder()
 
-    def forward(self, text_encoding, image_encoding):
+    def forward(self, text_encoding, image_encoding) -> Tensor:
         """
         Args:
-            text_encoding (Tensor): the batch aligned text
-            image_encoding (Tensor): the batch aligned image
+            text_encoding (Tensor): the batch aligned text, shape=(batch_size, 64)
+            image_encoding (Tensor): the batch aligned image, shape=(batch_size, 64)
         Returns:
             Tensor: the ambiguity of text and image, shape=(batch_size,1)
         """
@@ -375,11 +382,11 @@ class UnimodalDetection(AbstractModel):
             nn.ReLU()
         )
 
-    def forward(self, text_encoding, image_encoding):
+    def forward(self, text_encoding: Tensor, image_encoding: Tensor):
         """
         Args:
-            text_encoding (Tensor): encoding batch text data
-            image_encoding (Tensor): encoding batch image data
+            text_encoding (Tensor): encoding batch text data, shape=(batch_size,128)
+            image_encoding (Tensor): encoding batch image data, shape=(batch_size,128)
         Returns:
             text_prime (Tensor): processed batch text data, shape=(batch_size,prime_dim)
             image_prime (Tensor):processed batch image data, shape=(batch_size,prime_dim)
@@ -390,11 +397,9 @@ class UnimodalDetection(AbstractModel):
 
 
 class CrossModule4Batch(AbstractModel):
-    def __init__(self, text_in_dim=64, image_in_dim=64, corre_out_dim=64):
+    def __init__(self, corre_out_dim=64):
         """
         Args:
-            text_in_dim (int): input dim of text, default=64
-            image_in_dim (int): input dim of image, default=64
             corre_out_dim (int): output dim of correlation, default=64
         """
         super(CrossModule4Batch, self).__init__()
@@ -407,11 +412,11 @@ class CrossModule4Batch(AbstractModel):
             nn.ReLU()
         )
 
-    def forward(self, text, image):
+    def forward(self, text: Tensor, image: Tensor):
         """
         Args:
-            text (Tensor): batch text data
-            image (Tensor): batch image data
+            text (Tensor): batch text data, shape=(batch_size,64)
+            image (Tensor): batch image data, shape=(batch_size,64)
         Returns:
             Tensor: the correlation of text and image, shape=(batch_size, 64)
         """
