@@ -13,7 +13,6 @@ from tqdm import tqdm
 from faknow.data.dataset.m3fend_dataset import M3FENDDataSet
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.m3fend import M3FEND
-from faknow.train.m3fend_trainer import M3FENDTrainer
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import EarlyStopping
 from faknow.utils.utils_m3fend import Recorder, data2gpu, Averager, metrics, tuple2dict
