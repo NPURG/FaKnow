@@ -58,8 +58,6 @@ def run_m3fend(
         emotion_num: int = 7,
         style_num: int = 2,
         lnn_dim: int = 50,
-        save_param_dir: str = './param_model',
-        param_log_dir: str = './logs/param',
         early_stop: int = 3,
         epochs: int = 50,
         device: str = 'gpu',
@@ -115,11 +113,6 @@ def run_m3fend(
                                                                                              batch_size, epochs,
                                                                                              gpu, domain_num))
     torch.backends.cudnn.enabled = False
-    # 设置一个文件日志器（logger）
-    if not os.path.exists(param_log_dir):
-        os.makedirs(param_log_dir)
-    param_log_file = os.path.join(param_log_dir, 'm3fend' + '_' + 'oneloss_param.txt')
-    logger = getFileLogger(param_log_file)
 
     train_path = root_path + 'train.pkl'
     val_path = root_path + 'val.pkl'
