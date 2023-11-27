@@ -283,12 +283,20 @@ class M3FEND(AbstractModel):
         return torch.sigmoid(deep_logits.squeeze(1))
 
     def calculate_loss(self, batch_data) -> Tensor:
-        batch_data = tuple2dict(batch_data)
         label = batch_data['label']
-        category = batch_data['category']
+        # category = batch_data['category']
         label_pred = self.forward(**batch_data)
         loss = self.loss_fn(label_pred, label.float())
         return loss
 
-    # todo
-    #def predict(self, data_without_label) -> Tensor:
+    def predict(self, data_without_label) -> Tensor:
+        batch_label_pred = self.forward(**data_without_label)
+        new_outputs = torch.zeros((batch_label_pred.shape[0], 2)).to(batch_label_pred.device)
+
+        new_outputs[batch_label_pred < 0.5, 0] = 1 - batch_label_pred[batch_label_pred < 0.5]
+        new_outputs[batch_label_pred < 0.5, 1] = batch_label_pred[batch_label_pred < 0.5]
+
+        new_outputs[batch_label_pred >= 0.5, 1] = batch_label_pred[batch_label_pred >= 0.5]
+        new_outputs[batch_label_pred >= 0.5, 0] = 1 - batch_label_pred[batch_label_pred >= 0.5]
+
+        return new_outputs
