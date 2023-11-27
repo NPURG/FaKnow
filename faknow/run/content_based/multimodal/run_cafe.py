@@ -72,7 +72,3 @@ def run_cafe(dataset_dir: str,
     if test_loader is not None:
         test_result = trainer.evaluate(test_loader)
         print('test result: ', dict2str(test_result))
-
-
-if __name__ == "__main__":
-    run_cafe("D:\postgraduate\gitcode\FaKnow_1\dataset\example\CAFE")
