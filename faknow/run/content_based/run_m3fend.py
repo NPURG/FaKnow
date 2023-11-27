@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import random
+import sys
 from typing import List
 
 import numpy as np
@@ -61,11 +62,18 @@ def run_m3fend(
         param_log_dir: str = './logs/param',
         early_stop: int = 3,
         epochs: int = 50,
-        device: str = 'cpu',
-        gpu: str = '0',
+        device: str = 'gpu',
+        gpu: str = '',
         metrics: List = None,
 ):
-    os.environ["CUDA_VISIBLE_DEVICES"] = gpu  # 将 CUDA_VISIBLE_DEVICES 环境变量设置为在命令行参数中指定的 GPU 的值
+    if device == 'cuda':
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu  # 将 CUDA_VISIBLE_DEVICES 环境变量设置为在命令行参数中指定的 GPU 的值
+    elif device == 'cpu':
+        os.environ["CUDA_VISIBLE_DEVICES"] = '' # 将 CUDA_VISIBLE_DEVICES 环境变量设置为'', 即cpu
+        if gpu != '':
+            print("The current environment is a CPU environment, and the 'gpu' parameter should be removed; Or if you want"
+                  " to use the cuda environment, set the 'device' parameter to 'cuda' and specify the 'gpu' parameter as a certain number")
+            sys.exit()
     if dataset == 'en':
         root_path = '../../../dataset/example/M3FEND/en/'
         category_dict = {
@@ -189,7 +197,7 @@ def run_m3fend(
         early_stopping=early_stopping,
         device=device
     )
-    trainer.fit(train_loader=train_loader, num_epochs=epochs)
+    trainer.fit(train_loader=train_loader, validate_loader=val_loader, num_epochs=epochs)
     # trainer.fit(train_loader=train_loader, num_epochs=epochs, validate_loader=val_loader)
 
 
