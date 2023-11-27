@@ -53,21 +53,19 @@ class M3FENDDataSet(Dataset):
         self.content_token_ids, self.content_masks = word2input(self.content, self.max_len, self.dataset)
         self.comments_token_ids, self.comments_masks = word2input(self.content, self.max_len, self.dataset)
 
-        self.tensors = (
-            self.content_token_ids,
-            self.content_masks,
-            self.comments_token_ids,
-            self.comments_masks,
-            self.content_emotion,
-            self.comments_emotion,
-            self.emotion_gap,
-            self.style_feature,
-            self.label,
-            self.category
-        )
-
     def __len__(self):
         return self.content_token_ids.size(0)
 
     def __getitem__(self, index):
-        return tuple(tensor[index] for tensor in self.tensors)
+        return {
+            'content': self.content_token_ids[index],
+            'content_masks': self.content_masks[index],
+            'comments': self.comments_token_ids[index],
+            'comments_masks': self.comments_masks[index],
+            'content_emotion': self.content_emotion[index],
+            'comments_emotion': self.comments_emotion[index],
+            'emotion_gap': self.emotion_gap[index],
+            'style_feature': self.style_feature[index],
+            'category': self.category[index],
+            'label': self.label[index]
+        }
