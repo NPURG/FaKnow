@@ -21,9 +21,10 @@ random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
-torch.backends.cudnn.benchmark = False # 将 PyTorch 中 cuDNN 库的自动优化设置为禁用
-torch.backends.cudnn.deterministic = True # 将 cuDNN 库的算法设置为确定性的
-# 在深度学习实验中，尤其是在涉及卷积神经网络（CNN）等使用 cuDNN 的模型时，禁用 cuDNN 的自动优化并启用确定性算法是为了确保实验结果的一致性，使得实验可复现。
+torch.backends.cudnn.benchmark = False  # 将 PyTorch 中 cuDNN 库的自动优化设置为禁用
+torch.backends.cudnn.deterministic = True  # 将 cuDNN 库的算法设置为确定性的
+# 在深度学习实验中，尤其是在涉及卷积神经网络（CNN）等使用 cuDNN 的模型时，禁用 cuDNN
+# 的自动优化并启用确定性算法是为了确保实验结果的一致性，使得实验可复现。
 
 __all__ = ['_init_fn', 'run_m3fend', 'run_m3fend_from_yaml']
 
@@ -163,7 +164,16 @@ def run_m3fend(
     )
 
     # model
-    model = M3FEND(emb_dim, mlp_dims, dropout, semantic_num, emotion_num, style_num, lnn_dim, len(category_dict), dataset)
+    model = M3FEND(
+        emb_dim,
+        mlp_dims,
+        dropout,
+        semantic_num,
+        emotion_num,
+        style_num,
+        lnn_dim,
+        len(category_dict),
+        dataset)
     if device == 'cuda':
         model = model.cuda()
 
@@ -171,10 +181,14 @@ def run_m3fend(
     # 在模型的 calculate_loss 函数中体现
 
     # optimizer
-    optimizer = torch.optim.Adam(params=model.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer = torch.optim.Adam(
+        params=model.parameters(),
+        lr=lr,
+        weight_decay=weight_decay)
 
     # scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.98)
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, step_size=100, gamma=0.98)
 
     # evaluator
     evaluator = Evaluator(metrics)
@@ -185,7 +199,8 @@ def run_m3fend(
     # 设置模型为训练模式
     model.train()
 
-    # 循环遍历训练数据 : 将数据移动到GPU + 将所有样本的归一化特征按照它们的领域（domain）信息保存在self.all_feature 字典中
+    # 循环遍历训练数据 : 将数据移动到GPU + 将所有样本的归一化特征按照它们的领域（domain）信息保存在self.all_feature
+    # 字典中
     train_data_iter = tqdm(train_loader, desc='Moving data to device')
     for step_n, batch in enumerate(train_data_iter):
         batch_data = data2gpu(batch, device)
@@ -203,7 +218,10 @@ def run_m3fend(
         early_stopping=early_stopping,
         device=device
     )
-    trainer.fit(train_loader=train_loader, validate_loader=val_loader, num_epochs=epochs)
+    trainer.fit(
+        train_loader=train_loader,
+        validate_loader=val_loader,
+        num_epochs=epochs)
 
 
 def run_m3fend_from_yaml(path: str):
