@@ -1,21 +1,12 @@
-import os
-import torch
 from torch import Tensor
-from torch.autograd import Variable
-import tqdm
-import torch.nn as nn
-import numpy as np
 from faknow.model.model import AbstractModel
 from faknow.model.layers.layers_m3fend import *
-from sklearn.metrics import *
 from transformers import BertModel
 from transformers import RobertaModel
-from faknow.utils.utils_m3fend import data2gpu, Averager, metrics, Recorder, tuple2dict
-import logging
+
 import math
 from sklearn.cluster import KMeans
 import numpy as np
-from torch.nn.parameter import Parameter
 
 
 def cal_length(x):
@@ -85,7 +76,24 @@ class MemoryNetwork(torch.nn.Module):
 
 
 class M3FEND(AbstractModel):
+    """
+    M3FEND: Memory-Guided Multi-View Multi-Domain Fake News Detection
+    paper: https://ieeexplore.ieee.org/document/9802916
+    code: https://github.com/ICTMCG/M3FEND
+    """
     def __init__(self, emb_dim, mlp_dims, dropout, semantic_num, emotion_num, style_num, LNN_dim, domain_num, dataset):
+        """
+        Args:
+            emb_dim (int): Dimensionality of the embeddings.
+            mlp_dims (List[int]): List of dimensions for the MLP layers.
+            dropout (float): Dropout probability.
+            semantic_num (int): Number of semantic experts.
+            emotion_num (int): Number of emotion experts.
+            style_num (int): Number of style experts.
+            LNN_dim (int): Dimensionality of the Latent Neural Network (LNN).
+            domain_num (int): Number of domains.
+            dataset (str): Dataset identifier ('ch' for Chinese, 'en' for English).
+        """
         super(M3FEND, self).__init__()
         self.loss_fn = torch.nn.BCELoss()
         self.domain_num = domain_num
@@ -193,8 +201,10 @@ class M3FEND(AbstractModel):
             self.all_feature[domain].append(all_feature[index].view(1, -1).cpu().detach().numpy())
 
     def init_memory(self):
-        # 通过 K-Means 聚类，为每个领域创建一个域内存，该域内存包含了该领域内样本特征的聚类中心
-        # 这有助于模型学习领域内的代表性特征，提高模型对不同领域数据的适应能力
+        """
+        通过 K-Means 聚类，为每个领域创建一个域内存，该域内存包含了该领域内样本特征的聚类中心
+        这有助于模型学习领域内的代表性特征，提高模型对不同领域数据的适应能力
+        """
         for domain in self.all_feature:
             # 数据准备
             all_feature = np.concatenate(self.all_feature[domain])
@@ -203,7 +213,6 @@ class M3FEND(AbstractModel):
             kmeans = KMeans(n_clusters=self.memory_num, init='k-means++').fit(all_feature)
 
             # kmeans.cluster_centers_ 包含了每个簇的中心点，即簇心
-            #
             centers = kmeans.cluster_centers_
 
             # 将簇心数组转换为 PyTorch Tensor，并将其存储到域内存中
@@ -283,6 +292,17 @@ class M3FEND(AbstractModel):
         return torch.sigmoid(deep_logits.squeeze(1))
 
     def calculate_loss(self, batch_data) -> Tensor:
+        """
+        Calculate the loss for the M3FEND model.
+
+        Args:
+            batch_data(Dict[str, Tensor]):
+            Input data containing 'content', 'content_masks', 'comments', 'comments_masks', 'content_emotion',
+            'comments_emotion', 'emotion_gap', 'style_feature', 'category', 'label' tensors.
+
+        Returns:
+            Tensor: loss
+        """
         label = batch_data['label']
         # category = batch_data['category']
         label_pred = self.forward(**batch_data)
@@ -290,6 +310,15 @@ class M3FEND(AbstractModel):
         return loss
 
     def predict(self, data_without_label) -> Tensor:
+        """
+        predict the probability of being fake news
+
+        Args:
+            data_without_label (Dict[str, Tensor]): batch data dict
+
+        Returns:
+            Tensor: softmax probability, shape=(batch_size, 2)
+        """
         batch_label_pred = self.forward(**data_without_label)
         new_outputs = torch.zeros((batch_label_pred.shape[0], 2)).to(batch_label_pred.device)
 
