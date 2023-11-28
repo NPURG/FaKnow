@@ -37,7 +37,8 @@ class MemoryNetwork(torch.nn.Module):
 
     def forward(self, feature, category):
         feature = norm(feature)
-        domain_label = torch.tensor([index for index in category]).view(-1, 1).cuda()
+        domain_label = torch.tensor(
+            [index for index in category]).view(-1, 1).cuda()
         domain_memory = []
         for i in range(self.domain_num):
             domain_memory.append(self.domain_memory[i])
@@ -50,9 +51,11 @@ class MemoryNetwork(torch.nn.Module):
             sep_domain_embedding.append(tmp_domain_embedding.unsqueeze(1))
         sep_domain_embedding = torch.cat(sep_domain_embedding, 1)
 
-        domain_att = torch.bmm(sep_domain_embedding, self.domain_fc(feature).unsqueeze(2)).squeeze()
+        domain_att = torch.bmm(sep_domain_embedding,
+                               self.domain_fc(feature).unsqueeze(2)).squeeze()
 
-        domain_att = torch.nn.functional.softmax(domain_att * self.tau, dim=1).unsqueeze(1)
+        domain_att = torch.nn.functional.softmax(
+            domain_att * self.tau, dim=1).unsqueeze(1)
 
         return domain_att
 
@@ -62,17 +65,20 @@ class MemoryNetwork(torch.nn.Module):
         for i in domain_set:
             domain_fea_dict[i] = []
         for i in range(all_feature.size(0)):
-            domain_fea_dict[category[i].item()].append(all_feature[i].view(1, -1))
+            domain_fea_dict[category[i].item()].append(
+                all_feature[i].view(1, -1))
 
         for i in domain_set:
             domain_fea_dict[i] = torch.cat(domain_fea_dict[i], 0)
             topic_att = torch.nn.functional.softmax(
                 torch.mm(self.topic_fc(domain_fea_dict[i]), self.domain_memory[i].T) * self.tau, dim=1).unsqueeze(2)
-            tmp_fea = domain_fea_dict[i].unsqueeze(1).repeat(1, self.memory_num, 1)
+            tmp_fea = domain_fea_dict[i].unsqueeze(
+                1).repeat(1, self.memory_num, 1)
             new_mem = tmp_fea * topic_att
             new_mem = new_mem.mean(dim=0)
             topic_att = torch.mean(topic_att, 0).view(-1, 1)
-            self.domain_memory[i] = self.domain_memory[i] - 0.05 * topic_att * self.domain_memory[i] + 0.05 * new_mem
+            self.domain_memory[i] = self.domain_memory[i] - 0.05 * \
+                topic_att * self.domain_memory[i] + 0.05 * new_mem
 
 
 class M3FEND(AbstractModel):
@@ -81,7 +87,9 @@ class M3FEND(AbstractModel):
     paper: https://ieeexplore.ieee.org/document/9802916
     code: https://github.com/ICTMCG/M3FEND
     """
-    def __init__(self, emb_dim, mlp_dims, dropout, semantic_num, emotion_num, style_num, LNN_dim, domain_num, dataset):
+
+    def __init__(self, emb_dim, mlp_dims, dropout, semantic_num,
+                 emotion_num, style_num, LNN_dim, domain_num, dataset):
         """
         Args:
             emb_dim (int): Dimensionality of the embeddings.
@@ -108,9 +116,11 @@ class M3FEND(AbstractModel):
         self.fea_size = 256
         self.emb_dim = emb_dim
         if dataset == 'ch':
-            self.bert = BertModel.from_pretrained('hfl/chinese-bert-wwm-ext').requires_grad_(False)
+            self.bert = BertModel.from_pretrained(
+                'hfl/chinese-bert-wwm-ext').requires_grad_(False)
         elif dataset == 'en':
-            self.bert = RobertaModel.from_pretrained('roberta-base').requires_grad_(False)
+            self.bert = RobertaModel.from_pretrained(
+                'roberta-base').requires_grad_(False)
 
         feature_kernel = {1: 64, 2: 64, 3: 64, 5: 64, 10: 64}
 
@@ -124,18 +134,22 @@ class M3FEND(AbstractModel):
         for i in range(self.emotion_num_expert):
             # MLP 提取出关键的特征信息，即 MLP 被用作 EmoNet
             if dataset == 'ch':
-                emotion_expert.append(MLP(47 * 5, [256, 320, ], dropout, output_layer=False))
+                emotion_expert.append(
+                    MLP(47 * 5, [256, 320, ], dropout, output_layer=False))
             elif dataset == 'en':
-                emotion_expert.append(MLP(38 * 5, [256, 320, ], dropout, output_layer=False))
+                emotion_expert.append(
+                    MLP(38 * 5, [256, 320, ], dropout, output_layer=False))
         self.emotion_expert = nn.ModuleList(emotion_expert)
 
         style_expert = []
         for i in range(self.style_num_expert):
             # MLP 提取出关键的特征信息，即 MLP 被用作 StyNet
             if dataset == 'ch':
-                style_expert.append(MLP(48, [256, 320, ], dropout, output_layer=False))
+                style_expert.append(
+                    MLP(48, [256, 320, ], dropout, output_layer=False))
             elif dataset == 'en':
-                style_expert.append(MLP(32, [256, 320, ], dropout, output_layer=False))
+                style_expert.append(
+                    MLP(32, [256, 320, ], dropout, output_layer=False))
         self.style_expert = nn.ModuleList(style_expert)
 
         self.gate = nn.Sequential(nn.Linear(self.emb_dim * 2, mlp_dims[-1]),
@@ -158,7 +172,8 @@ class M3FEND(AbstractModel):
             self.domain_memory = MemoryNetwork(input_dim=self.emb_dim + 38 * 5 + 32, emb_dim=self.emb_dim + 38 * 5 + 32,
                                                domain_num=self.domain_num, memory_num=self.memory_num)
 
-        self.domain_embedder = nn.Embedding(num_embeddings=self.domain_num, embedding_dim=emb_dim)
+        self.domain_embedder = nn.Embedding(
+            num_embeddings=self.domain_num, embedding_dim=emb_dim)
         self.all_feature = {}
 
         self.classifier = MLP(320, mlp_dims, dropout)
@@ -180,7 +195,8 @@ class M3FEND(AbstractModel):
         content_emotion = kwargs['content_emotion']
         comments_emotion = kwargs['comments_emotion']
         emotion_gap = kwargs['emotion_gap']
-        emotion_feature = torch.cat([content_emotion, comments_emotion, emotion_gap], dim=1)
+        emotion_feature = torch.cat(
+            [content_emotion, comments_emotion, emotion_gap], dim=1)
 
         # 风格特征
         style_feature = kwargs['style_feature']
@@ -189,7 +205,8 @@ class M3FEND(AbstractModel):
         category = kwargs['category']
 
         # 将文本特征、情感特征和风格特征按列拼接成一个总体特征张量 all_feature 并进行归一化
-        all_feature = torch.cat([content_feature, emotion_feature, style_feature], dim=1)
+        all_feature = torch.cat(
+            [content_feature, emotion_feature, style_feature], dim=1)
         all_feature = norm(all_feature)
 
         # 将所有样本的归一化特征按照它们的领域（domain）信息保存在 self.all_feature 字典中
@@ -198,7 +215,9 @@ class M3FEND(AbstractModel):
             domain = int(category[index].cpu().numpy())
             if not (domain in self.all_feature):
                 self.all_feature[domain] = []
-            self.all_feature[domain].append(all_feature[index].view(1, -1).cpu().detach().numpy())
+            self.all_feature[domain].append(
+                all_feature[index].view(
+                    1, -1).cpu().detach().numpy())
 
     def init_memory(self):
         """
@@ -210,7 +229,9 @@ class M3FEND(AbstractModel):
             all_feature = np.concatenate(self.all_feature[domain])
 
             # 用 K-Means 聚类算法对 all_feature 进行聚类，将其分成 self.memory_num 个簇
-            kmeans = KMeans(n_clusters=self.memory_num, init='k-means++').fit(all_feature)
+            kmeans = KMeans(
+                n_clusters=self.memory_num,
+                init='k-means++').fit(all_feature)
 
             # kmeans.cluster_centers_ 包含了每个簇的中心点，即簇心
             centers = kmeans.cluster_centers_
@@ -227,7 +248,8 @@ class M3FEND(AbstractModel):
         content_emotion = kwargs['content_emotion']
         comments_emotion = kwargs['comments_emotion']
         emotion_gap = kwargs['emotion_gap']
-        emotion_feature = torch.cat([content_emotion, comments_emotion, emotion_gap], dim=1)
+        emotion_feature = torch.cat(
+            [content_emotion, comments_emotion, emotion_gap], dim=1)
 
         style_feature = kwargs['style_feature']
 
@@ -236,7 +258,8 @@ class M3FEND(AbstractModel):
         content_feature = self.bert(content, attention_mask=content_masks)[0]
         content_feature, _ = self.attention(content_feature, content_masks)
 
-        all_feature = torch.cat([content_feature, emotion_feature, style_feature], dim=1)
+        all_feature = torch.cat(
+            [content_feature, emotion_feature, style_feature], dim=1)
         all_feature = norm(all_feature)
         self.domain_memory.write(all_feature, category)
 
@@ -248,7 +271,8 @@ class M3FEND(AbstractModel):
         comments_emotion = kwargs['comments_emotion']
         emotion_gap = kwargs['emotion_gap']
         style_feature = kwargs['style_feature']
-        emotion_feature = torch.cat([content_emotion, comments_emotion, emotion_gap], dim=1)
+        emotion_feature = torch.cat(
+            [content_emotion, comments_emotion, emotion_gap], dim=1)
         category = kwargs['category']
 
         content_feature = self.bert(content, attention_mask=content_masks)[0]
@@ -256,24 +280,31 @@ class M3FEND(AbstractModel):
         gate_input_feature, _ = self.attention(content_feature, content_masks)
         memory_att = self.domain_memory(torch.cat([gate_input_feature, emotion_feature, style_feature], dim=-1),
                                         category)
-        domain_emb_all = self.domain_embedder(torch.LongTensor(range(self.domain_num)).cuda())
-        general_domain_embedding = torch.mm(memory_att.squeeze(1), domain_emb_all)
+        domain_emb_all = self.domain_embedder(
+            torch.LongTensor(range(self.domain_num)).cuda())
+        general_domain_embedding = torch.mm(
+            memory_att.squeeze(1), domain_emb_all)
 
         idxs = torch.tensor([index for index in category]).view(-1, 1).cuda()
         domain_embedding = self.domain_embedder(idxs).squeeze(1)
-        gate_input = torch.cat([domain_embedding, general_domain_embedding], dim=-1)
+        gate_input = torch.cat(
+            [domain_embedding, general_domain_embedding], dim=-1)
 
-        gate_value = self.gate(gate_input).view(content_feature.size(0), 1, self.LNN_dim)
+        gate_value = self.gate(gate_input).view(
+            content_feature.size(0), 1, self.LNN_dim)
 
         shared_feature = []
         for i in range(self.semantic_num_expert):
-            shared_feature.append(self.content_expert[i](content_feature).unsqueeze(1))
+            shared_feature.append(
+                self.content_expert[i](content_feature).unsqueeze(1))
 
         for i in range(self.emotion_num_expert):
-            shared_feature.append(self.emotion_expert[i](emotion_feature).unsqueeze(1))
+            shared_feature.append(
+                self.emotion_expert[i](emotion_feature).unsqueeze(1))
 
         for i in range(self.style_num_expert):
-            shared_feature.append(self.style_expert[i](style_feature).unsqueeze(1))
+            shared_feature.append(
+                self.style_expert[i](style_feature).unsqueeze(1))
 
         shared_feature = torch.cat(shared_feature, dim=1)
 
@@ -320,12 +351,18 @@ class M3FEND(AbstractModel):
             Tensor: softmax probability, shape=(batch_size, 2)
         """
         batch_label_pred = self.forward(**data_without_label)
-        new_outputs = torch.zeros((batch_label_pred.shape[0], 2)).to(batch_label_pred.device)
+        new_outputs = torch.zeros(
+            (batch_label_pred.shape[0], 2)).to(
+            batch_label_pred.device)
 
-        new_outputs[batch_label_pred < 0.5, 0] = 1 - batch_label_pred[batch_label_pred < 0.5]
-        new_outputs[batch_label_pred < 0.5, 1] = batch_label_pred[batch_label_pred < 0.5]
+        new_outputs[batch_label_pred < 0.5, 0] = 1 - \
+            batch_label_pred[batch_label_pred < 0.5]
+        new_outputs[batch_label_pred < 0.5,
+                    1] = batch_label_pred[batch_label_pred < 0.5]
 
-        new_outputs[batch_label_pred >= 0.5, 1] = batch_label_pred[batch_label_pred >= 0.5]
-        new_outputs[batch_label_pred >= 0.5, 0] = 1 - batch_label_pred[batch_label_pred >= 0.5]
+        new_outputs[batch_label_pred >= 0.5,
+                    1] = batch_label_pred[batch_label_pred >= 0.5]
+        new_outputs[batch_label_pred >= 0.5, 0] = 1 - \
+            batch_label_pred[batch_label_pred >= 0.5]
 
         return new_outputs
