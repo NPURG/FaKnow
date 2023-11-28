@@ -7,17 +7,40 @@ from transformers import BertTokenizer, RobertaTokenizer
 
 
 def df_filter(df_data, category_dict):
-    # 用于根据给定的 category_dict 字典对输入的 DataFrame 进行过滤
-    # 返回过滤后的 DataFrame，其中只包含了在 category_dict 中定义的类别的数据点。
+    """
+    用于根据给定的 category_dict 字典对输入的 DataFrame 进行过滤
+    返回过滤后的 DataFrame，其中只包含了在 category_dict 中定义的类别的数据点。
+
+    Args:
+        df_data (pd.DataFrame): Input DataFrame.
+        category_dict (Dict[str, int]): Dictionary mapping category names to integers.
+
+    Returns:
+        pd.DataFrame: Filtered DataFrame containing only the data points with categories defined in category_dict.
+    """
     df_data = df_data[df_data['category'].isin(set(category_dict.keys()))]
     return df_data
+
 
 def read_pkl(path):
     with open(path, "rb") as f:
         t = pickle.load(f)
     return t
 
+
 def word2input(texts, max_len, dataset):
+    """
+    Tokenize input texts using BERT or RoBERTa tokenizer based on the dataset.
+    Return tokenized input IDs and masks.
+
+    Args:
+        texts (List[str]): List of input texts.
+        max_len (int): Maximum sequence length.
+        dataset (str): Dataset identifier ('ch' for Chinese, 'en' for English).
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: Tokenized input IDs and masks.
+    """
     if dataset == 'ch':
         tokenizer = BertTokenizer.from_pretrained('hfl/chinese-bert-wwm-ext')
     elif dataset == 'en':
@@ -33,6 +56,7 @@ def word2input(texts, max_len, dataset):
     for i, tokens in enumerate(token_ids):
         masks[i] = (tokens != mask_token_id)
     return token_ids, masks
+
 
 class M3FENDDataSet(Dataset):
     def __init__(self, path, max_len, category_dict, dataset):
