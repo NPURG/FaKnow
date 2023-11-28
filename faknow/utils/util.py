@@ -57,6 +57,13 @@ def seconds2str(seconds: float) -> str:
     return f'{h}h{m}m{s}s'
 
 
+def data2gpu(batch, device):
+    if device == 'cuda':
+        for key, value in batch.items():
+            batch[key] = value.cuda()
+    return batch
+
+
 def check_loss_type(result):
     """
     Check the type of the loss and convert it to a tensor if necessary.
