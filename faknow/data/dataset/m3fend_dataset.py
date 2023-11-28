@@ -68,14 +68,22 @@ class M3FENDDataSet(Dataset):
         self.data = df_filter(read_pkl(self.path), self.category_dict)
         self.content = self.data['content'].to_numpy()
         self.comments = self.data['comments'].to_numpy()
-        self.content_emotion = torch.tensor(np.vstack(self.data['content_emotion']).astype('float32'))
-        self.comments_emotion = torch.tensor(np.vstack(self.data['comments_emotion']).astype('float32'))
-        self.emotion_gap = torch.tensor(np.vstack(self.data['emotion_gap']).astype('float32'))
-        self.style_feature = torch.tensor(np.vstack(self.data['style_feature']).astype('float32'))
+        self.content_emotion = torch.tensor(
+            np.vstack(self.data['content_emotion']).astype('float32'))
+        self.comments_emotion = torch.tensor(
+            np.vstack(self.data['comments_emotion']).astype('float32'))
+        self.emotion_gap = torch.tensor(
+            np.vstack(self.data['emotion_gap']).astype('float32'))
+        self.style_feature = torch.tensor(
+            np.vstack(self.data['style_feature']).astype('float32'))
         self.label = torch.tensor(self.data['label'].astype(int).to_numpy())
-        self.category = torch.tensor(self.data['category'].apply(lambda c: self.category_dict[c]).to_numpy())
-        self.content_token_ids, self.content_masks = word2input(self.content, self.max_len, self.dataset)
-        self.comments_token_ids, self.comments_masks = word2input(self.content, self.max_len, self.dataset)
+        self.category = torch.tensor(
+            self.data['category'].apply(
+                lambda c: self.category_dict[c]).to_numpy())
+        self.content_token_ids, self.content_masks = word2input(
+            self.content, self.max_len, self.dataset)
+        self.comments_token_ids, self.comments_masks = word2input(
+            self.content, self.max_len, self.dataset)
 
     def __len__(self):
         return self.content_token_ids.size(0)
