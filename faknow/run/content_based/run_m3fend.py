@@ -1,5 +1,3 @@
-import json
-import logging
 import os
 import random
 import sys
@@ -7,6 +5,7 @@ from typing import List
 
 import numpy as np
 import torch
+import yaml
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -15,7 +14,7 @@ from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.m3fend import M3FEND
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import EarlyStopping
-from faknow.utils.utils_m3fend import Recorder, data2gpu, Averager, metrics, tuple2dict
+from faknow.utils.util import data2gpu
 
 seed = 2021
 random.seed(seed)
@@ -25,6 +24,8 @@ torch.cuda.manual_seed(seed)
 torch.backends.cudnn.benchmark = False # 将 PyTorch 中 cuDNN 库的自动优化设置为禁用
 torch.backends.cudnn.deterministic = True # 将 cuDNN 库的算法设置为确定性的
 # 在深度学习实验中，尤其是在涉及卷积神经网络（CNN）等使用 cuDNN 的模型时，禁用 cuDNN 的自动优化并启用确定性算法是为了确保实验结果的一致性，使得实验可复现。
+
+__all__ = ['_init_fn', 'run_m3fend', 'run_m3fend_from_yaml']
 
 
 def _init_fn(worker_id):
@@ -52,10 +53,34 @@ def run_m3fend(
         gpu: str = '',
         metrics: List = None,
 ):
+    """
+    Train and evaluate the M3FEND model.
+
+    Args:
+        dataset (str, optional): Dataset name. Defaults to 'ch'.
+        domain_num (int, optional): Number of domains. Defaults to 3.
+        emb_dim (int, optional): Dimension of the embeddings. Defaults to 768.
+        mlp_dims (list, optional): List of dimensions for the MLP layers. Defaults to [384].
+        batch_size (int, optional): Batch size. Defaults to 64.
+        num_workers (int, optional): Number of workers for data loading. Defaults to 4.
+        max_len (int, optional): Maximum sequence length. Defaults to 170.
+        lr (float, optional): Learning rate. Defaults to 0.0001.
+        dropout (float, optional): Dropout probability. Defaults to 0.2.
+        weight_decay (float, optional): Weight decay for optimization. Defaults to 0.00005.
+        semantic_num (int, optional): Number of semantic categories. Defaults to 7.
+        emotion_num (int, optional): Number of emotion categories. Defaults to 7.
+        style_num (int, optional): Number of style categories. Defaults to 2.
+        lnn_dim (int, optional): Dimension of the latent narrative space. Defaults to 50.
+        early_stop (int, optional): Number of epochs for early stopping. Defaults to 3.
+        epochs (int, optional): Number of training epochs. Defaults to 50.
+        device (str, optional): Device to run the training on ('cuda' or 'gpu'). Defaults to 'gpu'.
+        gpu (str, optional): GPU device ID. Defaults to an empty string.
+        metrics (List, optional): List of evaluation metrics. Defaults to None.
+    """
     if device == 'cuda':
-        os.environ["CUDA_VISIBLE_DEVICES"] = gpu  # 将 CUDA_VISIBLE_DEVICES 环境变量设置为在命令行参数中指定的 GPU 的值
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu
     elif device == 'cpu':
-        os.environ["CUDA_VISIBLE_DEVICES"] = '' # 将 CUDA_VISIBLE_DEVICES 环境变量设置为'', 即cpu
+        os.environ["CUDA_VISIBLE_DEVICES"] = ''  # cpu
         if gpu != '':
             print("The current environment is a CPU environment, and the 'gpu' parameter should be removed; Or if you want"
                   " to use the cuda environment, set the 'device' parameter to 'cuda' and specify the 'gpu' parameter as a certain number")
@@ -154,7 +179,7 @@ def run_m3fend(
     # evaluator
     evaluator = Evaluator(metrics)
 
-    # todo early_stopping
+    # early_stopping
     early_stopping = EarlyStopping(patience=early_stop)
 
     # 设置模型为训练模式
@@ -179,8 +204,15 @@ def run_m3fend(
         device=device
     )
     trainer.fit(train_loader=train_loader, validate_loader=val_loader, num_epochs=epochs)
-    # trainer.fit(train_loader=train_loader, num_epochs=epochs, validate_loader=val_loader)
 
 
-if __name__ == '__main__':
-    run_m3fend(dataset='en', domain_num=3, lr=0.0001, device='cuda', gpu='0')
+def run_m3fend_from_yaml(path: str):
+    """
+    Load M3FEND configuration from YAML file and run the training and evaluation.
+
+    Args:
+        path (str): Path to the YAML configuration file.
+    """
+    with open(path, 'r', encoding='utf-8') as _f:
+        _config = yaml.load(_f, Loader=yaml.FullLoader)
+        run_m3fend(**_config)
