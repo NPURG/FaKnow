@@ -12,7 +12,7 @@ from torchvision.transforms import transforms
 from transformers import get_linear_schedule_with_warmup
 
 from faknow.data.dataset.multi_modal import MultiModalDataset
-from faknow.data.process.text_process import TokenizerForBert
+from faknow.data.process.text_process import TokenizerFromPreTrained
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.mcan import MCAN
 from faknow.train.trainer import BaseTrainer
@@ -318,7 +318,7 @@ def run_mcan(train_path: str,
         **optimizer_kargs: optimizer kargs
     """
 
-    tokenizer = TokenizerForBert(max_len, bert, text_preprocessing)
+    tokenizer = TokenizerFromPreTrained(max_len, bert, text_preprocessing)
 
     train_dataset = MultiModalDataset(train_path, ['text'], tokenizer,
                                       ['image'], transform_mcan)

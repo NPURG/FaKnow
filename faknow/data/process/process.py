@@ -1,23 +1,25 @@
 import random
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Tuple
 from collections import defaultdict
 
 import numpy as np
 import torch
 from torch.utils.data import Subset, random_split
-from torch_geometric.data import Batch
+from torch_geometric.data import Data
 from sklearn.metrics.pairwise import cosine_similarity
 
 from faknow.data.dataset.text import TextDataset
 from faknow.data.dataset.multi_modal import MultiModalDataset
 
 
-def split_dataset(data_path: str,
-                  text_features: List[str],
-                  tokenize: Callable[[List[str]], Any],
-                  image_features: List[str] = None,
-                  transform: Callable[[str], Any] = None,
-                  ratio: List[float] = None) -> List[Subset[Any]]:
+def split_dataset(
+    data_path: str,
+    text_features: List[str],
+    tokenize: Callable[[List[str]], Any],
+    image_features: List[str] = None,
+    transform: Callable[[str], Any] = None,
+    ratio: List[float] = None,
+) -> List[Subset[Any]]:
     """
     split TextDataset or MultiModalDataset with given ratio.
     If image_features is None, split TextDataset, else split MultiModalDataset.
@@ -44,7 +46,7 @@ def split_dataset(data_path: str,
     if ratio is None:
         ratio = [0.7, 0.1, 0.2]
     else:
-        error_msg = 'ratio must be a list of positive numbers whose sum is 1'
+        error_msg = "ratio must be a list of positive numbers whose sum is 1"
         for i in ratio:
             assert i > 0, error_msg
         assert sum(ratio) == 1, error_msg
@@ -52,8 +54,9 @@ def split_dataset(data_path: str,
     if image_features is None:
         dataset = TextDataset(data_path, text_features, tokenize)
     else:
-        dataset = MultiModalDataset(data_path, text_features, tokenize,
-                                    image_features, transform)
+        dataset = MultiModalDataset(
+            data_path, text_features, tokenize, image_features, transform
+        )
 
     sizes = [int(len(dataset) * i) for i in ratio[:-1]]
     sizes.append(len(dataset) - sum(sizes))
@@ -61,7 +64,9 @@ def split_dataset(data_path: str,
     return random_split(dataset, sizes)
 
 
-def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, hash_dimension=10) -> List[int]:
+def lsh_data_selection(domain_embeddings: torch.Tensor,
+                       labelling_budget=100,
+                       hash_dimension=10) -> List[int]:
     """
     Local sensitive hash (LSH) selection for training dataset.
 
@@ -78,13 +83,14 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
 
     if labelling_budget > domain_embeddings.shape[0]:
         raise RuntimeError(
-            f"labelling budget({labelling_budget}) is greater than data pool size({domain_embeddings.shape[0]})")
+            f"labelling budget({labelling_budget}) is greater than data pool size({domain_embeddings.shape[0]})"
+        )
 
     embedding_size = domain_embeddings.shape[1]
     final_selected_ids = []
     is_final_selected = defaultdict(lambda: False)
 
-    random_distribution = [3 ** 0.5, 0.0, 0.0, 0.0, 0.0, -(3 ** 0.5)]
+    random_distribution = [3**0.5, 0.0, 0.0, 0.0, 0.0, -(3**0.5)]
 
     while len(final_selected_ids) < labelling_budget:
         # Generate random vectors
@@ -96,7 +102,7 @@ def lsh_data_selection(domain_embeddings: torch.Tensor, labelling_budget=100, ha
         # Create hash table
         code_dict = defaultdict(lambda: [])  # {str(h-dim hash value): [domain_id]}
         for i, item in enumerate(domain_embeddings):
-            code = ''
+            code = ""
             # Skip if the item is already selected
             if is_final_selected[i]:
                 continue
@@ -143,14 +149,16 @@ def calculate_cos_matrix(matrix1: torch.Tensor, matrix2: torch.Tensor):
     Returns:
         torch.Tensor: The cosine similarity matrix, shape=(n, m)
     """
-    return torch.from_numpy(cosine_similarity(matrix1.numpy(),
-                                              matrix2.numpy())).to(device=matrix1.device)
+    return torch.from_numpy(
+        cosine_similarity(matrix1.cpu().numpy(), matrix2.cpu().numpy())
+    ).to(device=matrix1.device)
 
 
 class DropEdge:
     """
     randomly drop out edges for BiGCN
     """
+
     def __init__(self, td_drop_rate: float, bu_drop_rate: float):
         """
         Args:
@@ -161,26 +169,44 @@ class DropEdge:
         self.td_drop_rate = td_drop_rate
         self.bu_drop_rate = bu_drop_rate
 
-    def __call__(self, data: Batch) -> Batch:
+    @staticmethod
+    def _random_sample(
+        row: List[int], col: List[int], drop_rate: float
+    ) -> Tuple[List[int], List[int]]:
         """
+
         Args:
-            data (Batch): The batch data in pyg.
+            row (List[int]): a list of origins in edges index
+            col (List[int]): a list of destinations in edges index
+            drop_rate (float): drop out rate
 
         Returns:
-            Batch: The batch data with dropped edges.
+            Tuple[List[int], List[int]]: edges index after drop out
+        """
+
+        length = len(row)
+        pos_list = random.sample(range(length), int(length * (1 - drop_rate)))
+        pos_list = sorted(pos_list)
+        new_row = list(np.array(row)[pos_list])
+        new_col = list(np.array(col)[pos_list])
+
+        return new_row, new_col
+
+    def __call__(self, data: Data) -> Data:
+        """
+        Args:
+            data (Data): The data in pyg.
+
+        Returns:
+            Batch: The data with dropped edges.
         """
 
         edge_index = data.edge_index
 
         if self.td_drop_rate > 0:
-            row = list(edge_index[0])
-            col = list(edge_index[1])
-            length = len(row)
-            poslist = random.sample(range(length),
-                                    int(length * (1 - self.td_drop_rate)))
-            poslist = sorted(poslist)
-            row = list(np.array(row)[poslist])
-            col = list(np.array(col)[poslist])
+            row, col = self._random_sample(
+                list(edge_index[0]), list(edge_index[1]), self.td_drop_rate
+            )
             new_edge_index = [row, col]
         else:
             new_edge_index = edge_index
@@ -188,12 +214,7 @@ class DropEdge:
         bu_row = list(edge_index[1])
         bu_col = list(edge_index[0])
         if self.bu_drop_rate > 0:
-            length = len(bu_row)
-            poslist = random.sample(range(length),
-                                    int(length * (1 - self.bu_drop_rate)))
-            poslist = sorted(poslist)
-            row = list(np.array(bu_row)[poslist])
-            col = list(np.array(bu_col)[poslist])
+            row, col = self._random_sample(bu_row, bu_col, self.bu_drop_rate)
             bu_new_edge_index = [row, col]
         else:
             bu_new_edge_index = [bu_row, bu_col]

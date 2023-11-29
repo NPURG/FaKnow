@@ -1,21 +1,23 @@
+from typing import Optional, Dict, List
+
+import torch
+import yaml
+from torch_geometric.loader import DataLoader
+
 from faknow.model.social_context.ebgcn import EBGCN
-from faknow.data.dataset.ebgcn_dataset import EBGCNDataset
+from faknow.data.dataset.bigcn_dataset import BiGCNDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
 from faknow.utils.util import dict2str
-from torch_geometric.loader import DataLoader
-from typing import Optional, Dict
-import torch
-import yaml
 
 __all__ = ['run_ebgcn', 'run_ebgcn_from_yaml']
 
 
-def run_ebgcn(train_data: list,
+def run_ebgcn(train_data: List,
               val_data: Optional[list] = None,
               test_data: Optional[list] = None,
-              data_path='./dataset/example/EBGCN/Twitter15graph/',
-              treeDic: Dict = None,
+              data_path=None,
+              tree_dic: Dict = None,
               batch_size=128,
               input_size=5000,
               hidden_size=64,
@@ -39,8 +41,8 @@ def run_ebgcn(train_data: list,
         train_data(list): index list of training nodes.
         val_data(Optional[list]): index list of validation nodes.
         test_data(Optional[list]): index list of test nodes.
-        data_path(str): path of data doc. default= './dataset/example/EBGCN/Twitter15graph/'
-        tredDic(dict): the dictionary of graph edge.
+        data_path(str): path of data doc. default=None
+        tree_dic(dict): the dictionary of graph edge.
         batch_size(int): batch size. default=128.
         input_size(int): the feature size of input. default=5000.
         hidden_size(int): the feature size of hidden embedding. default=64.
@@ -57,22 +59,20 @@ def run_ebgcn(train_data: list,
         num_epochs(int): epoch num. default=200.
         device(str): device. default='cpu'.
     """
-    train_set = EBGCNDataset(train_data, treeDic, data_path=data_path)
+    train_set = BiGCNDataset(train_data, tree_dic, data_path)
     train_loader = DataLoader(train_set,
                               batch_size=batch_size,
-                              shuffle=True,
-                              num_workers=30)
+                              shuffle=True)
     if val_data is not None:
-        val_set = EBGCNDataset(val_data, treeDic, data_path=data_path)
+        val_set = BiGCNDataset(val_data, tree_dic, data_path)
         val_loader = DataLoader(val_set,
                                 batch_size=batch_size,
-                                shuffle=False,
-                                num_workers=30)
+                                shuffle=False)
     else:
         val_loader = None
 
     model = EBGCN(input_size, hidden_size, output_size, edge_num, dropout,
-                  num_class, edge_loss_weight, device)
+                  num_class, edge_loss_weight)
 
     TD_params = list(map(id, model.TDRumorGCN.conv1.parameters()))
     TD_params += list(map(id, model.TDRumorGCN.conv2.parameters()))
@@ -105,13 +105,13 @@ def run_ebgcn(train_data: list,
                 validate_loader=val_loader)
 
     if test_data is not None:
-        test_set = EBGCNDataset(test_data, treeDic, data_path=data_path)
+        test_set = BiGCNDataset(test_data, tree_dic, data_path=data_path)
         test_loader = DataLoader(test_set,
                                  batch_size=batch_size,
                                  shuffle=False,
                                  num_workers=30)
         test_result = trainer.evaluate(test_loader)
-        print(f"test result: {dict2str(test_result)}")
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_ebgcn_from_yaml(path: str):
