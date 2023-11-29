@@ -134,7 +134,7 @@ Following is an example to run *mdfend* from scratch.
 
 ```python
 from faknow.data.dataset.text import TextDataset
-from faknow.data.process.text_process import TokenizerForBert
+from faknow.data.process.text_process import TokenizerFromPreTrained
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.mdfend import MDFEND
 from faknow.train.trainer import BaseTrainer
@@ -144,7 +144,7 @@ from torch.utils.data import DataLoader
 
 # tokenizer for MDFEND
 max_len, bert = 170, 'bert-base-uncased'
-tokenizer = TokenizerForBert(max_len, bert)
+tokenizer = TokenizerFromPreTrained(max_len, bert)
 
 # dataset
 batch_size = 64

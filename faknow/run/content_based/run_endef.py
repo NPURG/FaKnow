@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 from faknow.data.dataset.text import TextDataset
 from transformers import BertTokenizer
-from faknow.data.process.text_process import TokenizerForBert
+from faknow.data.process.text_process import TokenizerFromPreTrained
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.endef import ENDEF
 from faknow.model.content_based.mdfend import MDFEND
