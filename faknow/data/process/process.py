@@ -12,12 +12,14 @@ from faknow.data.dataset.text import TextDataset
 from faknow.data.dataset.multi_modal import MultiModalDataset
 
 
-def split_dataset(data_path: str,
-                  text_features: List[str],
-                  tokenize: Callable[[List[str]], Any],
-                  image_features: List[str] = None,
-                  transform: Callable[[str], Any] = None,
-                  ratio: List[float] = None) -> List[Subset[Any]]:
+def split_dataset(
+    data_path: str,
+    text_features: List[str],
+    tokenize: Callable[[List[str]], Any],
+    image_features: List[str] = None,
+    transform: Callable[[str], Any] = None,
+    ratio: List[float] = None,
+) -> List[Subset[Any]]:
     """
     split TextDataset or MultiModalDataset with given ratio.
     If image_features is None, split TextDataset, else split MultiModalDataset.
@@ -44,7 +46,7 @@ def split_dataset(data_path: str,
     if ratio is None:
         ratio = [0.7, 0.1, 0.2]
     else:
-        error_msg = 'ratio must be a list of positive numbers whose sum is 1'
+        error_msg = "ratio must be a list of positive numbers whose sum is 1"
         for i in ratio:
             assert i > 0, error_msg
         assert sum(ratio) == 1, error_msg
@@ -52,8 +54,9 @@ def split_dataset(data_path: str,
     if image_features is None:
         dataset = TextDataset(data_path, text_features, tokenize)
     else:
-        dataset = MultiModalDataset(data_path, text_features, tokenize,
-                                    image_features, transform)
+        dataset = MultiModalDataset(
+            data_path, text_features, tokenize, image_features, transform
+        )
 
     sizes = [int(len(dataset) * i) for i in ratio[:-1]]
     sizes.append(len(dataset) - sum(sizes))
@@ -97,10 +100,9 @@ def lsh_data_selection(domain_embeddings: torch.Tensor,
             random_vectors.append(torch.tensor(vec))
 
         # Create hash table
-        code_dict = defaultdict(
-            lambda: [])  # {str(h-dim hash value): [domain_id]}
+        code_dict = defaultdict(lambda: [])  # {str(h-dim hash value): [domain_id]}
         for i, item in enumerate(domain_embeddings):
-            code = ''
+            code = ""
             # Skip if the item is already selected
             if is_final_selected[i]:
                 continue
@@ -116,8 +118,7 @@ def lsh_data_selection(domain_embeddings: torch.Tensor,
         # Pick one item from each item bin
         for item in code_dict:
             selected_item = random.choice(code_dict[item])
-            selected_ids.append(
-                selected_item)  # 添加domain id，即domain embedding中的行号
+            selected_ids.append(selected_item)  # 添加domain id，即domain embedding中的行号
             is_selected[selected_item] = True
 
         # Remove a set of instances randomly to meet the labelling budget
@@ -148,14 +149,16 @@ def calculate_cos_matrix(matrix1: torch.Tensor, matrix2: torch.Tensor):
     Returns:
         torch.Tensor: The cosine similarity matrix, shape=(n, m)
     """
-    return torch.from_numpy(cosine_similarity(matrix1.numpy(),
-                                              matrix2.numpy())).to(device=matrix1.device)
+    return torch.from_numpy(
+        cosine_similarity(matrix1.cpu().numpy(), matrix2.cpu().numpy())
+    ).to(device=matrix1.device)
 
 
 class DropEdge:
     """
     randomly drop out edges for BiGCN
     """
+
     def __init__(self, td_drop_rate: float, bu_drop_rate: float):
         """
         Args:
@@ -167,8 +170,9 @@ class DropEdge:
         self.bu_drop_rate = bu_drop_rate
 
     @staticmethod
-    def _random_sample(row: List[int], col: List[int],
-                       drop_rate: float) -> Tuple[List[int], List[int]]:
+    def _random_sample(
+        row: List[int], col: List[int], drop_rate: float
+    ) -> Tuple[List[int], List[int]]:
         """
 
         Args:
@@ -200,9 +204,9 @@ class DropEdge:
         edge_index = data.edge_index
 
         if self.td_drop_rate > 0:
-            row, col = self._random_sample(list(edge_index[0]),
-                                           list(edge_index[1]),
-                                           self.td_drop_rate)
+            row, col = self._random_sample(
+                list(edge_index[0]), list(edge_index[1]), self.td_drop_rate
+            )
             new_edge_index = [row, col]
         else:
             new_edge_index = edge_index
