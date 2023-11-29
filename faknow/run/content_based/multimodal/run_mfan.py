@@ -182,6 +182,9 @@ def run_mfan(train_path: str,
     else:
         validate_loader = None
 
+    node_embedding = node_embedding.to(device)
+    adj_matrix = adj_matrix.to(device)
+
     model = MFAN(word_vectors,
                  node_num,
                  node_embedding,

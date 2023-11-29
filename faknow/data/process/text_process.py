@@ -5,7 +5,7 @@ import jieba
 from nltk import word_tokenize, PorterStemmer, WordNetLemmatizer
 from nltk.corpus import stopwords
 import torch
-from transformers import BertTokenizer
+from transformers import AutoTokenizer
 
 
 def read_stop_words(path: str) -> List[str]:
@@ -76,9 +76,9 @@ def english_tokenize(text: str) -> List[str]:
     return tokens
 
 
-class TokenizerForBert:
+class TokenizerFromPreTrained:
     """
-    Tokenizer for Bert with fixed length,
+    Tokenizer for pre-trained models in transformers with fixed length,
     return token_id and mask
     """
     def __init__(self,
@@ -96,7 +96,7 @@ class TokenizerForBert:
 
         self.text_preprocessing = text_preprocessing
         self.max_len = max_len
-        self.tokenizer = BertTokenizer.from_pretrained(bert)
+        self.tokenizer = AutoTokenizer.from_pretrained(bert)
 
     def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
         """

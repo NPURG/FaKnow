@@ -5,7 +5,7 @@ import yaml
 from torch.utils.data import DataLoader
 
 from faknow.data.dataset.text import TextDataset
-from faknow.data.process.text_process import TokenizerForBert
+from faknow.data.process.text_process import TokenizerFromPreTrained
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.mdfend import MDFEND
 from faknow.train.trainer import BaseTrainer
@@ -51,7 +51,7 @@ def run_mdfend(train_path: str,
         device (str): device to run model, default='cpu'
     """
 
-    tokenizer = TokenizerForBert(max_len, bert)
+    tokenizer = TokenizerFromPreTrained(max_len, bert)
     train_set = TextDataset(train_path, ['text'], tokenizer)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
 
