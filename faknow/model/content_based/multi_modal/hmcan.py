@@ -19,7 +19,6 @@ class HMCAN(AbstractModel):
     """
 
     def __init__(self,
-                 word_max_length=20,
                  left_num_layers=2,
                  left_num_heads=12,
                  dropout=0.1,
@@ -30,7 +29,6 @@ class HMCAN(AbstractModel):
         """
 
         Args:
-            word_max_length(int): the max length of input, Default=20.
             left_num_layers(int): the numbers of  the left Attention&FFN layer
                 in Contextual Transformer, Default=2.
             left_num_heads(int): the numbers of head in
@@ -48,7 +46,6 @@ class HMCAN(AbstractModel):
         """
 
         super(HMCAN, self).__init__()
-        self.word_length = word_max_length
         self.alpha = alpha
         self.output_dims = 768
         self.loss_func = nn.CrossEntropyLoss()

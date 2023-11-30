@@ -96,7 +96,7 @@ def run_hmcan(train_path: str,
     else:
         val_loader = None
 
-    model = HMCAN(max_len, left_num_layers, left_num_heads, dropout,
+    model = HMCAN(left_num_layers, left_num_heads, dropout,
                   right_num_layers, right_num_heads, alpha, bert)
     optimizer = torch.optim.Adam(model.parameters(), lr)
     evaluator = Evaluator(metrics)
