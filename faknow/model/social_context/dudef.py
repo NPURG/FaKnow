@@ -3,7 +3,10 @@ import torch.nn as nn
 from torch.nn import GRU
 from torch.nn import Embedding
 from torch import Tensor
+from numpy import ndarray
+from typing import Dict
 from faknow.model.model import AbstractModel
+
 
 class DUDEF(AbstractModel):
     r"""
@@ -11,12 +14,12 @@ class DUDEF(AbstractModel):
     paper: https://arxiv.org/abs/1903.01728
     code: https://github.com/RMSnow/WWW2021
     """
-    def __init__(self,
-                 input_size,
-                 emotion_len,
-                 hidden_size,
-                 embedding_matrix):
 
+    def __init__(self,
+                 input_size: int,
+                 emotion_len: int,
+                 hidden_size: int,
+                 embedding_matrix: ndarray):
         """
         Args:
             input_size (int): dimension of input node feature
@@ -32,12 +35,13 @@ class DUDEF(AbstractModel):
         self.fc1 = nn.Linear(hidden_size * 2 + emotion_len, hidden_size)
         self.fc2 = nn.Linear(hidden_size, 2)
         self.softmax = nn.Softmax(dim=1)
-        self.global_pooling = nn.AdaptiveAvgPool2d((1,64))
-        self.embedding =Embedding.from_pretrained(self.embedding_matrix)
-    def forward(self, data) -> Tensor:
+        self.global_pooling = nn.AdaptiveAvgPool2d((1, 64))
+        self.embedding = Embedding.from_pretrained(self.embedding_matrix)
+
+    def forward(self, data: Dict[str, Tensor]) -> Tensor:
         """
         Args:
-            dict:
+            data Dict[str, Tensor]):including emotions and senmantics features
                 emotions(Tensor): node emotions features, shape=(batch_size, feature_size),
                 senmantics(Tensor):node senmantics features, shape=(batch_size, feature_size)
 
@@ -48,34 +52,34 @@ class DUDEF(AbstractModel):
         emd = self.embedding(data['senmantics'])
         output, _ = self.bi_gru(emd.float())
         output = self.global_pooling(output).squeeze(1)
-        output = torch.cat((output,data['emotions'].float()),1)
+        output = torch.cat((output, data['emotions'].float()), 1)
         output = self.fc1(output)
         output = self.relu(output)
         output = self.fc2(output)
         output = self.softmax(output)
         return output
 
-    def calculate_loss(self, data):
+    def calculate_loss(self, data: Dict[str, Tensor]) -> Tensor:
         """
         calculate loss via CrossEntropyLoss
 
         Args:
-            data (Batch): batch data
+            data (Dict[str, Tensor]): batch data, shape=(2,batch_size,feature_size)
 
         Returns:
-            torch.Tensor: loss
+            Tensor: loss
         """
         output = self.forward(data['data'])
         loss_func = torch.nn.CrossEntropyLoss()
         loss = loss_func(output, data['label'])
         return loss
 
-    def predict(self, data) -> Tensor:
+    def predict(self, data: Dict[str, Tensor]) -> Tensor:
         """
         predict the probability of being fake news
 
         Args:
-            data (Batch): batch data
+            data (Batch): batch data, shape=(2,batch_size,feature_size)
 
         Returns:
             Tensor: softmax probability, shape=(batch_size, 2)

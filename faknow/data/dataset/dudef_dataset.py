@@ -2,166 +2,135 @@ import torch
 import os
 import json
 import numpy as np
+from typing import Callable
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.data.utils import get_tokenizer
 import torch.nn.functional as F
 from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
 import jieba
-from faknow.data.dataset.text import TextDataset
-
-# Define the save directory
-save_dir = '../../../dataset/example/DUDEF/data'
-if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
-
-# Define the label to index mapping
-label2idx = {'fake': 0, 'real': 1, 'unverified': 2}
 
 
-# Class for extracting emotions
-class extract_emotion(TextDataset):
-    def __init__(self, baidu_arr, dalianligong_arr, auxilary_features):
+class DudefDataset(Dataset):
+    def __init__(self, data_dir: str,
+                 baidu_arr: Callable, dalianligong_arr: Callable,
+                 boson_value: Callable, auxilary_features: Callable):
+
         """
-            Initialize the ExtractEmotion class.
-
-            Args:
-                baidu_arr (function): Function to calculate emotions using Baidu API.
-                dalianligong_arr (function): Function to calculate emotions using Dalian Ligong University's method.
-                auxilary_features (function): Function to extract auxiliary features from the text.
+        Initialize the DudefDataset class.
+        Args:
+            baidu_arr (Callable): Function to calculate emotions using Baidu API.
+            dalianligong_arr (Callable): Function to calculate emotions using Dalian Ligong University's method.
+            boson_value (Callable): Function to extract boson features
+            auxilary_features (Callable): Function to extract auxiliary features from the text.
         """
+
         super().__init__()
         self.baidu_arr = baidu_arr
-        self.alianligong_arr = dalianligong_arr
+        self.dalianligong_arr = dalianligong_arr
+        self.boson_value = boson_value
         self.auxilary_features = auxilary_features
+        # Define the save directory
+        self.save_dir = os.path.join(data_dir, 'data')
+        # Define the label to index mapping
+        self.label2idx = {'fake': 0, 'real': 1, 'unverified': 2}
 
-    def extract_publisher_emotion(self, content, content_words, emotions_dict):
+    def extract_publisher_emotion(self, content: str, content_words: list, emotions_dict: dict):
         """
-            Extract emotions from the publisher's content.
-
-            Args:
-                content (str): Original content of the publisher.
-                content_words (list): List of segmented words from the content.
-                emotions_dict (dict): Dictionary mapping emotions to their respective indices.
-
-            Returns:
-                numpy.ndarray: Array containing emotions extracted from the publisher's content.
+        Args:
+            content (str): Original content of the publisher.
+            content_words (list): List of segmented words from the content.
+            emotions_dict (dict): Dictionary mapping emotions to their respective indices.
+        Returns:
+            arr (ndarray): publisher emotion features, shape=(55)
         """
         # Extract emotions from the publisher's content
         text, cut_words = content, content_words
-
         arr = np.zeros(55)
-
         arr[:8] = self.baidu_arr(emotions_dict)
         arr[8:37] = self.dalianligong_arr(cut_words)
         arr[37:38] = self.dalianligong_arr(cut_words)
         arr[38:55] = self.auxilary_features(text, cut_words)
-
         return arr
 
-    def extract_social_emotion(self, comments, comments_words, mean_emotions_dict, max_emotions_dict):
-        # Extract emotions from social interactions (comments)
+    def extract_social_emotion(self, comments: list, comments_words: list,
+                               mean_emotions_dict: dict, max_emotions_dict: dict):
         """
            Extract emotions from social interactions (comments)
-
            Args:
-               comments (list): List of comments
-               comments_words (list): List of words in comments
-               mean_emotions_dict (dict): Dictionary of mean emotions
-               max_emotions_dict (dict): Dictionary of max emotions
+               comments (list): List of comments,shape=(,COMMENTS)
+               comments_words (list): List of words in comments,shape=(,COMMENTS)
+               mean_emotions_dict (dict): Dictionary of mean emotions,comments100_emotions_mean_pooling
+               max_emotions_dict (dict): Dictionary of max emotions,comments100_emotions_max_pooling
 
            Returns:
-               mean_arr (np.ndarray): Mean emotion array
-               max_arr (np.ndarray): Max emotion array
-               concatenated_arr (np.ndarray): Concatenated mean_arr and max_arr
+               mean_arr (np.ndarray): Mean emotion array, shape=(55)
+               max_arr (np.ndarray): Max emotion array, shape=(55)
+               concatenated_arr (np.ndarray): Concatenated mean_arr and max_arr, shape=(110)
        """
         if len(comments) == 0:
             arr = np.zeros(55)
             mean_arr, max_arr = arr, arr
             return mean_arr, max_arr, np.concatenate([mean_arr, max_arr])
-
         arr = np.zeros((len(comments), 55))
-
         for i in range(len(comments)):
             arr[i] = self.extract_publisher_emotion(comments[i], comments_words[i], None)
-
         mean_arr = np.mean(arr, axis=0)
         max_arr = np.max(arr, axis=0)
-
         mean_arr[:8] = self.baidu_arr(mean_emotions_dict)
         max_arr[:8] = self.baidu_arr(max_emotions_dict)
 
         return mean_arr, max_arr, np.concatenate([mean_arr, max_arr])
 
-    def extract_dual_emotion(self, piece, COMMENTS=100):
+    def extract_dual_emotion(self, piece: dict, COMMENTS=100) -> np.ndarray:
         # Extract dual emotions from a piece of content
         """
-            Extract dual emotions from a piece of content
-
-            Args:
-                piece (dict): Dictionary containing content information
-                COMMENTS (int): Number of comments to consider (default=100)
-
-            Returns:
-                dual_emotion (np.ndarray): Dual emotion array
+        Args:
+             piece (dict): Dictionary containing content information
+             COMMENTS (int): Number of comments to consider (default=100)
+        Returns:
+            dual_emotion (np.ndarray): Dual emotion array, shape=(275)
         """
-        for k in ['content_emotions', 'comments100_emotions_mean_pooling', 'comments100_emotions_max_pooling']:
+        for k in ['content_emotions', 'comments100_emotions_mean_pooling',
+                  'comments100_emotions_max_pooling']:
             if k not in piece:
                 piece[k] = None
 
-        publisher_emotion = self.extract_publisher_emotion(piece['content'], piece['content_words'],
-                                                           piece['content_emotions'])
-        mean_arr, max_arr, social_emotion = self.extract_social_emotion(piece['comments'][:COMMENTS],
-                                                                        piece['comments_words'][:COMMENTS],
-                                                                        piece['comments100_emotions_mean_pooling'],
-                                                                        piece['comments100_emotions_max_pooling'])
-        emotion_gap = np.concatenate([publisher_emotion - mean_arr, publisher_emotion - max_arr])
+        publisher_emotion = self.extract_publisher_emotion(
+            piece['content'], piece['content_words'],
+            piece['content_emotions'])
+        mean_arr, max_arr, social_emotion = self.extract_social_emotion(
+            piece['comments'][:COMMENTS],
+            piece['comments_words'][:COMMENTS],
+            piece['comments100_emotions_mean_pooling'],
+            piece['comments100_emotions_max_pooling'])
+        emotion_gap = np.concatenate(
+            [publisher_emotion - mean_arr, publisher_emotion - max_arr])
 
-        dual_emotion = np.concatenate([publisher_emotion, social_emotion, emotion_gap])
+        dual_emotion = np.concatenate(
+            [publisher_emotion, social_emotion, emotion_gap])
         return dual_emotion
 
-    def get_labels_arr(pieces):
+    def get_labels_arr(self, pieces: list):
         # Get labels array
         """
-            Get labels array
-
-            Args:
-                pieces (list): List of pieces
-
-            Returns:
-                labels (torch.Tensor): Tensor of labels
+        Args:
+            pieces (list): List of pieces
+        Returns:
+            labels (Tensor): Tensor of labels,shape=(len(pieces),2)
         """
-        labels = torch.tensor([label2idx[p['label']] for p in pieces])
+        labels = torch.tensor([self.label2idx[p['label']] for p in pieces])
         return F.one_hot(labels)
 
-
-# Dataset class
-class DudefDataset(Dataset):
-    def __init__(self,baidu_arr, dalianligong_arr, auxilary_features):
-        """
-            Initializes a dataset object.
-
-            Args:
-                baidu_arr (torch.Tensor): The Baidu array.
-                dalianligong_arr (torch.Tensor): The Dalianligong array.
-                auxilary_features (torch.Tensor): The auxiliary features.
-        """
-        super().__init__()
-        self.baidu_arr = baidu_arr
-        self.dalianligong_arr = dalianligong_arr
-        self.auxilary_features = auxilary_features
-
-    def get_label(data_dir,baidu_arr, dalianligong_arr, auxilary_features):
+    def get_label(self, data_dir: str):
         # Get label arrays from the dataset
         """
         Retrieves label arrays from the dataset.
 
         Args:
             data_dir (str): The directory containing the dataset.
-            baidu_arr (torch.Tensor): The Baidu array.
-            dalianligong_arr (torch.Tensor): The Dalianligong array.
-            auxilary_features (torch.Tensor): The auxiliary features.
         """
-        label_dir = os.path.join(save_dir, 'labels')
+        label_dir = os.path.join(self.save_dir, 'labels')
         if not os.path.exists(label_dir):
             os.mkdir(label_dir)
 
@@ -170,18 +139,17 @@ class DudefDataset(Dataset):
         split_datasets = dict(zip(['train', 'val', 'test'], split_datasets))
 
         for t, pieces in split_datasets.items():
-            labels_arr = extract_emotion.get_labels_arr(pieces,baidu_arr, dalianligong_arr, auxilary_features)
+            labels_arr = self.get_labels_arr(pieces)
             np.save(os.path.join(label_dir, '{}_{}.npy'.format(t, labels_arr.shape)), labels_arr)
 
-    def get_dualemotion(data_dir):
+    def get_dualemotion(self, data_dir: str):
         # Get dual emotion arrays from the dataset
         """
             Retrieves dual emotion arrays from the dataset.
-
             Args:
                 data_dir (str): The directory containing the dataset.
         """
-        emotion_dir = os.path.join(save_dir, 'emotions')
+        emotion_dir = os.path.join(self.save_dir, 'emotions')
         if not os.path.exists(emotion_dir):
             os.mkdir(emotion_dir)
 
@@ -192,10 +160,10 @@ class DudefDataset(Dataset):
         for t, pieces in split_datasets.items():
             arr_is_saved = False
             json_is_saved = False
-            for j in os.listdir(os.path.join(save_dir, 'emotions')):
+            for j in os.listdir(os.path.join(self.save_dir, 'emotions')):
                 if '.npy' in j and t in j:
                     arr_is_saved = True
-            for f in os.listdir(save_dir):
+            for f in os.listdir(self.save_dir):
                 if t in f:
                     json_is_saved = True
 
@@ -203,29 +171,28 @@ class DudefDataset(Dataset):
                 continue
 
             if json_is_saved:
-                pieces = json.load(open(os.path.join(save_dir, '{}.json'.format(t)), 'r', encoding='utf-8'))
+                pieces = json.load(open(os.path.join(self.save_dir, '{}.json'.format(t)), 'r', encoding='utf-8'))
 
             # words cutting
             if 'content_words' not in pieces[0].keys():
                 for p in pieces:
                     p['content_words'] = list(jieba.cut(p['content']))
                     p['comments_words'] = list(jieba.cut(com) for com in p['comments'])
-                with open(os.path.join(save_dir, '{}.json'.format(t)), 'w', encoding='utf-8') as f:
+                with open(os.path.join(self.save_dir, '{}.json'.format(t)), 'w', encoding='utf-8') as f:
                     json.dump(pieces, f, indent=4, ensure_ascii=False)
 
-            emotion_arr = [extract_emotion.extract_dual_emotion(p) for p in pieces]
+            emotion_arr = [self.extract_dual_emotion(p) for p in pieces]
             emotion_arr = np.array(emotion_arr)
             np.save(os.path.join(emotion_dir, '{}_{}.npy'.format(t, emotion_arr.shape)), emotion_arr)
 
-    def get_senmantics(data_dir, MAX_NUM_WORDS, embeddings_index):
+    def get_senmantics(self, data_dir: str, MAX_NUM_WORDS: int, embeddings_index: dict):
         # Get semantics arrays from the dataset
         """
             Retrieves semantics arrays from the dataset.
-
             Args:
                 data_dir (str): The directory containing the dataset.
                 MAX_NUM_WORDS (int): The maximum number of words.
-                embeddings_index: The embeddings index.
+                embeddings_index (dict): The embeddings index.
         """
         CONTENT_WORDS = 100
         EMBEDDING_DIM = 300
@@ -277,16 +244,20 @@ class DudefDataset(Dataset):
         for i, t in enumerate(['train', 'val', 'test']):
             np.save(os.path.join(output_dir, '{}_{}.npy'.format(t, arrs[i].shape)), arrs[i])
 
-    def load_dataset(data_dir, input_types=['emotions']):
+    def load_dataset(self, data_dir: str, batch_size: int, input_types: list):
         """
-          Load the dataset from the given directory.
-
-          Args:
-          - data_dir (str): Path to the directory containing the dataset.
-          - input_types (list): List of input types to be loaded.
+        Args:
+            data_dir (str): Path to the directory containing the dataset
+            batch_size (int): num of batch size
+            input_types (list): List of input types to be loaded.
+        Returns:
+            train_loader (DataLoader): train data
+            val_loader (DataLoader): val data
+            test_loader (DataLoader): test data
+            semantics_embedding_matrix (ndarray): embedding matrix,shape=(6000,300)
         """
         # Load labels
-        label_dir = os.path.join(data_dir,'labels')
+        label_dir = os.path.join(data_dir, 'labels')
         for f in os.listdir(label_dir):
             f = os.path.join(label_dir, f)
             if 'train_' in f:
@@ -314,10 +285,34 @@ class DudefDataset(Dataset):
         if len(input_types) == 1:
             train_data, val_data, test_data = train_data[0], val_data[0], test_data[0]
 
-        data = [train_data, val_data, test_data]
-        label = [train_label, val_label, test_label]
-        # If only one input type is provided, unpack the arrays
+        train_dataset = {}
+        for i in range(len(train_data[0])):
+            train_dataset[i] = {}
+            train_dataset[i]['data'] = {}
+            train_dataset[i]['data']['emotions'] = train_data[0][i]
+            train_dataset[i]['data']['senmantics'] = train_data[1][i]
+            train_dataset[i]['label'] = train_label[i][1]
+        train_loader = DataLoader(train_dataset, batch_size, shuffle=True)
+
+        val_dataset = {}
+        for i in range(len(val_data[0])):
+            val_dataset[i] = {}
+            val_dataset[i]['data'] = {}
+            val_dataset[i]['data']['emotions'] = val_data[0][i]
+            val_dataset[i]['data']['senmantics'] = val_data[1][i]
+            val_dataset[i]['label'] = val_label[i][1]
+        val_loader = DataLoader(val_dataset, batch_size, shuffle=True)
+
+        test_dataset = {}
+        for i in range(len(test_data[0])):
+            test_dataset[i] = {}
+            test_dataset[i]['data'] = {}
+            test_dataset[i]['data']['emotions'] = test_data[0][i]
+            test_dataset[i]['data']['senmantics'] = test_data[1][i]
+            test_dataset[i]['label'] = test_label[i][1]
+        test_loader = DataLoader(test_dataset, batch_size, shuffle=True)
+
         if 'semantics' in input_types:
-            return train_data, val_data, test_data, train_label, val_label, test_label, data, label, semantics_embedding_matrix
+            return train_loader, val_loader, test_loader, semantics_embedding_matrix
         else:
-            return train_data, val_data, test_data, train_label, val_label, test_label, data, label
+            return train_loader, val_loader, test_loader
