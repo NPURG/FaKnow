@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader
 
 from faknow.data.dataset.text import TextDataset
 from transformers import BertTokenizer
-from faknow.data.process.text_process import TokenizerFromPreTrained
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.endef import ENDEF
 from faknow.model.content_based.mdfend import MDFEND
@@ -43,7 +42,7 @@ class TokenizerENDEF:
 
         token_id = []
         attention_mask = []
-        for _, text in enumerate(texts):
+        for text in texts:
             inputs = self.tokenizer(text,
                                     return_tensors='pt',
                                     max_length=self.max_len,
