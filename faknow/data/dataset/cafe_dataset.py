@@ -4,20 +4,24 @@ from torch.utils.data import Dataset
 
 
 class CafeDataset(Dataset):
-    def __init__(self, t_file, i_file):
+    def __init__(self, t_file: str, i_file: str):
         """
         Args:
             t_file (str): text file,including text and label
             i_file (str): image file
         """
-        test_text = np.load(t_file)
-        self.test_data_text = torch.from_numpy(test_text["data"]).float()
-        test_img = np.load(i_file)
-        self.test_data_img = torch.from_numpy(test_img["data"]).squeeze().float()
-        self.test_labels = torch.from_numpy(test_text["label"]).long()
+        text = np.load(t_file)
+        self.text = torch.from_numpy(text["data"]).float()
+        img = np.load(i_file)
+        self.image = torch.from_numpy(img["data"]).squeeze().float()
+        self.label = torch.from_numpy(text["label"]).long()
 
     def __len__(self):
-        return self.test_data_text.shape[0]
+        return self.text.shape[0]
 
-    def __getitem__(self, item):
-        return self.test_data_text[item], self.test_data_img[item], self.test_labels[item]
+    def __getitem__(self, index: int):
+        return {
+            'text': self.text[index],
+            'image': self.image[index],
+            'label': self.label[index]
+        }
