@@ -37,13 +37,16 @@ def run_cafe(
                            "{}/test_image_with_label.npz".format(dataset_dir))
     train_loader = DataLoader(train_set,
                               batch_size=batch_size,
-                              shuffle=True)
+                              shuffle=True,
+                              drop_last=True)
     test_loader = DataLoader(test_set,
                              batch_size=batch_size,
-                             shuffle=False)
+                             shuffle=False,
+                             drop_last=True)
     val_loader = DataLoader(test_set,
                             batch_size=batch_size,
-                            shuffle=False)
+                            shuffle=False,
+                            drop_last=True)
 
     # ---  Build Model & Trainer  ---
     model = CAFE()
@@ -71,4 +74,4 @@ def run_cafe(
 
     if test_loader is not None:
         test_result = trainer.evaluate(test_loader)
-        trainer.logger.info('test result: ', dict2str(test_result))
+        trainer.logger.info(f"test result: {dict2str(test_result)}")

@@ -42,13 +42,12 @@ class CafeTrainer(BaseTrainer):
                          clip_grad_norm, device, early_stopping)
         self.similarity_optimizer = similarity_optimizer
 
-    def _train_epoch(self, model: CAFE, loader: DataLoader,
+    def _train_epoch(self, loader: DataLoader,
                      epoch: int) -> Dict[str, float]:
         """
          training for one epoch, including gradient clipping
 
          Args:
-             model (AbstractModel): training model
              loader (DataLoader): training data
              epoch (int): current epoch
 
@@ -57,7 +56,7 @@ class CafeTrainer(BaseTrainer):
                  If multiple losses,
                  return a dict of losses with loss name as key.
          """
-        model.train()
+        self.model.train()
         with tqdm(enumerate(loader),
                   total=len(loader),
                   ncols=100,
@@ -66,13 +65,13 @@ class CafeTrainer(BaseTrainer):
             for batch_id, batch_data in pbar:
                 batch_data = self._move_data_to_device(batch_data)
 
-                similarity_loss = model.similarity_module.calculate_loss(
+                similarity_loss = self.model.similarity_module.calculate_loss(
                     batch_data)
                 self.similarity_optimizer.zero_grad()
                 similarity_loss.backward()
                 self.similarity_optimizer.step()
 
-                detection_loss = model.calculate_loss(batch_data)
+                detection_loss = self.model.calculate_loss(batch_data)
                 self.optimizer.zero_grad()
                 detection_loss.backward()
                 self.optimizer.step()

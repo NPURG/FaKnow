@@ -57,7 +57,7 @@ class CAFE(AbstractModel):
         out = self.classifier(final_corre)
         return out
 
-    def calculate_loss(self, data: Dict[Tensor]) -> Tensor:
+    def calculate_loss(self, data: Dict[str, Tensor]) -> Tensor:
         """
         process raw data using similarity_module
         calculate loss via CrossEntropyLoss
@@ -73,7 +73,7 @@ class CAFE(AbstractModel):
         loss_detection = self.loss_func_detection(pre_detection, label)
         return loss_detection
 
-    def predict(self, data: Dict[Tensor]) -> Tensor:
+    def predict(self, data: Dict[str, Tensor]) -> Tensor:
         """
         Args:
             data (Tuple[Tensor]): batch data tuple, including text, image and label
@@ -243,7 +243,7 @@ class _SimilarityModule(AbstractModel):
                                                     similarity_label)
         return loss_similarity
 
-    def sample_data_pairs(self, data: Tuple[Tensor]) -> Tensor[Tuple]:
+    def sample_data_pairs(self, data: Dict[str, Tensor]) -> Tuple[Tensor]:
         """
         randomly sample positive text-image pairs and negative text-image pairs
 
@@ -254,9 +254,9 @@ class _SimilarityModule(AbstractModel):
             matched_image (Tensor): processed match image data, shape=(sample_num ,512)
             unmatched_image (Tensor): processed unmatch image data, shape=(sample_num, 512)
         """
-        text = data[0]
-        image = data[1]
-        label = data[2]
+        text = data['text']
+        image = data['image']
+        label = data['label']
 
         # index of batch news data whose label=1
         index = [i for i, l in enumerate(label) if l == 1]
@@ -267,7 +267,7 @@ class _SimilarityModule(AbstractModel):
         unmatched_image = copy.deepcopy(sample_image).roll(shifts=3, dims=0)
         return fixed_text, matched_image, unmatched_image
 
-    def predict(self, data: Tuple[Tensor]) -> Tensor:
+    def predict(self, data: Dict[str, Tensor]) -> Tensor:
         """
         predict the probability of being fake news
         Args:
@@ -275,8 +275,8 @@ class _SimilarityModule(AbstractModel):
         Returns:
             Tensor: softmax probability, shape=(, 2)
         """
-        text = data[0]
-        image = data[1]
+        text = data['text']
+        image = data['image']
         output = self.forward(text, image)
         return output
 
