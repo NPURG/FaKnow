@@ -14,10 +14,10 @@ __all__ = ['run_ebgcn', 'run_ebgcn_from_yaml']
 
 
 def run_ebgcn(train_data: List,
-              val_data: Optional[list] = None,
-              test_data: Optional[list] = None,
-              data_path=None,
-              tree_dic: Dict = None,
+              data_path: str,
+              tree_dic: Dict,
+              val_data: Optional[List] = None,
+              test_data: Optional[List] = None,
               batch_size=128,
               input_size=5000,
               hidden_size=64,
@@ -38,11 +38,11 @@ def run_ebgcn(train_data: List,
     If validate_path and test_path are None, only training is performed.
 
     Args:
-        train_data(list): index list of training nodes.
-        val_data(Optional[list]): index list of validation nodes.
-        test_data(Optional[list]): index list of test nodes.
-        data_path(str): path of data doc. default=None
-        tree_dic(dict): the dictionary of graph edge.
+        train_data(List): index list of training nodes.
+        tree_dic(Dict): the dictionary of graph edge.
+        data_path(str): path of data doc.
+        val_data(Optional[List]): index list of validation nodes, default=None
+        test_data(Optional[List]): index list of test nodes, default=None
         batch_size(int): batch size. default=128.
         input_size(int): the feature size of input. default=5000.
         hidden_size(int): the feature size of hidden embedding. default=64.
@@ -95,8 +95,8 @@ def run_ebgcn(train_data: List,
         'params': model.TDRumorGCN.conv2.parameters(),
         'lr': lr / lr_scale_td
     }],
-                                 lr=lr,
-                                 weight_decay=weight_decay)
+        lr=lr,
+        weight_decay=weight_decay)
 
     evaluator = Evaluator(metrics)
     trainer = BaseGNNTrainer(model, evaluator, optimizer, device=device)

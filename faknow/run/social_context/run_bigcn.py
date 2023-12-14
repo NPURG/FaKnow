@@ -14,10 +14,10 @@ __all__ = ['run_bigcn', 'run_bigcn_from_yaml']
 
 
 def run_bigcn(train_data: List,
-              val_data: Optional[list] = None,
-              test_data: Optional[list] = None,
-              data_path=None,
-              tree_dic: Dict = None,
+              data_path: str,
+              tree_dic: Dict,
+              val_data: Optional[List] = None,
+              test_data: Optional[List] = None,
               batch_size=128,
               epochs=200,
               feature_size=5000,
@@ -37,11 +37,11 @@ def run_bigcn(train_data: List,
     only training is performed.
 
     Args:
-        train_data(list): index list of training nodes.
-        val_data(Optional[list]): index list of validation nodes.
-        test_data(Optional[list]): index list of test nodes.
-        data_path(str): path of data doc. default=None
-        tree_dic(dict): the dictionary of graph edge.
+        train_data(List): index list of training nodes.
+        tree_dic(Dict): the dictionary of graph edge.
+        data_path(str): path of data doc.
+        val_data(Optional[List]): index list of validation nodes, default=None
+        test_data(Optional[List]): index list of test nodes, default=None
         batch_size(int): batch size. default=128.
         epochs(int): epoch num. default=200.
         feature_size(int): the feature size of input. default=5000.
@@ -91,8 +91,8 @@ def run_bigcn(train_data: List,
         'params': model.BURumorGCN.parameters(),
         'lr': lr / 5
     }],
-                                 lr=lr,
-                                 weight_decay=weight_decay)
+        lr=lr,
+        weight_decay=weight_decay)
     evaluator = Evaluator(metrics)
 
     trainer = BaseGNNTrainer(model, evaluator, optimizer, device=device)
