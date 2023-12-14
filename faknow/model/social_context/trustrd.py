@@ -1,8 +1,9 @@
-import torch
+from typing import Dict, Tuple
 import copy
-from torch import nn, Tensor
 import math
-from typing import Dict, Union, Any
+
+import torch
+from torch import nn, Tensor
 import torch.distributions as dist
 import torch.nn.functional as F
 from torch_scatter import scatter_mean
@@ -12,7 +13,8 @@ from torch_geometric.data import Data, Batch
 from faknow.model.model import AbstractModel
 
 
-def ib_loss(g_enc_pos: Tensor, g_enc_neg: Tensor, g_enc: Tensor):
+def calculate_ib_loss(g_enc_pos: Tensor, g_enc_neg: Tensor,
+                      g_enc: Tensor) -> Tensor:
     """
     Compute contrastive loss
     Args:
@@ -21,20 +23,22 @@ def ib_loss(g_enc_pos: Tensor, g_enc_neg: Tensor, g_enc: Tensor):
         g_enc(Tensor): average representation. g_enc = (g_enc_pos + g_enc_neg) / 2.
 
     Returns:
-        IB_Loss
+        Tensor: ib_loss
     """
     margin = 2.0
 
-    distance = torch.sqrt(torch.sum((g_enc_pos - g_enc_neg) ** 2))
-    loss_cl = (1 - 1) * 0.5 * distance ** 2 + 1 * 0.5 * max(0, margin - distance) ** 2
-    mean_H_IB = torch.zeros(g_enc.shape[1]).cuda()
-    var_H_IB = torch.ones(g_enc.shape[1]).cuda()
+    distance = torch.sqrt(torch.sum((g_enc_pos - g_enc_neg)**2))
+    loss_cl = (1 - 1) * 0.5 * distance**2 + 1 * 0.5 * max(
+        0, margin - distance)**2
+    mean_H_IB = torch.zeros(g_enc.shape[1], device=g_enc.device)
+    var_H_IB = torch.ones(g_enc.shape[1], device=g_enc.device)
     p_H_IB = dist.MultivariateNormal(mean_H_IB, torch.diag(var_H_IB))
 
     # Compute KL divergence
-    mean_H_IB_given_X = g_enc.mean(dim=0).cuda()
-    var_H_IB_given_X = F.softplus(g_enc.var(dim=0)).cuda()
-    p_H_IB_given_X = dist.MultivariateNormal(mean_H_IB_given_X, torch.diag(var_H_IB_given_X))
+    mean_H_IB_given_X = g_enc.mean(dim=0)
+    var_H_IB_given_X = F.softplus(g_enc.var(dim=0))
+    p_H_IB_given_X = dist.MultivariateNormal(mean_H_IB_given_X,
+                                             torch.diag(var_H_IB_given_X))
 
     KL_loss = dist.kl_divergence(p_H_IB_given_X, p_H_IB).div(math.log(2)) / 128
 
@@ -45,61 +49,71 @@ class _GNNEncoder(nn.Module):
     """
     encoding the TF-IDF to interpretable embedding feature.
     """
-
-    def __init__(self, num_features: int, embedding_num: int, num_gcn_layers: int):
+    def __init__(self, num_features: int, embedding_num: int,
+                 num_gcn_layers: int):
         """
-        num_feature(int): the num size of raw features.
-        embedding_num(int): the num size of embedding features.
-        num_gcn_layers(int): gcn layers num.
+        Args:
+            num_features(int): the num size of raw features.
+            embedding_num(int): the num size of embedding features.
+            num_gcn_layers(int): gcn layers num.
         """
         super(_GNNEncoder, self).__init__()
 
         self.num_gcn_layers = num_gcn_layers
         self.convs = nn.ModuleList()
-        self.bns = nn.ModuleList()
 
         for i in range(num_gcn_layers):
             if i:
-                layer = nn.Sequential(nn.Linear(embedding_num, embedding_num), nn.ReLU(),
+                layer = nn.Sequential(nn.Linear(embedding_num, embedding_num),
+                                      nn.ReLU(),
                                       nn.Linear(embedding_num, embedding_num))
             else:
-                layer = nn.Sequential(nn.Linear(num_features, embedding_num), nn.ReLU(),
+                layer = nn.Sequential(nn.Linear(num_features, embedding_num),
+                                      nn.ReLU(),
                                       nn.Linear(embedding_num, embedding_num))
             conv = GINConv(layer)
-            bn = torch.nn.BatchNorm1d(embedding_num)
-
             self.convs.append(conv)
-            self.bns.append(bn)
 
-    def forward(self, x: torch.Tensor, edge_index: torch.Tensor, batch: torch.Tensor):
-
-        x_one = copy.deepcopy(x)
-        xs_one = []
+    def forward(self, x: torch.Tensor, edge_index: torch.Tensor,
+                batch: torch.Tensor) -> Tuple[Tensor, Tensor]:
+        """
+        Args:
+            x (Tensor): node feature matrix, shape=(num_nodes, num_features)
+            edge_index (Tensor): graph edge index, shape=(2, num_edges)
+            batch (Tensor): index of graph each node belongs to, shape=(num_nodes,)
+        Returns:
+            Tuple[Tensor, Tensor]: mean-pooled conv features as graph embeddings
+                and conv features as node embeddings
+        """
+        features = copy.deepcopy(x)
+        features_list = []
         for i in range(self.num_gcn_layers):
-            x_one = F.relu(self.convs[i](x_one, edge_index))
-            xs_one.append(x_one)
+            features = F.relu(self.convs[i](features, edge_index))
+            features_list.append(features)
 
-        xpool_one = [global_mean_pool(x_one, batch) for x_one in xs_one]
-        x_one = torch.cat(xpool_one, 1)
-        return x_one, torch.cat(xs_one, 1)
+        pool_features_list = [
+            global_mean_pool(features, batch) for features in features_list
+        ]
+        return torch.cat(pool_features_list, 1), torch.cat(features_list, 1)
 
-    def get_embeddings(self, data: Data):
-
-        with torch.no_grad():
-            x, edge_index, batch = data.x, data.edge_index, data.batch
-            graph_embed, node_embed = self.forward(x, edge_index, batch)
+    @torch.no_grad()
+    def get_embeddings(self, data: Batch):
+        x, edge_index, batch = data.x, data.edge_index, data.batch
+        graph_embed, node_embed = self.forward(x, edge_index, batch)
         return node_embed
 
 
-def generate_mask_node(x: Tensor, rate=0.6):
+def _generate_mask_node(x: Tensor, rate=0.6):
     """
     Generate the binary mask tensor with a certain probability.
-    x(Tensor): node data.
-    rate(float): drop rate. default=0.6
+
+    Args:
+        x(Tensor): node data.
+        rate(float): drop rate. default=0.6
     """
     d = x.shape[1]
     mask = torch.zeros(d).bernoulli_(rate)
-    sample_indices = torch.randint(x.shape[0], size=(1,))
+    sample_indices = torch.randint(x.shape[0], size=(1, ))
     x_r = x[sample_indices]
 
     x_ib = (x_r - (x - x_r) * mask)
@@ -110,20 +124,14 @@ class _FF(nn.Module):
     """
     Feed Forward Layer
     """
-
     def __init__(self, input_dim: int):
         """
         intput_dim(int): the features size of input.
         """
         super().__init__()
-        self.block = nn.Sequential(
-            nn.Linear(input_dim, input_dim),
-            nn.ReLU(),
-            nn.Linear(input_dim, input_dim),
-            nn.ReLU(),
-            nn.Linear(input_dim, input_dim),
-            nn.ReLU()
-        )
+        self.block = nn.Sequential(nn.Linear(input_dim, input_dim), nn.ReLU(),
+                                   nn.Linear(input_dim, input_dim), nn.ReLU(),
+                                   nn.Linear(input_dim, input_dim), nn.ReLU())
         self.linear_shortcut = nn.Linear(input_dim, input_dim)
 
     def forward(self, x: Tensor):
@@ -134,17 +142,19 @@ class _BayesianLinear(nn.Module):
     """
     Bayesian Layer
     """
-
     def __init__(self, in_features: int, out_features: int):
         """
-        in_features(int): the feature size of input.
-        out_features(int): the feature size of output.
+        Args:
+            in_features(int): the feature size of input.
+            out_features(int): the feature size of output.
         """
         super(_BayesianLinear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.weights_mean = nn.Parameter(torch.Tensor(out_features, in_features))
-        self.weights_log_var = torch.nn.Parameter(torch.Tensor(out_features, in_features))
+        self.weights_mean = nn.Parameter(
+            torch.Tensor(out_features, in_features))
+        self.weights_log_var = torch.nn.Parameter(
+            torch.Tensor(out_features, in_features))
         self.bias_mean = torch.nn.Parameter(torch.Tensor(out_features))
         self.bias_log_var = torch.nn.Parameter(torch.Tensor(out_features))
         self.reset_parameters()
@@ -156,35 +166,35 @@ class _BayesianLinear(nn.Module):
         nn.init.constant_(self.bias_log_var, -10)
 
     def forward(self, x: Tensor):
-        weights = dist.Normal(self.weights_mean, self.weights_log_var.exp().sqrt()).rsample()
-        bias = dist.Normal(self.bias_mean, self.bias_log_var.exp().sqrt()).rsample()
+        weights = dist.Normal(self.weights_mean,
+                              self.weights_log_var.exp().sqrt()).rsample()
+        bias = dist.Normal(self.bias_mean,
+                           self.bias_log_var.exp().sqrt()).rsample()
         return F.linear(x, weights, bias)
 
 
-class Net(AbstractModel):
+class TrustRDPreTrainModel(AbstractModel):
     """
-    Pre-processed Net
+    Self-Supervised Pretraining Model for TrustRD
     """
-
-    def __init__(self, hidden_dim=64, num_gcn_layers=3):
+    def __init__(self, hidden_dim=64, num_gcn_layers=3, num_classes=4):
         """
-        hidden_dim(int): the feature size of hidden embedding. defult=64.
-        num_gcn_layers(int): the gcn encoder layer num. default=3.
+        Args:
+            hidden_dim(int): the feature size of hidden embedding. default=64.
+            num_gcn_layers(int): the gcn pre_trained_model layer num. default=3.
+            num_classes(int): the num of class. default=4.
         """
-        super(Net, self).__init__()
+        super(TrustRDPreTrainModel, self).__init__()
 
         self.embedding_dim = hidden_dim * num_gcn_layers
         self.encoder = _GNNEncoder(5000, hidden_dim, num_gcn_layers)
 
-        self.local_d = _FF(self.embedding_dim)
         self.global_d = _FF(self.embedding_dim)
         self.mask_rate = nn.Parameter(torch.zeros(1))
         self.edge_mask = nn.Parameter(torch.zeros(1))
         self.nn = nn.Sequential(
-            nn.Linear(in_features=5000, out_features=64),
-            nn.ReLU(),
-            nn.Linear(in_features=64, out_features=4)
-        )
+            nn.Linear(in_features=5000, out_features=64), nn.ReLU(),
+            nn.Linear(in_features=64, out_features=num_classes))
         self.init_emb()
 
     def init_emb(self):
@@ -194,15 +204,14 @@ class Net(AbstractModel):
                 if m.bias is not None:
                     m.bias.data.fill_(0.0)
 
-    def generate_drop_edge(self, x: Tensor, edgeindex: Tensor):
+    def generate_drop_edge(self, x: Tensor, edge_index: Tensor):
         """
         Generate dropped edge to augment data.
-
         """
         Z = self.nn(x)
         pi = torch.sigmoid(torch.matmul(Z, torch.t(Z)))
-        row = list(edgeindex[0])
-        col = list(edgeindex[1])
+        row = list(edge_index[0])
+        col = list(edge_index[1])
         edgeindex_ib = []
         for i in range(len(row)):
             u, v = row[i], col[i]
@@ -213,14 +222,20 @@ class Net(AbstractModel):
         drop_edgeindex = [row_ib, col_ib]
         return torch.LongTensor(drop_edgeindex)
 
-    def forward(self, data: Data):
+    def forward(self, data: Batch) -> Tuple[Tensor, Tensor, Tensor]:
+        """
+        Args:
+            data (Batch): pyg data batch
 
-        x_pos_one = generate_mask_node(data.x)
-        x_pos_two = generate_mask_node(data.x)
+        Returns:
+            Tuple[Tensor, Tensor, Tensor]: positive augment data, negative augment data
+                and average representation
+        """
+
+        x_pos_one = _generate_mask_node(data.x)
+        x_pos_two = _generate_mask_node(data.x)
         dropped_edge_one = self.generate_drop_edge(data.x, data.edge_index)
         dropped_edge_two = self.generate_drop_edge(data.x, data.edge_index)
-
-        _, M = self.encoder(data.x, data.edge_index, data.batch)
 
         y_pos_one, _ = self.encoder(x_pos_one, dropped_edge_one, data.batch)
         y_pos_two, _ = self.encoder(x_pos_two, dropped_edge_two, data.batch)
@@ -230,43 +245,52 @@ class Net(AbstractModel):
         g_enc_neg = self.global_d(y_pos_two)
         # compute average representation for graph pairs
         g_enc = (g_enc_pos + g_enc_neg) / 2
-        IB_loss = ib_loss(g_enc_pos, g_enc_neg, g_enc)
 
-        return IB_loss
+        return g_enc_pos, g_enc_neg, g_enc
 
     def calculate_loss(self, data: Batch) -> Tensor:
         """
-        calculate IB_loss
+        calculate ib_loss
 
         Args:
             data(Batch): batch data
 
         Returns:
-            torch.Tensor: IB_Loss
+            torch.Tensor: ib_loss
         """
-        return self.forward(data)
+        g_enc_pos, g_enc_neg, g_enc = self.forward(data)
+
+        ib_loss = calculate_ib_loss(g_enc_pos, g_enc_neg, g_enc)
+
+        return ib_loss
 
 
-class TRUSTRD(AbstractModel):
+class TrustRD(AbstractModel):
     r"""
     Towards Trustworthy Rumor Detection with Interpretable Graph Structural Learning, CIKM 2023
     paper: https://dl.acm.org/doi/10.1145/3583780.3615228
     code: https://github.com/Anonymous4ScienceAuthor/TrustRD
     """
-
-    def __init__(self, encoder: AbstractModel, in_feature=192, hid_feature=64, num_classes=4,
-                 sigma_m=0.1, eta=0.4, zeta=0.02):
+    def __init__(self,
+                 pre_trained_model: TrustRDPreTrainModel,
+                 in_feature=192,
+                 hid_feature=64,
+                 num_classes=4,
+                 sigma_m=0.1,
+                 eta=0.4,
+                 zeta=0.02):
         """
-        encoder(AbstractModel): the model of trained Net.
-        in_feature(int): the feature size of input. default=192.
-        hid_feature(int): the feature size of hidden embedding. default=64.
-        num_classes(int): the num of class. default=4.
-        sigma_m(float): data perturbation Standard Deviation. default=0.1
-        eta(float): data perturbation weight. default=0.4.
-        zeta(float): parameter perturbation weight. default=0.02
+        Args:
+            pre_trained_model(AbstractModel): the model of trained TrustRDPreTrainModel.
+            in_feature(int): the feature size of input. default=192.
+            hid_feature(int): the feature size of hidden embedding. default=64.
+            num_classes(int): the num of class. default=4.
+            sigma_m(float): data perturbation Standard Deviation. default=0.1
+            eta(float): data perturbation weight. default=0.4.
+            zeta(float): parameter perturbation weight. default=0.02
         """
-        super(TRUSTRD, self).__init__()
-        self.encoder = encoder
+        super(TrustRD, self).__init__()
+        self.pre_trained_model = pre_trained_model
         self.sigma_m = sigma_m
         self.eta = eta
         self.zeta = zeta
@@ -291,7 +315,7 @@ class TRUSTRD(AbstractModel):
     def forward(self, embed: Tensor, data: Data):
         """
         Args:
-            embed(Tensor): embedding features processed by Net.
+            embed(Tensor): embedding features processed by TrustRDPreTrainModel.
             data(Data): batch data.
 
         Returns:
@@ -324,9 +348,12 @@ class TRUSTRD(AbstractModel):
         x = torch.log(mean_pred_prob)
         return x
 
-    def calculate_loss(self, data: Batch) -> Dict[str, Union[float, Any]]:
+    def calculate_loss(self, data: Batch) -> Dict[str, float]:
         """
-        calculate loss
+        loss = pred_loss + 0.2 * loss_para + 0.2 * loss_data,
+        where pred_loss is the cross entropy loss,
+        loss_para is the parameter perturbation loss,
+        and loss_data is the data perturbation loss.
 
         Args:
             data(Batch): batch data
@@ -335,28 +362,38 @@ class TRUSTRD(AbstractModel):
             dict: loss dict with key 'total_loss', 'pred_loss', 'para_loss', 'data_loss'
         """
 
-        self.encoder.eval()
-        _, batch_embed = self.encoder.encoder(data.x, data.edge_index, data.batch)
+        # data perturbation
+        self.pre_trained_model.eval()
+        _, batch_embed = self.pre_trained_model.encoder(
+            data.x, data.edge_index, data.batch)
         noise = torch.randn_like(batch_embed) * self.sigma_m
         noisy_embed = batch_embed + self.eta * noise
         loss_data = F.mse_loss(self.forward(noisy_embed, data),
                                self.forward(batch_embed, data))
-        model_copy = copy.deepcopy(self)
 
+        # parameter perturbation
+        model_copy = copy.deepcopy(self)
         with torch.no_grad():
-            for param, param_copy in zip(self.parameters(), model_copy.parameters()):
+            for param, param_copy in zip(self.parameters(),
+                                         model_copy.parameters()):
                 noise = torch.randn_like(param)
                 noise = self.zeta * noise / noise.norm(p=2)
                 param_copy.data.add_(noise)
         loss_para = F.mse_loss(self.forward(batch_embed, data),
                                model_copy(batch_embed, data))
-        out_labels = self.forward(batch_embed, data)
-        finalloss = F.nll_loss(out_labels, data.y)
 
-        loss = finalloss + 0.2 * loss_para + 0.2 * loss_data
+        # prediction loss
+        out = self.forward(batch_embed, data)
+        pred_loss = F.nll_loss(out, data.y)
 
-        return {'total_loss': loss, 'pred_loss': finalloss,
-                'para_loss': loss_para, 'data_loss': loss_data}
+        loss = pred_loss + 0.2 * loss_para + 0.2 * loss_data
+
+        return {
+            'total_loss': loss,
+            'pred_loss': pred_loss,
+            'para_loss': loss_para,
+            'data_loss': loss_data
+        }
 
     def predict(self, data_without_label: Batch) -> Tensor:
         """
@@ -368,8 +405,9 @@ class TRUSTRD(AbstractModel):
         Returns:
             Tensor: predication probability, shape=(num_graphs, 2)
         """
-        self.encoder.eval()
-        batch_embed = self.encoder.encoder.get_embeddings(data_without_label)
-        pred_out = self.forward(batch_embed, data_without_label)
+        self.pre_trained_model.eval()
+        batch_embed = self.pre_trained_model.encoder.get_embeddings(
+            data_without_label)
+        out = self.forward(batch_embed, data_without_label)
 
-        return pred_out
+        return torch.softmax(out, dim=1)
