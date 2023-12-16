@@ -281,7 +281,7 @@ class TrustRD(AbstractModel):
                  zeta=0.02):
         """
         Args:
-            pre_trained_model(AbstractModel): the model of trained TrustRDPreTrainModel.
+            pre_trained_model(TrustRDPreTrainModel): the model of trained TrustRDPreTrainModel.
             in_feature(int): the feature size of input. default=192.
             hid_feature(int): the feature size of hidden embedding. default=64.
             num_classes(int): the num of class. default=4.
