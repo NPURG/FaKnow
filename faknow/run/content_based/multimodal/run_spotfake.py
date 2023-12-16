@@ -1,8 +1,6 @@
-import random
 import re
-from typing import Dict, List
+from typing import List
 
-import numpy as np
 import yaml
 from PIL import Image
 import torch
@@ -11,16 +9,19 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from faknow.data.dataset.multi_modal import MultiModalDataset
-from faknow.data.process.text_process import TokenizerForBert
+from faknow.data.process.text_process import TokenizerFromPreTrained
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.spotfake import SpotFake
 from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
-__all__ = ['text_preprocessing', 'TokenizerSpotFake', 'transform_spotfake', 'run_spotfake', 'run_spotfake_from_yaml']
+__all__ = [
+    'text_preprocessing', 'transform_spotfake',
+    'run_spotfake', 'run_spotfake_from_yaml'
+]
 
 
-def text_preprocessing(text):
+def text_preprocessing(texts: List[str]):
     """
     Preprocess the given text.
 
@@ -28,71 +29,20 @@ def text_preprocessing(text):
     - Correct errors (e.g., '&amp;' to '&')
 
     Args:
-        text (str): The text to be processed.
+        texts (List[str]): a list of texts to be processed.
 
     Returns:
-        str: The preprocessed text.
+        List[str]: The preprocessed texts.
     """
-    # 去除 '@name'
-    text = re.sub(r'(@.*?)[\s]', ' ', text)
 
-    #  替换'&amp;'成'&'
-    text = re.sub(r'&amp;', '&', text)
+    processed_texted = []
+    for text in texts:
+        text = re.sub(r'(@.*?)[\s]', ' ', text)
+        text = re.sub(r'&amp;', '&', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        processed_texted.append(text)
 
-    # 删除尾随空格
-    text = re.sub(r'\s+', ' ', text).strip()
-
-    return text
-
-
-class TokenizerSpotFake:
-    def __init__(self, max_len, pre_trained_bert_name):
-        """
-        Initialize the TokenizerSpotFake.
-
-        Args:
-            max_len (int): Maximum length for tokenization.
-            pre_trained_bert_name (str): Name of the pre-trained BERT model.
-        """
-        self.max_len = max_len
-        self.pre_trained_bert_name = BertTokenizer.from_pretrained(pre_trained_bert_name, do_lower_case=True)
-
-    def __call__(self, texts: List[str]) -> Dict[str, torch.Tensor]:
-        """
-        Tokenize the list of texts.
-
-        Args:
-            texts (List[str]): List of input texts.
-
-        Returns:
-            Dict[str, torch.Tensor]: A dictionary containing the tokenized inputs.
-        """
-        # 定义列表存储文本处理后的结果
-        input_ids_ls = []
-        attention_mask_ls = []
-
-        for text in texts:
-            encoded_sent = self.pre_trained_bert_name.encode_plus(
-                text=text_preprocessing(text),  # 预处理
-                add_special_tokens=True,  # `[CLS]`&`[SEP]`
-                max_length=self.max_len,  # 截断/填充的最大长度
-                padding='max_length',  # 句子填充最大长度
-                # return_tensors='pt',          # 返回tensor
-                return_attention_mask=True,  # 返回attention mask
-                truncation=True
-            )
-            input_ids = encoded_sent.get('input_ids')
-            attention_mask = encoded_sent.get('attention_mask')
-
-            # 转换tensor
-            input_ids = torch.tensor(input_ids)
-            attention_mask = torch.tensor(attention_mask)
-
-            # 添加到列表中去
-            input_ids_ls.append(input_ids)
-            attention_mask_ls.append(attention_mask)
-
-        return {'input_ids': torch.stack(input_ids_ls), 'attention_mask': torch.stack(attention_mask_ls)}
+    return processed_texted
 
 
 def transform_spotfake(path: str) -> torch.Tensor:
@@ -115,27 +65,25 @@ def transform_spotfake(path: str) -> torch.Tensor:
         return trans(img)
 
 
-def run_spotfake(
-        train_path: str,
-        validate_path: str = None,
-        test_path: str = None,
-        text_fc2_out: int = 32,
-        text_fc1_out: int = 2742,
-        dropout_p: float = 0.4,
-        fine_tune_text_module: bool = False,
-        img_fc1_out: int = 2742,
-        img_fc2_out: int = 32,
-        fine_tune_vis_module: bool = False,
-        fusion_output_size: int = 35,
-        loss_func=nn.BCELoss(),
-        pre_trained_bert_name="bert-base-uncased",
-        batch_size=8,
-        epochs=50,
-        max_len=500,
-        lr=3e-5,
-        metrics: List = None,
-        device='cuda:0'
-):
+def run_spotfake(train_path: str,
+                 validate_path: str = None,
+                 test_path: str = None,
+                 text_fc2_out: int = 32,
+                 text_fc1_out: int = 2742,
+                 dropout_p: float = 0.4,
+                 fine_tune_text_module: bool = False,
+                 img_fc1_out: int = 2742,
+                 img_fc2_out: int = 32,
+                 fine_tune_vis_module: bool = False,
+                 fusion_output_size: int = 35,
+                 loss_func=nn.BCELoss(),
+                 pre_trained_bert_name="bert-base-uncased",
+                 batch_size=8,
+                 epochs=50,
+                 max_len=500,
+                 lr=3e-5,
+                 metrics: List = None,
+                 device='cpu'):
     """
     Train and evaluate the SpotFake model.
 
@@ -158,41 +106,46 @@ def run_spotfake(
         max_len (int, optional): Maximum length for tokenization. Defaults to 500.
         lr (float, optional): Learning rate. Defaults to 3e-5.
         metrics (List, optional): List of evaluation metrics. Defaults to None.
-        device (str, optional): Device to run the training on ('cpu' or 'cuda'). Defaults to 'cuda:0'.
+        device (str, optional): Device to run the training on ('cpu' or 'cuda'). Defaults to 'cpu'.
     """
-    seed_value = 42
-    random.seed(seed_value)
-    np.random.seed(seed_value)
-    torch.manual_seed(seed_value)
-    torch.cuda.manual_seed_all(seed_value)
 
-    tokenizer = TokenizerSpotFake(max_len, pre_trained_bert_name)
+    tokenizer = TokenizerFromPreTrained(max_len, pre_trained_bert_name,
+                                        text_preprocessing)
 
-    training_set = MultiModalDataset(train_path, ['post_text'], tokenizer, ['image_id'], transform_spotfake)
-    train_loader = DataLoader(training_set, batch_size=batch_size, shuffle=True)
+    training_set = MultiModalDataset(train_path, ['post_text'], tokenizer,
+                                     ['image_id'], transform_spotfake)
+    train_loader = DataLoader(training_set,
+                              batch_size=batch_size,
+                              shuffle=True)
 
     if validate_path is not None:
-        validation_set = MultiModalDataset(validate_path, ['post_text'], tokenizer, ['image_id'], transform_spotfake)
-        validation_loader = DataLoader(validation_set, batch_size=batch_size, shuffle=True)
+        validation_set = MultiModalDataset(validate_path, ['post_text'],
+                                           tokenizer, ['image_id'],
+                                           transform_spotfake)
+        validation_loader = DataLoader(validation_set,
+                                       batch_size=batch_size,
+                                       shuffle=True)
     else:
         validation_loader = None
 
-    model = SpotFake(text_fc2_out, text_fc1_out, dropout_p, fine_tune_text_module,
-                     img_fc1_out, img_fc2_out, fine_tune_vis_module, fusion_output_size,
-                     loss_func, pre_trained_bert_name)
+    model = SpotFake(text_fc2_out, text_fc1_out, dropout_p,
+                     fine_tune_text_module, img_fc1_out, img_fc2_out,
+                     fine_tune_vis_module, fusion_output_size, loss_func,
+                     pre_trained_bert_name)
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr
-    )
+    optimizer = torch.optim.AdamW(model.parameters(), lr)
 
     evaluator = Evaluator(metrics)
 
-    trainer = BaseTrainer(model=model, evaluator=evaluator, optimizer=optimizer, device=device)
+    trainer = BaseTrainer(model=model,
+                          evaluator=evaluator,
+                          optimizer=optimizer,
+                          device=device)
     trainer.fit(train_loader, epochs, validation_loader)
 
     if test_path is not None:
-        test_set = MultiModalDataset(test_path, ['post_text'], tokenizer, ['image_id'], transform_spotfake)
+        test_set = MultiModalDataset(test_path, ['post_text'], tokenizer,
+                                     ['image_id'], transform_spotfake)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
         trainer.logger.info(f"test result: {dict2str(test_result)}")

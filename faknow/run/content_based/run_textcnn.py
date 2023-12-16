@@ -12,7 +12,8 @@ from faknow.data.dataset.text import TextDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.textcnn import TextCNN
 from faknow.train.trainer import BaseTrainer
-from faknow.utils.util import dict2str, read_stop_words
+from faknow.utils.util import dict2str
+from faknow.data.process.text_process import read_stop_words
 
 __all__ = ['TokenizerTextCNN', 'run_textcnn', 'run_textcnn_from_yaml']
 
