@@ -223,6 +223,9 @@ def run_m3fend(
         validate_loader=val_loader,
         num_epochs=epochs)
 
+    test_result = trainer.evaluate(test_loader)
+    trainer.logger.info(test_result)
+
 
 def run_m3fend_from_yaml(path: str):
     """
