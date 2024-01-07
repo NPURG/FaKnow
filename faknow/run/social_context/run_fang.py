@@ -46,7 +46,7 @@ def run_fang(data_root: str,
         device(str): compute device. default='cpu'.
     """
     fang_data = FangDataset(data_root)
-    train_idxs = fang_data.train_idxs
+    train_idxs = (list(fang_data.news) + list(fang_data.sources))[:64]
     train_loader = torch.utils.data.DataLoader(train_idxs,
                                                batch_size=batch_size,
                                                shuffle=True
@@ -60,7 +60,7 @@ def run_fang(data_root: str,
                                                  shuffle=False)
 
     model = FANG(fang_data, input_size, embedding_size, num_stance, num_stance_hidden,
-                 timestamp_size, num_classes, dropout)
+                 timestamp_size, num_classes, dropout, device)
     optimizer = torch.optim.Adam(params=model.parameters(), lr=lr,
                                  weight_decay=weight_decay)
     evaluator = Evaluator(metrics)

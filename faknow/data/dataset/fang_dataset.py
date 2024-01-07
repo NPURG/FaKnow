@@ -77,8 +77,6 @@ class FangDataset(Dataset):
         self.news_label_map = None
         self.train_idxs, self.dev_idxs, self.test_idxs = [], [], []
         self.news, self.users, self.sources = set(), set(), set()
-        self.rep_entities = None
-
         self.load()
 
     def load_and_update_adj_lists(self, edge_file: str):
