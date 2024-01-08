@@ -55,6 +55,7 @@ def transform_spotfake(path: str) -> torch.Tensor:
     Returns:
         torch.Tensor: Transformed image data.
     """
+    path += '.jpg'
     with open(path, "rb") as f:
         img = Image.open(f).convert('RGB')
         trans = transforms.Compose([
@@ -83,7 +84,7 @@ def run_spotfake(train_path: str,
                  max_len=500,
                  lr=3e-5,
                  metrics: List = None,
-                 device='cpu'):
+                 device='cuda'):
     """
     Train and evaluate the SpotFake model.
 
