@@ -4,7 +4,7 @@ import torch
 import yaml
 from torch_geometric.loader import DataLoader
 
-from data.dataset.bigcn_dataset import BiGCNDataset
+from faknow.data.dataset.bigcn_dataset import BiGCNDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.bigcn import BiGCN
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
