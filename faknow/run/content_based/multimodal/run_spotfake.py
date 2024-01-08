@@ -55,6 +55,7 @@ def transform_spotfake(path: str) -> torch.Tensor:
     Returns:
         torch.Tensor: Transformed image data.
     """
+    path += '.jpg'
     with open(path, "rb") as f:
         img = Image.open(f).convert('RGB')
         trans = transforms.Compose([
@@ -83,7 +84,7 @@ def run_spotfake(train_path: str,
                  max_len=500,
                  lr=3e-5,
                  metrics: List = None,
-                 device='cpu'):
+                 device='cuda'):
     """
     Train and evaluate the SpotFake model.
 
@@ -112,6 +113,10 @@ def run_spotfake(train_path: str,
     tokenizer = TokenizerFromPreTrained(max_len, pre_trained_bert_name,
                                         text_preprocessing)
 
+    # images_train_path = train_path.replace("train.json", "images_train")
+    # images_test_path = validate_path.replace("test.json", "images_test")
+    # print(images_train_path)
+    # print(images_test_path)
     training_set = MultiModalDataset(train_path, ['post_text'], tokenizer,
                                      ['image_id'], transform_spotfake)
     train_loader = DataLoader(training_set,
