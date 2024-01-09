@@ -142,7 +142,7 @@ def run_spotfake(train_path: str,
                           evaluator=evaluator,
                           optimizer=optimizer,
                           device=device)
-    trainer.fit(train_loader, epochs, validation_loader)
+    trainer.fit(train_loader=train_loader, num_epochs=epochs, validate_loader=validation_loader,save_best=True)
 
     if test_path is not None:
         test_set = MultiModalDataset(test_path, ['post_text'], tokenizer,
