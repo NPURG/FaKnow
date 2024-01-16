@@ -72,12 +72,68 @@ class FangDataset(Dataset):
         self.n_stances = None
         self.news_labels = None
         self.n_news_labels = None
+        self.all_engage_users = {}
+        self.all_engage_stances = {}
+        self.all_engage_ts = {}
+        self.all_masked_attn = {}
+        self.labels = {}
+        self.engaged_source = {}
+        self.engaged_news = []
         self.class2idx = {}
         self.entities, self.node_name_idx_map = None, None
         self.news_label_map = None
         self.train_idxs, self.dev_idxs, self.test_idxs = [], [], []
         self.news, self.users, self.sources = set(), set(), set()
         self.load()
+
+    def preprocess_news_classification_data(self,
+                                            news_nodes: set,
+                                            n_stances: int,
+                                            adj_lists: dict,
+                                            stance_lists: dict,
+                                            news_labels: dict):
+        """
+        Args:
+            nodes_batch(set): the idx list of node to be processed.
+            n_stances(int): stance num.
+            adj_lists(dict): adjacent information dict for every node.
+            stance_lists(dict): stance information dict for every node.
+            news_labels(dict): news label dict.
+        """
+        smoothing_coeff = 1e-8  # to differentiate between 0 ts and padding value
+        max_duration = 86400 * 7
+        engaged_sources, engaged_news = {}, []
+        all_engage_users, all_engage_stances, all_engage_ts, all_masked_attn, labels = {}, {}, {}, {}, {}
+
+        for node in news_nodes:
+            if node in news_labels:
+                engaged_news.append(node)
+                _sources = [int(x.split("#")[0]) for x in adj_lists[node]]
+                assert len(_sources) == 1, "only 1 source can publish the article"
+                engaged_sources[node] = _sources[0]
+                engage_users, engage_stances, engage_ts, masked_attn = [], [], [], []
+                for user, (stance, ts_mean, ts_std) in stance_lists[node]:
+                    ts_mean = min(ts_mean, max_duration)
+                    scaled_ts_mean = min(ts_mean, max_duration) / float(max_duration)
+                    assert scaled_ts_mean >= 0
+                    engage_users.append(user)
+                    engage_stances.append(stance)
+                    engage_ts.append([scaled_ts_mean + smoothing_coeff, ts_std + smoothing_coeff])
+                    masked_attn.append(0)
+                engage_users, engage_stances, engage_ts, masked_attn = \
+                    engage_users[:100], engage_stances[:100], engage_ts[:100], \
+                        masked_attn[:100]
+                while len(engage_stances) < 100:
+                    engage_stances.append(list(np.zeros(n_stances)))
+                    engage_ts.append([0, 0])
+                    masked_attn.append(-1000)
+                all_engage_users[node] = engage_users
+                all_engage_stances[node] = engage_stances
+                all_engage_ts[node] = engage_ts
+                all_masked_attn[node] = masked_attn
+                labels[node] = news_labels[node]
+
+        return engaged_news, engaged_sources, all_engage_users, all_engage_stances, all_engage_ts, all_masked_attn, labels
 
     def load_and_update_adj_lists(self, edge_file: str):
         """
@@ -203,6 +259,12 @@ class FangDataset(Dataset):
                 self.stance_lists[news].append((user, news_user_stance_map[news][user]))
                 self.stance_lists[user].append((news, news_user_stance_map[news][user]))
                 self.edge_list.append((user, news, news_user_stance_map[news][user]))
+
+        self.engaged_news, self.engaged_source, self.all_engage_users, self.all_engage_stances, self.all_engage_ts, \
+            self.all_masked_attn, self.labels = self.preprocess_news_classification_data(self.news, self.n_stances,
+                                                                                         self.adj_lists,
+                                                                                         self.stance_lists,
+                                                                                         self.news_labels)
 
     def __len__(self):
         return len(self.entities)

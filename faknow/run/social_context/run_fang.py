@@ -12,7 +12,7 @@ __all__ = ['run_fang', 'run_fang_from_yaml']
 
 def run_fang(data_root: str,
              metrics=None,
-             lr=1e-4,
+             lr=1e-3,
              weight_decay=5e-4,
              batch_size=32,
              num_epochs=100,
@@ -22,7 +22,7 @@ def run_fang(data_root: str,
              num_stance_hidden=4,
              timestamp_size=2,
              num_classes=2,
-             dropout=0.1,
+             dropout=0.,
              device='cpu'
              ):
     """
@@ -46,7 +46,7 @@ def run_fang(data_root: str,
         device(str): compute device. default='cpu'.
     """
     fang_data = FangDataset(data_root)
-    train_idxs = (list(fang_data.news) + list(fang_data.sources))[:64]
+    train_idxs = torch.tensor(list(fang_data.news) + list(fang_data.sources))
     train_loader = torch.utils.data.DataLoader(train_idxs,
                                                batch_size=batch_size,
                                                shuffle=True
