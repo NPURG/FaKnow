@@ -42,7 +42,7 @@ def run_dudef(data_dir: str,
 
     dataset = DudefDataset(data_dir, baidu_arr, dalianligong_arr, boson_value, auxiliary_features)
     dataset.get_label(data_dir)
-    dataset.get_dualemotion(data_dir)
+    dataset.get_dual_emotion(data_dir)
     data_path = os.path.join(data_dir, 'data')
     dataset.get_semantics(data_path, word_num, embeddings_index)
     (train_loader, val_loader, test_loader, semantics_embedding_matrix) = (

@@ -151,7 +151,7 @@ class DudefDataset(Dataset):
                              '{}_{}.npy'.format(t, labels_arr.shape)),
                 labels_arr)
 
-    def get_dualemotion(self, data_dir: str):
+    def get_dual_emotion(self, data_dir: str):
         # Get dual emotion arrays from the dataset
         """
             Retrieves dual emotion arrays from the dataset.
@@ -350,7 +350,7 @@ class DudefDataset(Dataset):
             test_dataset[i] = {}
             test_dataset[i]['data'] = {}
             test_dataset[i]['data']['emotions'] = test_data[0][i]
-            test_dataset[i]['data']['senmantics'] = test_data[1][i]
+            test_dataset[i]['data']['semantics'] = test_data[1][i]
             test_dataset[i]['label'] = test_label[i][1]
         test_loader = DataLoader(test_dataset, batch_size, shuffle=True)
 
