@@ -270,16 +270,9 @@ class BaseTrainer(AbstractTrainer):
         """
 
         result = self.evaluate(loader)
-
-        # get the first metric as the validation score
-        # if accuracy is not in result
-        if 'accuracy' in result:
-            score = result['accuracy']
-        else:
-            if epoch == 0:
-                warnings.warn('no accuracy in result, use the first metric \
-                        as the validation score')
-            score = list(result.values())[0]
+        warnings.warn('no accuracy in result, use the first metric \
+                as the validation score')
+        score = list(result.values())[0]
         return score, result
 
     @torch.no_grad()
@@ -388,6 +381,9 @@ class BaseTrainer(AbstractTrainer):
         # do not use bool condition like `if not save_best`
         if save_best is False:
             self.save(save_path)
+        elif save_best is True:
+            self.logger.info(f"load best model in epoch {self.best_epoch}")
+            self.model.load_state_dict(torch.load(save_path))
 
     def save(self, save_path: Optional[str] = None):
         """
@@ -422,12 +418,12 @@ class BaseTrainer(AbstractTrainer):
         Args:
             epoch (int): current epoch
             validation_score (float): current validation score
-            save_best (bool): whether to save model with best validation score.
+            save_best (bool): whether to save model with the best validation score.
                 If False, save the last epoch model.
             save_path (str): path to save model, if save_best is not None.
 
         Returns:
-            bool: whether to save model with best validation score.
+            bool: whether to save model with the best validation score.
         """
 
         improvement = False
@@ -488,14 +484,14 @@ class BaseTrainer(AbstractTrainer):
                                 save_best: Optional[bool] = None):
         """
         Show validation results in logging and tensorboard.
-        If save_best=True or self.early stopping is not None,
-        show best validation score and epoch.
+        If save_best=True or self.early_stopping is not None,
+        show the best validation score and epoch.
 
         Args:
             validation_result (Dict[str, float]): evaluate metrics
             validation_score (float): validation score
             epoch (int): current epoch
-            save_best (bool): whether to save model with best validation score.
+            save_best (bool): whether to save model with the best validation score.
                 Defaults=None.
         """
 
