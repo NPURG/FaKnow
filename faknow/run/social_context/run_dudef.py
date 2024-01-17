@@ -1,7 +1,9 @@
 from typing import List, Callable
-from numpy import ndarray
 import os
+
+from numpy import ndarray
 import torch
+
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.dudef import DUDEF
 from faknow.train.trainer import BaseTrainer
@@ -15,8 +17,8 @@ def run_dudef(data_dir: str,
               baidu_arr: Callable,
               dalianligong_arr: Callable,
               boson_value: Callable,
-              auxilary_features: Callable,
-              MAX_NUM_WORDS=6000,
+              auxiliary_features: Callable,
+              word_num=6000,
               epochs=50,
               batch_size=64,
               lr_param=0.01,
@@ -25,12 +27,12 @@ def run_dudef(data_dir: str,
     """
     Args:
         data_dir (str): Root directory where the dataset should be saved
-        embeddings_index dict[ndarray]: word vectors,ndarray:(300,), for example:'!':[0.618666,...]
+        embeddings_index dict[ndarray]: word vectors, for example:'!':[0.618666,...]
         baidu_arr (Callable): Function to calculate emotions using Baidu API.
         dalianligong_arr (Callable): Function to calculate emotions using Dalian Ligong University's method.
         boson_value (Callable): Function to extract boson features
-        auxilary_features (Callable): Function to extract auxiliary features from the text.
-        MAX_NUM_WORDS (int): size of senmantics, default=6000
+        auxiliary_features (Callable): Function to extract auxiliary features from the text.
+        word_num (int): size of semantics, default=6000
         epochs (int): number of epochs, default=50
         batch_size (int): batch size, default=64
         lr_param (float): learning rate, default=0.01
@@ -38,13 +40,13 @@ def run_dudef(data_dir: str,
         device (str): device, default='cpu'
     """
 
-    Dataset = DudefDataset(data_dir, baidu_arr, dalianligong_arr, boson_value, auxilary_features)
-    Dataset.get_label(data_dir)
-    Dataset.get_dualemotion(data_dir)
+    dataset = DudefDataset(data_dir, baidu_arr, dalianligong_arr, boson_value, auxiliary_features)
+    dataset.get_label(data_dir)
+    dataset.get_dualemotion(data_dir)
     data_path = os.path.join(data_dir, 'data')
-    Dataset.get_senmantics(data_path, MAX_NUM_WORDS, embeddings_index)
+    dataset.get_semantics(data_path, word_num, embeddings_index)
     (train_loader, val_loader, test_loader, semantics_embedding_matrix) = (
-        Dataset.load_dataset(data_path, batch_size=batch_size,
+        dataset.load_dataset(data_path, batch_size=batch_size,
                              input_types=['emotions', 'semantics']))
 
     model = DUDEF(input_size=semantics_embedding_matrix.shape[1],
@@ -65,4 +67,4 @@ def run_dudef(data_dir: str,
 
     if test_loader is not None:
         test_result = trainer.evaluate(test_loader)
-        print('test result: ', dict2str(test_result))
+        trainer.logger.info(f"test result: {dict2str(test_result)}")

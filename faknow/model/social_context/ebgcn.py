@@ -1,13 +1,15 @@
 from typing import Tuple, Dict, Union, Any
-import torch
 import copy
+from collections import OrderedDict
+
+import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 from torch_geometric.nn import GCNConv
-from collections import OrderedDict
 from torch_scatter import scatter_mean
-from faknow.model.model import AbstractModel
 from torch_geometric.data.batch import Batch
+
+from faknow.model.model import AbstractModel
 
 
 class _RumorGCN(nn.Module):
@@ -43,7 +45,7 @@ class _RumorGCN(nn.Module):
         self.fc1 = nn.Linear(self.hidden_size, self.edge_num, bias=False)
         self.fc2 = nn.Linear(self.hidden_size, self.edge_num, bias=False)
         self.dropout = nn.Dropout(self.dropout)
-        self.unsup_loss = nn.KLDivLoss(reduction='batchmean')
+        self.kl_loss_fn = nn.KLDivLoss(reduction='batchmean')
         self.bn1 = nn.BatchNorm1d(self.hidden_size + self.input_size)
 
     def forward(self, node_features: Tensor, edge_index: Tensor,
@@ -120,41 +122,48 @@ class _RumorGCN(nn.Module):
             edge_index(Tensor): adjacent matrix in COO format.
 
         Returns:
-            tuple[Tensor, Tensor]: unsup_loss, edge_pred
+            tuple[Tensor, Tensor]: unsupervised loss via KLLoss,
+                and predicted edge weight.
         """
+
+        # calculate node feature difference
         row, col = edge_index[0], edge_index[1]
         x_i = node_features[row - 1].unsqueeze(2)
         x_j = node_features[col - 1].unsqueeze(1)
         x_ij = torch.abs(x_i - x_j)
 
-        # edge infer
+        # predict edge weight
         sim_val = self.sim_network(x_ij)
         edge_pred = self.fc1(sim_val)
         edge_pred = torch.sigmoid(edge_pred)
 
-        # unsupervised loss
+        # mean and variance of gaussian distribution
         w_mean = self.W_mean(x_ij)
         w_bias = self.W_bias(x_ij)
         b_mean = self.B_mean(x_ij)
         b_bias = self.B_bias(x_ij)
+
         logit_mean = w_mean * sim_val + b_mean
         logit_var = torch.log((sim_val**2) * torch.exp(w_bias) +
                               torch.exp(b_bias))
         logit_var = torch.abs(logit_var)
+
+        # guassian sampling
         edge_y = torch.normal(logit_mean, logit_var)
         edge_y = torch.sigmoid(edge_y)
         edge_y = self.fc2(edge_y)
-
-        logp_x = F.log_softmax(edge_pred, dim=-1)
         p_y = F.softmax(edge_y, dim=-1)
-        unsup_loss = self.unsup_loss(logp_x, p_y)
+
+        # unsupervised KL loss
+        logp_x = F.log_softmax(edge_pred, dim=-1)
+        unsup_loss = self.kl_loss_fn(logp_x, p_y)
 
         return unsup_loss, torch.mean(edge_pred, dim=-1).squeeze(1)
 
 
 class EBGCN(AbstractModel):
     r"""
-    Towards Propagation Uncertainty: Edge-enhanced Bayesian Graph Convolutional Networks for Rumor Detection，ACL 2021
+    Towards Propagation Uncertainty: Edge-enhanced Bayesian Graph Convolutional Networks for Rumor Detection, ACL 2021
     paper: https://arxiv.org/pdf/2107.11934.pdf
     code: https://github.com/weilingwei96/EBGCN
     """
