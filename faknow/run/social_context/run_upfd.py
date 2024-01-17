@@ -10,6 +10,7 @@ from faknow.evaluate.evaluator import Evaluator
 from faknow.model.social_context.upfd import (UPFDSAGE, UPFDGCN, UPFDGAT,
                                               UPFDGCNFN)
 from faknow.train.base_gnn_trainer import BaseGNNTrainer
+from faknow.utils.util import dict2str
 
 __all__ = ['run_upfd', 'run_upfd_from_yaml']
 
@@ -100,7 +101,7 @@ def run_upfd(root: str,
                                  batch_size=batch_size,
                                  shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f'test result={test_result}')
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_upfd_from_yaml(path: str):

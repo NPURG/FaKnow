@@ -6,12 +6,6 @@ from transformers import BertModel
 
 from faknow.model.model import AbstractModel
 
-"""
-SpotFake: Multi-Modal Fake News Detection
-paper: https://ieeexplore.ieee.org/document/8919302
-code: https://github.com/shiivangii/SpotFake
-"""
-
 
 # 文本Bert基本模型
 class _TextEncoder(nn.Module):
@@ -173,21 +167,21 @@ class _TextConcatVision(nn.Module):
 
 class SpotFake(AbstractModel):
     """
-    SpotFake: A Multi-modal Framework for Fake News Detection
+    SpotFake: A Multi-modal Framework for Fake News Detection, BigMM 2019
+    paper: https://ieeexplore.ieee.org/document/8919302
+    code: https://github.com/shiivangii/SpotFake
     """
-    def __init__(
-            self,
-            text_fc2_out: int = 32,
-            text_fc1_out: int = 2742,
-            dropout_p: float = 0.4,
-            fine_tune_text_module: bool = False,
-            img_fc1_out: int = 2742,
-            img_fc2_out: int = 32,
-            fine_tune_vis_module: bool = False,
-            fusion_output_size: int = 35,
-            loss_func=nn.BCELoss(),
-            pre_trained_bert_name="bert-base-uncased"
-    ):
+    def __init__(self,
+                 text_fc2_out: int = 32,
+                 text_fc1_out: int = 2742,
+                 dropout_p: float = 0.4,
+                 fine_tune_text_module: bool = False,
+                 img_fc1_out: int = 2742,
+                 img_fc2_out: int = 32,
+                 fine_tune_vis_module: bool = False,
+                 fusion_output_size: int = 35,
+                 loss_func=nn.BCELoss(),
+                 pre_trained_bert_name="bert-base-uncased"):
         """
         Args:
             text_fc2_out (int): size of the second fully connected layer of the text module. Default=32
@@ -229,7 +223,8 @@ class SpotFake(AbstractModel):
         else:
             self.loss_func = loss_func
 
-    def forward(self, text: torch.Tensor, mask: torch.Tensor, domain: torch.Tensor):
+    def forward(self, text: torch.Tensor, mask: torch.Tensor,
+                domain: torch.Tensor):
         """
         Forward pass of the SpotFake model.
 
@@ -244,30 +239,36 @@ class SpotFake(AbstractModel):
         return self.model([text, mask], image=domain)
 
     def calculate_loss(self, data) -> Tensor:
-        img_ip, text_ip, label = data["image_id"], data["post_text"], data['label']
-        b_input_ids = text_ip['input_ids']
-        b_attn_mask = text_ip['attention_mask']
+        img_ip, text_ip, label = data["image_id"], data["post_text"], data[
+            'label']
+        b_input_ids = text_ip['token_id']
+        b_attn_mask = text_ip['mask']
         imgs_ip = img_ip
         b_labels = label
         output = self.forward(b_input_ids, b_attn_mask, imgs_ip)
         return self.loss_func(output, b_labels.float())
 
-    @torch.no_grad()
     def predict(self, data_without_label):
-        img_ip, text_ip = data_without_label["image_id"], data_without_label["post_text"]
-        b_input_ids = text_ip['input_ids']
-        b_attn_mask = text_ip['attention_mask']
+        img_ip, text_ip = data_without_label["image_id"], data_without_label[
+            "post_text"]
+        b_input_ids = text_ip['token_id']
+        b_attn_mask = text_ip['mask']
         imgs_ip = img_ip
 
         # shape=(n,), data = 1 or 0
         round_pred = self.forward(b_input_ids, b_attn_mask, imgs_ip)
 
-        new_outputs = torch.zeros((round_pred.shape[0], 2)).to(round_pred.device)
+        new_outputs = torch.zeros(
+            (round_pred.shape[0], 2)).to(round_pred.device)
 
-        new_outputs[torch.where(round_pred < 0.5)[0].detach().cpu().numpy(), 0] = 1 - round_pred[round_pred < 0.5]
-        new_outputs[torch.where(round_pred < 0.5)[0].detach().cpu().numpy(), 1] = round_pred[round_pred < 0.5]
+        new_outputs[torch.where(round_pred < 0.5)[0].detach().cpu().numpy(),
+                    0] = 1 - round_pred[round_pred < 0.5]
+        new_outputs[torch.where(round_pred < 0.5)[0].detach().cpu().numpy(),
+                    1] = round_pred[round_pred < 0.5]
 
-        new_outputs[torch.where(round_pred >= 0.5)[0].detach().cpu().numpy(), 1] = round_pred[round_pred >= 0.5]
-        new_outputs[torch.where(round_pred >= 0.5)[0].detach().cpu().numpy(), 0] = 1 - round_pred[round_pred >= 0.5]
+        new_outputs[torch.where(round_pred >= 0.5)[0].detach().cpu().numpy(),
+                    1] = round_pred[round_pred >= 0.5]
+        new_outputs[torch.where(round_pred >= 0.5)[0].detach().cpu().numpy(),
+                    0] = 1 - round_pred[round_pred >= 0.5]
 
         return new_outputs

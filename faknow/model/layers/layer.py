@@ -159,7 +159,7 @@ class SignedAttention(nn.Module):
         Wh1 = torch.mm(h, self.a[:self.out_features, :])
         Wh2 = torch.mm(h, self.a[self.out_features:, :])
         e = self.leaky_relu(Wh1 + Wh2.T)
-        zero_vec = -1e12 * torch.ones_like(e)
+        zero_vec = -1e12 * torch.ones_like(e, device=x.device)
 
         attention = torch.where(adj > 0, e, zero_vec)  # [N, N]
         attention = F.softmax(attention, dim=1)
@@ -196,7 +196,7 @@ class SignedGAT(nn.Module):
                  adj_matrix: torch.Tensor,
                  head_num=4,
                  out_features=300,
-                 dropout=0,
+                 dropout=0.,
                  alpha=0.3):
         """
         Args:
@@ -251,7 +251,7 @@ class SignedGAT(nn.Module):
         """
 
         embedding = self.node_embedding(torch.arange(
-            0, self.node_num).long()).to(torch.float32)
+            0, self.node_num, device=post_id.device).long()).to(torch.float32)
         x = F.dropout(embedding, self.dropout, training=self.training)
         adj = self.adj.to(torch.float32)
         x = torch.cat([att(x, adj) for att in self.attentions], dim=1)

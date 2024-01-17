@@ -1,6 +1,7 @@
 import pickle
 import re
 from typing import Dict, List, Any
+import warnings
 
 import jieba
 import torch
@@ -13,11 +14,11 @@ from faknow.data.dataset.multi_modal import MultiModalDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.eann import EANN
 from faknow.train.trainer import BaseTrainer
-from faknow.utils.util import dict2str, read_stop_words
+from faknow.utils.util import dict2str
+from faknow.data.process.text_process import read_stop_words
 
 __all__ = [
-    'TokenizerEANN', 'transform_eann', 'adjust_lr_eann', 'run_eann',
-    'run_eann_from_yaml'
+    'TokenizerEANN', 'transform_eann', 'run_eann', 'run_eann_from_yaml'
 ]
 
 
@@ -115,20 +116,6 @@ def transform_eann(path: str) -> torch.Tensor:
         return trans(img)
 
 
-def adjust_lr_eann(epoch: int) -> float:
-    """
-    adjust learning rate for EANN
-
-    Args:
-        epoch (int): current epoch
-
-    Returns:
-        float: learning rate
-    """
-
-    return 0.001 / (1. + 10 * (float(epoch) / 100))**0.75
-
-
 def run_eann(train_path: str,
              vocab: Dict[str, int],
              stop_words: List[str],
@@ -172,6 +159,8 @@ def run_eann(train_path: str,
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
     if event_num is None:
         event_num = torch.max(train_set.data['domain']).item() + 1
+        warnings.warn(f"event_num is not specified,"
+                      f"use max domain number in training set + 1: {event_num} as event_num")
 
     if validate_path is not None:
         val_set = MultiModalDataset(validate_path, ['text'], tokenizer,
@@ -183,13 +172,10 @@ def run_eann(train_path: str,
     model = EANN(event_num, embed_weight=word_vectors)
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, list(model.parameters())), lr)
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
-                                                  lr_lambda=adjust_lr_eann)
     evaluator = Evaluator(metrics)
     trainer = BaseTrainer(model,
                           evaluator,
                           optimizer,
-                          scheduler,
                           device=device)
     trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 
@@ -198,7 +184,7 @@ def run_eann(train_path: str,
                                      transform_eann)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f"test result: {dict2str(test_result)}")
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:

@@ -96,8 +96,8 @@ class _BaseGNN(AbstractModel):
 
 class GCN(_BaseGNN):
     """
-    Semi-Supervised Classification with Graph Convolutional Networks, CVPR 2019
-    paper: https://ieeexplore.ieee.org/document/8953909
+    Semi-Supervised Classification with Graph Convolutional Networks, ICLR 2017
+    paper: https://openreview.net/forum?id=SJU4ayYgl
     code: https://github.com/safe-graph/GNN-FakeNews
     """
     def __init__(self, feature_size: int, hidden_size=128):

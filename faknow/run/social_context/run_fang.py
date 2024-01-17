@@ -5,6 +5,7 @@ from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import dict2str
 
 import torch
+from torch.utils.data import DataLoader
 import yaml
 
 __all__ = ['run_fang', 'run_fang_from_yaml']
@@ -54,10 +55,12 @@ def run_fang(data_root: str,
     if fang_data.dev_idxs is not None:
         val_data = fang_data.dev_idxs
         val_label = [fang_data.news_labels[val_node] for val_node in val_data]
-        val_indexs = FangEvaluateDataSet(val_data, val_label)
-        val_loader = torch.utils.data.DataLoader(val_indexs,
-                                                 batch_size=batch_size,
-                                                 shuffle=False)
+        val_indexes = FangEvaluateDataSet(val_data, val_label)
+        val_loader = DataLoader(val_indexes,
+                                batch_size=batch_size,
+                                shuffle=False)
+    else:
+        val_loader = None
 
     model = FANG(fang_data, input_size, embedding_size, num_stance, num_stance_hidden,
                  timestamp_size, num_classes, dropout, device)
@@ -71,12 +74,12 @@ def run_fang(data_root: str,
     if fang_data.test_idxs is not None:
         test_data = fang_data.test_idxs
         test_label = [fang_data.news_labels[test_node] for test_node in test_data]
-        test_indexs = FangEvaluateDataSet(test_data, test_label)
-        test_loader = torch.utils.data.DataLoader(test_indexs,
-                                                  batch_size=batch_size,
-                                                  shuffle=False)
+        test_indexes = FangEvaluateDataSet(test_data, test_label)
+        test_loader = DataLoader(test_indexes,
+                                 batch_size=batch_size,
+                                 shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f"test result: {dict2str(test_result)}")
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_fang_from_yaml(path: str):

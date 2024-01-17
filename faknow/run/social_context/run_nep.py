@@ -76,7 +76,7 @@ def run_nep(post_simcse: Tensor,
     trainer.fit(train_loader, num_epochs, val_loader)
 
     test_result = trainer.evaluate(test_loader)
-    print(f"test result: {dict2str(test_result)}")
+    trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:
