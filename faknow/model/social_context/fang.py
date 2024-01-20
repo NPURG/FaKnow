@@ -1,9 +1,11 @@
 from torch_geometric.nn import SAGEConv
+from torch_geometric.loader import NeighborSampler
 from torch import nn
 from faknow.model.model import AbstractModel
 from faknow.data.dataset.fang_dataset import FangDataset
 from scipy import special
 from collections import Counter
+from torch.utils.data import Dataset
 
 import torch.nn.functional as F
 import numpy as np
@@ -19,12 +21,15 @@ class _GraphSAGE(nn.Module):
     def __init__(self, input_size: int, output_size: int):
         super(_GraphSAGE, self).__init__()
 
-        self.conv1 = SAGEConv(input_size, output_size)
-        self.conv2 = SAGEConv(output_size, output_size)
+        self.conv = nn.ModuleList()
+        self.conv.append(SAGEConv(input_size, output_size))
+        self.conv.append(SAGEConv(output_size, output_size))
 
     def forward(self, nodes: torch.Tensor, edge_list: torch.Tensor):
-        nodes = self.conv1(nodes, edge_list)
-        nodes = self.conv2(nodes, edge_list)
+        for i, (edge_index, _, size) in enumerate(edge_list):
+            nodes_target = nodes[:size[1]]
+            nodes = self.conv[i]((nodes, nodes_target), edge_index)
+            nodes = torch.tanh(nodes)
 
         return nodes
 
@@ -126,7 +131,7 @@ class _FakeNewsClassifier(nn.Module):
         news_embed = torch.add(news, attn_embedding)
         news_source = torch.cat([source, news_embed], dim=1)
 
-        return self.output_layer(news_source), attentions
+        return self.output_layer(news_source), attentions, news_embed
 
 
 class FANG(AbstractModel):
@@ -143,7 +148,8 @@ class FANG(AbstractModel):
                  num_stance_hidden=4,
                  timestamp_size=2,
                  num_classes=2,
-                 dropout=0.1):
+                 dropout=0.,
+                 device='cpu'):
         """
         Args:
             fang_data(FangDataset): global graph information.
@@ -152,7 +158,7 @@ class FANG(AbstractModel):
             num_stance(int):the total num of stance. default=4.
             num_stance_hidden(int):the feature size of stance(usually num_stance_hidden * num_stance = embedding_size). default=4.
             timestamp_size(int):the feature size of timestamp. default=2.
-            num_classer(int): label num. default=2.
+            num_classes(int): label num. default=2.
             dropout(float): dropout rate. default=0.1.
         """
         super(FANG, self).__init__()
@@ -160,6 +166,13 @@ class FANG(AbstractModel):
         self.Q = 10  # used for compute unsupvised loss.
         self.fang_data = fang_data
         self.embedding_size = embedding_size
+        self.device = device
+        edge_list = [[], []]
+        for edge in self.fang_data.edge_list:
+            edge_list[0].append(edge[0])
+            edge_list[1].append(edge[1])
+        self.edge_list = torch.LongTensor(edge_list)
+
         self.graph_sage = _GraphSAGE(input_size, embedding_size)
         self.stance_classifier = _StanceClassifier(embedding_size, num_stance, num_stance_hidden)
         self.news_classifier = _FakeNewsClassifier(embedding_size, int(embedding_size / 2), num_stance,
@@ -171,57 +184,75 @@ class FANG(AbstractModel):
 
     def preprocess_news_classification_data(self,
                                             nodes_batch: list,
-                                            n_stances: int,
-                                            adj_lists: dict,
-                                            stance_lists: dict,
-                                            news_labels: dict):
+                                            embed_size: int,
+                                            test=False):
         """
         Args:
-            node_batch(list): the idx list of node to be processed.
-            n_stances(int): stance num.
-            adj_lists(dict): adjacent information dict for every node.
-            stance_list(dict): stance information dict for every node.
-            news_labels(dict): news label dict.
+            nodes_batch(list): the idx list of node to be processed.
+            embed_size(int): the size of embedding features.
+            test(bool): if test or trai
         """
-        smoothing_coeff = 1e-8  # to differentiate between 0 ts and padding value
-        max_duration = 86400 * 7
-        sources, news = [], []
-        all_engage_users, all_engage_stances, all_engage_ts, all_masked_attn, labels = [], [], [], [], []
+        if not test:
+            sample_size = [16, 4]
+        else:
+            sample_size = [-1, -1]
 
-        for node in nodes_batch:
-            news.append(node)
-            _sources = [int(x.split("#")[0]) for x in adj_lists[node]]
-            assert len(_sources) == 1, "only 1 source can publish the article"
-            sources.append(_sources[0])
-            engage_users, engage_stances, engage_ts, masked_attn = [], [], [], []
-            for user, (stance, ts_mean, ts_std) in stance_lists[node]:
-                ts_mean = min(ts_mean, max_duration)
-                scaled_ts_mean = min(ts_mean, max_duration) / float(max_duration)
-                assert scaled_ts_mean >= 0
-                engage_users.append(user)
-                engage_stances.append(stance)
-                engage_ts.append([scaled_ts_mean + smoothing_coeff, ts_std + smoothing_coeff])
-                masked_attn.append(0)
-            engage_users, engage_stances, engage_ts, masked_attn = \
-                engage_users[:100], engage_stances[:100], engage_ts[:100], \
-                    masked_attn[:100]
-            while len(engage_stances) < 100:
-                engage_stances.append(list(np.zeros(n_stances)))
-                engage_ts.append([0, 0])
-                masked_attn.append(-1000)
-            all_engage_users.append(engage_users)
-            all_engage_stances.append(engage_stances)
-            all_engage_ts.append(engage_ts)
-            all_masked_attn.append(masked_attn)
-            labels.append(news_labels[node])
+        news = [news for news in nodes_batch if news in self.fang_data.engaged_news]
+        sources = [self.fang_data.engaged_source[news] for news in nodes_batch if news in self.fang_data.engaged_news]
 
-        news_labels = torch.LongTensor(labels)
-        all_engage_stances = torch.LongTensor(all_engage_stances)
-        all_masked_attn = torch.LongTensor(all_masked_attn)
-        all_engage_ts = torch.LongTensor(all_engage_ts)
+        all_engage_users = [self.fang_data.all_engage_users[news] for news in nodes_batch if
+                            news in self.fang_data.engaged_news]
+        all_engage_stances = [self.fang_data.all_engage_stances[news] for news in nodes_batch if
+                              news in self.fang_data.engaged_news]
+        all_engage_ts = [self.fang_data.all_engage_ts[news] for news in nodes_batch if
+                         news in self.fang_data.engaged_news]
+        all_masked_attn = [self.fang_data.all_masked_attn[news] for news in nodes_batch if
+                           news in self.fang_data.engaged_news]
+        labels = [self.fang_data.labels[news] for news in nodes_batch if news in self.fang_data.engaged_news]
 
-        return sources, news, all_engage_users, all_engage_stances, \
-            all_engage_ts, news_labels, all_masked_attn
+        news_labels = torch.LongTensor(labels).to(self.device)
+        all_engage_stances = torch.FloatTensor(all_engage_stances).to(self.device)
+        all_masked_attn = torch.FloatTensor(all_masked_attn).to(self.device)
+        all_engage_ts = torch.FloatTensor(all_engage_ts).to(self.device)
+
+        news_emb_batch = self.infer_embedding(news, sample_size).to(self.device)
+        sources_emb_batch = self.infer_embedding(sources, sample_size).to(self.device)
+
+        user_list = [i for e_users in all_engage_users for i in e_users]
+        user_length = []
+        num = 0
+        user_length.append(num)
+        for e_user in all_engage_users:
+            num += len(e_user)
+            user_length.append(num)
+        if len(user_list) > 0:
+            engage_user_emb_all = self.infer_embedding(user_list, sample_size)
+            engage_user_emb_batch = [engage_user_emb_all[user_length[i]:user_length[i + 1]] if len(e_users) > 0
+                                     else torch.zeros(1, embed_size).to(self.device)
+                                     for i, e_users in enumerate(all_engage_users)]
+        else:
+            engage_user_emb_batch = [torch.zeros(1, embed_size).to(self.device) for _ in all_engage_users]
+
+        for i, user_list in enumerate(engage_user_emb_batch):
+            user_list = user_list[:100]
+            if len(user_list) < 100:
+                padding_mtx = torch.zeros((100 - len(user_list), embed_size)).to(self.device)
+                engage_user_emb_batch[i] = torch.cat([user_list, padding_mtx], dim=0)
+        engage_user_emb_batch = torch.stack(engage_user_emb_batch, dim=0)
+
+        return sources_emb_batch, news_emb_batch, engage_user_emb_batch, all_engage_stances, \
+            all_engage_ts, news_labels, all_masked_attn, labels, all_engage_users
+
+    def infer_embedding(self, node, sample_size):
+
+        infer_loader = NeighborSampler(self.edge_list, node_idx=torch.tensor(node), sizes=sample_size,
+                                       batch_size=len(node), shuffle=False)
+        emb_batch = None
+        for batch_size, n_ids, adjs in infer_loader:
+            adjs = [adj.to(self.device) for adj in adjs]
+            emb_batch = self.graph_sage(self.fang_data.feature_data[n_ids].to(self.device), adjs)
+
+        return emb_batch.to(self.device)
 
     def fetch_news_user_stance(self, news_nodes: list, stance_lists: dict):
         """
@@ -334,87 +365,92 @@ class FANG(AbstractModel):
 
         return positive_pairs, node_positive_pairs, negative_pairs, node_negative_pairs
 
-    def forward(self, data_batch: list):
+    def forward(self, data_batch: list, test=False):
         """
         Args:
             data_batch(list): node's idx list.
+            test(bool): test or train. default=False
         """
 
-        news_batch = [n for n in data_batch if n in self.fang_data.news]
+        _news_sources_emb_batch, _news_emb_batch, _news_user_emb_batch, _news_stances_tensor, \
+            _news_ts_tensor, _news_labels_tensor, _masked_attn_batch, _news_labels_batch, _engage_users_batch \
+            = self.preprocess_news_classification_data(data_batch,
+                                                       self.embedding_size,
+                                                       test=test)
+        _news_logit_batch, _news_attention, _news_emb_batch = self.news_classifier(
+            _news_emb_batch, _news_sources_emb_batch, _news_user_emb_batch, _news_stances_tensor,
+            _news_ts_tensor, _masked_attn_batch)
 
-        edge_list = [[], []]
-        for edge in self.fang_data.edge_list:
-            edge_list[0].append(edge[0])
-            edge_list[1].append(edge[1])
-        edge_list = torch.LongTensor(edge_list)
+        return _news_logit_batch, _news_attention, _news_emb_batch, _news_labels_tensor, _engage_users_batch
 
-        entity_embedding = self.graph_sage(self.fang_data.feature_data, edge_list)
-
-        sources, news, all_engage_users, all_engage_stances, all_engage_ts, news_label, \
-            all_masked_atten = self.preprocess_news_classification_data(news_batch,
-                                                                        self.fang_data.n_stances,
-                                                                        self.fang_data.adj_lists,
-                                                                        self.fang_data.stance_lists,
-                                                                        self.fang_data.news_labels)
-        news_embedding = entity_embedding[news, :]
-        sources_embedding = entity_embedding[sources, :]
-        engage_users_embedding = [entity_embedding[e_users, :] if len(e_users) > 0
-                                  else torch.zeros(1, self.embedding_size)
-                                  for e_users in all_engage_users]
-
-        for i, user_list in enumerate(engage_users_embedding):
-            user_list = user_list[:100]
-            if len(user_list) < 100:
-                padding_mtx = torch.zeros(100 - len(user_list), self.embedding_size)
-                engage_users_embedding[i] = torch.cat([user_list, padding_mtx], dim=0)
-        engage_users_embedding = torch.stack(engage_users_embedding, dim=0)
-
-        logits, news_attention = self.news_classifier(news_embedding, sources_embedding,
-                                                      engage_users_embedding,
-                                                      all_engage_stances,
-                                                      all_engage_ts,
-                                                      all_masked_atten)
-
-        return logits, entity_embedding, news_label, news_embedding, news, sources, all_engage_users, news_attention
-
-    def calculate_loss(self, data: list) -> torch.Tensor:
+    def calculate_loss(self, data: torch.Tensor) -> dict:
         """
         calculate total loss
 
         Args:
-            data(list): nodes' idx list
+            data(torch.Tensor): nodes' idx list
 
         Returns:
             Torch.Tensor: news_loss + stance_loss + unsup_loss
         """
+        data = data.tolist()
+        source_batch = [n for n in data if n in self.fang_data.sources]
+        source_emb_batch = self.infer_embedding(source_batch, [16, 4]) \
+            if len(source_batch) > 0 else None
 
-        nodes = data
-
-        nodes = [int(n) for n in nodes if int(n) in self.fang_data.news]
-
-        logits, entity_embedding, news_label, \
-            news_embedding, news, sources, all_engaged_user, news_attention = self.forward(nodes)
+        train_nodes = [x for x in range(self.fang_data.feature_data.size(0))
+                       if x not in set(self.fang_data.dev_idxs) and x not in set(self.fang_data.test_idxs)]
+        train_nodes_set = set(train_nodes)
+        news_batch = [n for n in data if n in self.fang_data.news]
+        train_news_batch = [n for n in news_batch if n in train_nodes_set]
+        val_test_news_batch = [n for n in news_batch if n not in train_nodes_set]
 
         all_top_attn_users = set()
-        train_top_attn_users = self.extract_most_attended_users(news_attention, all_engaged_user)
-        all_top_attn_users |= train_top_attn_users
 
-        # news loss
-        news_loss = self.news_loss(logits, news_label)
+        news_loss = torch.tensor([0.]).to(self.device)
+        if len(train_news_batch) > 0:
+            news_logit_batch, train_news_attn, train_news_emb_batch, news_labels_tensor, train_engage_users = \
+                self.forward(train_news_batch)
+
+            train_top_attn_users = self.extract_most_attended_users(train_news_attn, train_engage_users)
+            all_top_attn_users |= train_top_attn_users
+
+            # news loss
+
+            news_loss = self.news_loss(news_logit_batch, news_labels_tensor).mean()
+
+        if len(val_test_news_batch) > 0:
+            _, val_test_news_attn, val_test_news_emb_batch, _, val_test_engage_users = \
+                self.forward(val_test_news_batch)
+
+            val_test_top_attn_users = self.extract_most_attended_users(val_test_news_attn, val_test_engage_users)
+            all_top_attn_users |= val_test_top_attn_users
 
         # stance loss
-        engaged_users, stance_labels, all_n_users = self.fetch_news_user_stance(nodes,
-                                                                                self.fang_data.stance_lists)
-        repeats = torch.LongTensor(all_n_users)
-        engaged_news = torch.repeat_interleave(news_embedding, repeats, dim=0)
-        engaged_users = entity_embedding[engaged_users, :]
-        stance_logits = self.stance_classifier(engaged_news, engaged_users)
-        stance_labels = torch.LongTensor(stance_labels)
-        stance_loss = self.stance_loss(stance_logits, stance_labels)
+        engaged_news_batch = train_news_batch + val_test_news_batch
+
+        engaged_users_batch, stance_labels_batch, all_n_users = self.fetch_news_user_stance(engaged_news_batch,
+                                                                                            self.fang_data.stance_lists)
+        if len(engaged_news_batch) > 0:
+            if len(train_news_batch) > 0 and len(val_test_news_batch) > 0:
+                _engaged_news_emb_batch = torch.cat([train_news_emb_batch, val_test_news_emb_batch], dim=0)
+            elif len(train_news_batch) > 0:
+                _engaged_news_emb_batch = train_news_emb_batch
+            elif len(val_test_news_batch) > 0:
+                _engaged_news_emb_batch = val_test_news_emb_batch
+            else:
+                raise ValueError("Engaged news batch should not be empty")
+
+        repeats = torch.LongTensor(all_n_users).to(self.device)
+        engaged_news_embed_batch = torch.repeat_interleave(_engaged_news_emb_batch, repeats, dim=0).to(self.device)
+        engaged_user_embed_batch = self.infer_embedding(engaged_users_batch, [16, 4])
+        stance_logit_batch = self.stance_classifier(engaged_news_embed_batch, engaged_user_embed_batch)
+        stance_labels_tensor = torch.LongTensor(stance_labels_batch).to(self.device)
+        stance_loss = self.stance_loss(stance_logit_batch, stance_labels_tensor).mean()
 
         # unsupervised loss
         positive_pairs, node_positive_pairs, \
-            negative_pairs, node_negative_pairs = self.get_proximity_samples(nodes,
+            negative_pairs, node_negative_pairs = self.get_proximity_samples(data,
                                                                              4,
                                                                              4,
                                                                              1)
@@ -424,44 +460,55 @@ class FANG(AbstractModel):
         extended_news_source_batch = np.asarray(list(extended_news_source_batch))
 
         extended_source_batch = [n for n in extended_news_source_batch if n in self.fang_data.sources]
-        extended_source_embedding_batch = entity_embedding[extended_source_batch, :]
-        extended_news_batch = [n for n in extended_news_source_batch if n in self.fang_data.news and n not in nodes]
-        extended_news_embedding_batch = entity_embedding[extended_news_batch]
-        _, _, _, _, _, _, extended_all_engaged_users, extended_news_attention = self.forward(extended_news_batch)
-        extended_top_users = self.extract_most_attended_users(extended_news_attention,
-                                                              extended_all_engaged_users)
-        all_top_attn_users |= extended_top_users
+        extended_source_embedding_batch = self.infer_embedding(extended_source_batch, [16, 4]) \
+            if len(extended_source_batch) > 0 else None
+        extended_news_batch = [n for n in extended_news_source_batch
+                               if n in self.fang_data.news_labels and n not in news_batch]
+        extended_news_emb_batch = None
+
+        if len(extended_news_batch) > 0:
+            _, extended_news_attn, extended_news_emb_batch, _, extended_engage_users = \
+                self.forward(extended_news_batch)
+
+            extended_top_attn_users = self.extract_most_attended_users(extended_news_attn, extended_engage_users)
+            all_top_attn_users |= extended_top_attn_users
 
         user_batch = list(all_top_attn_users)
         user_pos_pairs, user_node_pos_pairs, \
             user_neg_pairs, user_node_neg_pairs = self.get_proximity_samples(user_batch,
-                                                                             4,
-                                                                             4,
-                                                                             1)
+                                                                             8,
+                                                                             8,
+                                                                             2)
         positive_pairs.extend(user_pos_pairs)
         negative_pairs.extend(user_neg_pairs)
-        node_positive_pairs = node_positive_pairs | user_node_pos_pairs
-        node_negative_pairs = node_negative_pairs | user_node_neg_pairs
+        node_positive_pairs.update(user_node_pos_pairs)
+        node_negative_pairs.update(user_node_neg_pairs)
 
         user_batch = list(set([i for x in positive_pairs for i in x])
                           | set([i for x in negative_pairs for i in x]))
         user_batch = [n for n in user_batch if n in self.fang_data.users]
-        user_embedding = entity_embedding[user_batch, :]
+        user_emb_batch = self.infer_embedding(user_batch, [16, 4]) \
+            if len(user_batch) > 0 else None
         node_embedding_batch_list, nodes_batch = [], []
-        if user_embedding is not None:
-            node_embedding_batch_list.append(user_embedding)
+        if user_emb_batch is not None:
+            node_embedding_batch_list.append(user_emb_batch)
             nodes_batch.extend(user_batch)
-        if sources is not None:
-            node_embedding_batch_list.append(entity_embedding[sources])
-            nodes_batch.extend(sources)
+        if source_emb_batch is not None:
+            node_embedding_batch_list.append(source_emb_batch)
+            nodes_batch.extend(source_batch)
         if extended_source_embedding_batch is not None:
             node_embedding_batch_list.append(extended_source_embedding_batch)
             nodes_batch.extend(extended_source_batch)
-        if news_embedding is not None:
-            node_embedding_batch_list.append(news_embedding)
-            nodes_batch.extend(news)
-        if extended_news_embedding_batch is not None:
-            node_embedding_batch_list.append(extended_news_embedding_batch)
+        if len(train_news_batch) > 0:
+            if train_news_emb_batch is not None:
+                node_embedding_batch_list.append(train_news_emb_batch)
+                nodes_batch.extend(train_news_batch)
+        if len(val_test_news_batch) > 0:
+            if val_test_news_emb_batch is not None:
+                node_embedding_batch_list.append(val_test_news_emb_batch)
+                nodes_batch.extend(val_test_news_batch)
+        if extended_news_emb_batch is not None:
+            node_embedding_batch_list.append(extended_news_emb_batch)
             nodes_batch.extend(extended_news_batch)
         node_embedding_batch = torch.cat(node_embedding_batch_list, dim=0)
         node2index = {n: i for i, n in enumerate(nodes_batch)}
@@ -469,8 +516,8 @@ class FANG(AbstractModel):
         node_scores = []
 
         for node in data:
-            pps = node_positive_pairs[int(node)]
-            nps = node_negative_pairs[int(node)]
+            pps = node_positive_pairs[node]
+            nps = node_negative_pairs[node]
 
             neg_indexs = [list(x) for x in zip(*nps)]
 
@@ -495,7 +542,14 @@ class FANG(AbstractModel):
 
         unsup_loss = torch.mean(torch.cat(node_scores, 0))
 
-        return news_loss + stance_loss + unsup_loss
+        losses = [news_loss, stance_loss, unsup_loss]
+        total_loss = 0
+        for loss in losses:
+            if loss is not None:
+                total_loss += loss
+
+        return {'total_loss': total_loss, 'news_loss': news_loss,
+                'stance_loss': stance_loss, 'unsup_loss': unsup_loss}
 
     def predict(self, data_without_label: dict) -> torch.Tensor:
         """
@@ -509,6 +563,6 @@ class FANG(AbstractModel):
         """
         data_without_label = data_without_label['data']
         nodes = [int(n) for n in data_without_label]
-        logits, _, _, _, _, _, _, _ = self.forward(nodes)
+        news_logit_batch, _, _, _, _ = self.forward(nodes, test=True)
 
-        return logits
+        return news_logit_batch

@@ -1,0 +1,6 @@
+dataset: 'en'
+domain_num: 3
+lr: 0.0001
+device: 'cuda'
+gpu: '0'
+metrics: ['accuracy', 'precision', 'recall', 'f1', 'auc']
