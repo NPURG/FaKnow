@@ -109,7 +109,7 @@ class MemoryNetwork(torch.nn.Module):
 class M3FEND(AbstractModel):
     """
     M3FEND: Memory-Guided Multi-View Multi-Domain Fake News Detection
-    paper: https://ieeexplore.ieee.org/document/9802916
+    paper: https://ieeexplore.ieee.org/document/9802916, TKDE 2022
     code: https://github.com/ICTMCG/M3FEND
     """
 

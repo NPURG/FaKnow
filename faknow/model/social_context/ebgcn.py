@@ -164,7 +164,7 @@ class _RumorGCN(nn.Module):
 class EBGCN(AbstractModel):
     r"""
     Towards Propagation Uncertainty: Edge-enhanced Bayesian Graph Convolutional Networks for Rumor Detection, ACL 2021
-    paper: https://arxiv.org/pdf/2107.11934.pdf
+    paper: https://aclanthology.org/2021.acl-long.297/
     code: https://github.com/weilingwei96/EBGCN
     """
     def __init__(self,
