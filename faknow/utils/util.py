@@ -1,8 +1,24 @@
 import datetime
 import warnings
 from typing import Dict
+import random
 
+import numpy as np
 import torch
+
+
+def set_seed(seed: int):
+    """
+    Set the random seed for the current environment
+    for python, numpy and pytorch
+
+    Args:
+        seed (int): The random seed to use.
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 
 def dict2str(result_dict: Dict[str, float]) -> str:

@@ -1,41 +1,8 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Function
 import math
 
-class ReverseLayerF(Function):
-    @staticmethod
-    def forward(ctx, input_, alpha):
-        ctx.alpha = alpha
-        return input_
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        output = grad_output.neg() * ctx.alpha
-        return output, None
-
-class MLP(torch.nn.Module):
-
-    def __init__(self, input_dim, embed_dims, dropout, output_layer=True):
-        super().__init__()
-        layers = list()
-        for embed_dim in embed_dims:
-            layers.append(torch.nn.Linear(input_dim, embed_dim))
-            layers.append(torch.nn.BatchNorm1d(embed_dim))
-            layers.append(torch.nn.ReLU())
-            layers.append(torch.nn.Dropout(p=dropout))
-            input_dim = embed_dim
-        if output_layer:
-            layers.append(torch.nn.Linear(input_dim, 1))
-        self.mlp = torch.nn.Sequential(*layers)
-
-    def forward(self, x):
-        """
-        :param x: Float tensor of size ``(batch_size, embed_dim)``
-        """
-        return self.mlp(x)
 
 class cnn_extractor(nn.Module):
     def __init__(self, feature_kernel, input_size):

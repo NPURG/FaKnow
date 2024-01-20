@@ -16,15 +16,6 @@ from faknow.train.trainer import BaseTrainer
 from faknow.utils.util import EarlyStopping
 from faknow.utils.util import data2gpu
 
-seed = 2021
-random.seed(seed)
-np.random.seed(seed)
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-torch.backends.cudnn.benchmark = False  # 将 PyTorch 中 cuDNN 库的自动优化设置为禁用
-torch.backends.cudnn.deterministic = True  # 将 cuDNN 库的算法设置为确定性的
-# 在深度学习实验中，尤其是在涉及卷积神经网络（CNN）等使用 cuDNN 的模型时，禁用 cuDNN
-# 的自动优化并启用确定性算法是为了确保实验结果的一致性，使得实验可复现。
 
 __all__ = ['_init_fn', 'run_m3fend', 'run_m3fend_from_yaml']
 

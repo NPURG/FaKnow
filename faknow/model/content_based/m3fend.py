@@ -1,8 +1,11 @@
 from torch import Tensor
-from faknow.model.model import AbstractModel
-from faknow.model.layers.layers_m3fend import *
+import torch
 from transformers import BertModel
 from transformers import RobertaModel
+from torch import nn
+
+from faknow.model.model import AbstractModel
+from faknow.model.layers.layers_m3fend import *
 
 import math
 from sklearn.cluster import KMeans
@@ -21,6 +24,28 @@ def norm(x):
 
 def convert_to_onehot(label, batch_size, num):
     return torch.zeros(batch_size, num).cuda().scatter_(1, label, 1)
+
+
+class _MLP(torch.nn.Module):
+
+    def __init__(self, input_dim, embed_dims, dropout, output_layer=True):
+        super().__init__()
+        layers = list()
+        for embed_dim in embed_dims:
+            layers.append(torch.nn.Linear(input_dim, embed_dim))
+            layers.append(torch.nn.BatchNorm1d(embed_dim))
+            layers.append(torch.nn.ReLU())
+            layers.append(torch.nn.Dropout(p=dropout))
+            input_dim = embed_dim
+        if output_layer:
+            layers.append(torch.nn.Linear(input_dim, 1))
+        self.mlp = torch.nn.Sequential(*layers)
+
+    def forward(self, x):
+        """
+        :param x: Float tensor of size ``(batch_size, embed_dim)``
+        """
+        return self.mlp(x)
 
 
 class MemoryNetwork(torch.nn.Module):
@@ -111,8 +136,6 @@ class M3FEND(AbstractModel):
         self.emotion_num_expert = emotion_num
         self.style_num_expert = style_num
         self.LNN_dim = LNN_dim
-        print('semantic_num_expert:', self.semantic_num_expert, 'emotion_num_expert:', self.emotion_num_expert,
-              'style_num_expert:', self.style_num_expert, 'lnn_dim:', self.LNN_dim)
         self.fea_size = 256
         self.emb_dim = emb_dim
         if dataset == 'ch':
@@ -135,10 +158,10 @@ class M3FEND(AbstractModel):
             # MLP 提取出关键的特征信息，即 MLP 被用作 EmoNet
             if dataset == 'ch':
                 emotion_expert.append(
-                    MLP(47 * 5, [256, 320, ], dropout, output_layer=False))
+                    _MLP(47 * 5, [256, 320, ], dropout, output_layer=False))
             elif dataset == 'en':
                 emotion_expert.append(
-                    MLP(38 * 5, [256, 320, ], dropout, output_layer=False))
+                    _MLP(38 * 5, [256, 320, ], dropout, output_layer=False))
         self.emotion_expert = nn.ModuleList(emotion_expert)
 
         style_expert = []
@@ -146,10 +169,10 @@ class M3FEND(AbstractModel):
             # MLP 提取出关键的特征信息，即 MLP 被用作 StyNet
             if dataset == 'ch':
                 style_expert.append(
-                    MLP(48, [256, 320, ], dropout, output_layer=False))
+                    _MLP(48, [256, 320, ], dropout, output_layer=False))
             elif dataset == 'en':
                 style_expert.append(
-                    MLP(32, [256, 320, ], dropout, output_layer=False))
+                    _MLP(32, [256, 320, ], dropout, output_layer=False))
         self.style_expert = nn.ModuleList(style_expert)
 
         self.gate = nn.Sequential(nn.Linear(self.emb_dim * 2, mlp_dims[-1]),
@@ -176,7 +199,7 @@ class M3FEND(AbstractModel):
             num_embeddings=self.domain_num, embedding_dim=emb_dim)
         self.all_feature = {}
 
-        self.classifier = MLP(320, mlp_dims, dropout)
+        self.classifier = _MLP(320, mlp_dims, dropout)
 
     def save_feature(self, **kwargs):
         '''
