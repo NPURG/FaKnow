@@ -4,21 +4,23 @@ from collections import defaultdict
 
 import numpy as np
 import torch
+from PIL import Image
 from torch.utils.data import Subset, random_split
 from torch_geometric.data import Data
 from sklearn.metrics.pairwise import cosine_similarity
+from transformers import ViTImageProcessor
 
 from faknow.data.dataset.text import TextDataset
 from faknow.data.dataset.multi_modal import MultiModalDataset
 
 
 def split_dataset(
-    data_path: str,
-    text_features: List[str],
-    tokenize: Callable[[List[str]], Any],
-    image_features: List[str] = None,
-    transform: Callable[[str], Any] = None,
-    ratio: List[float] = None,
+        data_path: str,
+        text_features: List[str],
+        tokenize: Callable[[List[str]], Any],
+        image_features: List[str] = None,
+        transform: Callable[[str], Any] = None,
+        ratio: List[float] = None,
 ) -> List[Subset[Any]]:
     """
     split TextDataset or MultiModalDataset with given ratio.
@@ -90,7 +92,7 @@ def lsh_data_selection(domain_embeddings: torch.Tensor,
     final_selected_ids = []
     is_final_selected = defaultdict(lambda: False)
 
-    random_distribution = [3**0.5, 0.0, 0.0, 0.0, 0.0, -(3**0.5)]
+    random_distribution = [3 ** 0.5, 0.0, 0.0, 0.0, 0.0, -(3 ** 0.5)]
 
     while len(final_selected_ids) < labelling_budget:
         # Generate random vectors
@@ -138,6 +140,38 @@ def lsh_data_selection(domain_embeddings: torch.Tensor,
     return final_selected_ids
 
 
+class ProcessorForVit:
+    """
+    processor for ViT
+    """
+
+    def __init__(self, vit_name: str, image_mean: List[float],
+                 image_std: List[float]):
+        """
+        Args:
+            vit_name (str): name of ViT model
+            image_mean (List[float]): mean of image
+            image_std (List[float]): std of image
+        """
+        self.processor = ViTImageProcessor.from_pretrained(
+            vit_name, image_mean=image_mean, image_std=image_std)
+
+    def __call__(self, path: str) -> torch.Tensor:
+        """
+        transform image to tensor for ViT
+
+        Args:
+            img (Image.Image): image
+
+        Returns:
+            torch.Tensor: tensor of the image, shape=(3, 224, 224)
+        """
+        with open(path, "rb") as f:
+            img = Image.open(f).convert("RGB")
+            return self.processor(img,
+                                  return_tensors="pt").pixel_values.squeeze(0)
+
+
 def calculate_cos_matrix(matrix1: torch.Tensor, matrix2: torch.Tensor):
     """
     Calculate the pairwise cosine similarity matrix between two matrices.
@@ -171,7 +205,7 @@ class DropEdge:
 
     @staticmethod
     def _random_sample(
-        row: List[int], col: List[int], drop_rate: float
+            row: List[int], col: List[int], drop_rate: float
     ) -> Tuple[List[int], List[int]]:
         """
 
