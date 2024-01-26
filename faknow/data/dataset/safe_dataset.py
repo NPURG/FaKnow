@@ -5,7 +5,7 @@ import numpy as np
 import torch.utils.data
 from nltk.tokenize import sent_tokenize
 
-from faknow.data.legacy.text_dataset import FolderTextDataset
+# from faknow.data.legacy.text_dataset import FolderTextDataset
 
 
 class SAFENumpyDataset(torch.utils.data.Dataset):
@@ -33,7 +33,7 @@ class SAFENumpyDataset(torch.utils.data.Dataset):
     def __getitem__(self, index: int):
         return {'head': self.x_heads[index], 'body': self.x_bodies[index], 'image': self.x_images[index], 'label': self.y[index]}
 
-
+'''
 class SAFEDataset(FolderTextDataset):
     def __init__(
             self,
@@ -69,3 +69,4 @@ class SAFEDataset(FolderTextDataset):
         image = self._padding(self._embedding(image.strip())).astype(np.float32)
 
         return headline, body, image, label
+'''
