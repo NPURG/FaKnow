@@ -6,7 +6,7 @@ from typing import Callable, List, Dict, Optional, Tuple, Any
 
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
-from torchtext.data.utils import get_tokenizer
+# from torchtext.data.utils import get_tokenizer
 import torch.nn.functional as F
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
