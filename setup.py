@@ -15,7 +15,9 @@ install_requires = [
     "tqdm>=4.64.1",
     "jieba>=0.42.1",
     "gensim>=4.2.0",
-    "pillow>=9.3.0"
+    "pillow>=9.3.0",
+    "nltk>=3.7",
+    "sphinx-markdown-tables>=0.0.17"
 ]
 
 setup_requires = []
@@ -28,10 +30,14 @@ on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 if on_rtd:
     install_requires.extend(setup_requires)
 
+filepath = os.path.join(os.path.dirname(__file__), "README.md")
+
 setup(
     name="faknow",
     version="0.0.2",  # edit faknow/__init__.py in response
-    description="None",
+    description="A unified library for fake news detection.",
+    long_description=open(filepath, encoding='utf-8').read(),
+    long_description_content_type='text/markdown',
     url="https://github.com/NPURG/FaKnow",
     author="NPURG",
     author_email="faknow@outlook.com",
