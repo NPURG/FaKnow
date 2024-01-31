@@ -22,47 +22,7 @@ We conduct extensive experiments on large-scale real-world data, which demonstra
 .. image:: ../../../media/SAFE.png
     :align: center
 
-Running with Faknow
----------------------
-**Model Hyper-Parameters:**
-
-- ``embedding_size (int, optional)`` : Size of the embedding for SAFE model. Defaults to ``300``.
-
-- ``conv_in_size (int, optional)`` : Size of the input for convolutional layer. Defaults to ``32``.
-
-- ``filter_num (int, optional)`` : Number of filters for convolutional layer. Defaults to ``128``.
-
-- ``cnn_out_size (int, optional)`` : Size of the output for the convolutional layer. Defaults to ``200``.
-
-- ``dropout (float, optional)`` : Dropout probability. Defaults to ``0.0``.
-
-- ``loss_weights (List[float], optional)`` : List of loss weights. Defaults to ``None``.
-
-- ``batch_size (int, optional)`` : Batch size. Defaults to ``64``.
-
-- ``lr (float, optional)`` : Learning rate. Defaults to ``0.00025``.
-
-- ``metrics (List, optional)`` : List of evaluation metrics. Defaults to ``None``.
-
-- ``num_epochs (int, optional)`` : Number of training epochs. Defaults to ``100``.
-
-- ``device (str, optional)`` : Device to run the training on ('cpu' or 'cuda'). Defaults to 'cpu'.
-
-**A Running Example:**
-
-Write the following code to a python file, such as run.py
-
-.. code:: python
-
-    from faknow.run.content_based.multimodal import run_safe
-
-    run_safe(train_path=, validate_path=, test_path=)
-
-And then:
-
-.. code:: bash
-
-   python run.py
+For source code, please refer to :ref:`SAFE <faknow.model.content_based.multi_modal.safe>`
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 

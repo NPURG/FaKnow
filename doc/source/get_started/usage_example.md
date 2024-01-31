@@ -1,12 +1,12 @@
-# Usage Examples
+## Usage Examples
 
-## Quick Start
+### Quick Start
 
-We provide several methods to **run integrated models** quickly with passing only few arguments. For hyperparameters
+We provide several methods to **run integrated models** quickly with passing only few arguments. For hyper parameters
 like learning rate, values from the open source code of the paper are taken as default. You can also pass your own
-defined hyperparameters to these methods.
+defined hyper parameters to these methods.
 
-### run
+#### run
 
 You can use `run` and `run_from_yaml` methods to run integrated models. The former receives the parameters as `dict`
 keyword arguments and the latter reads them from the `yaml` configuration file.
@@ -27,11 +27,13 @@ the json file for *mdfend* should be like:
 [
     {
         "text": "this is a sentence.",
-        "domain": 9
+        "domain": 9,
+        "label": 1
     },
     {
         "text": "this is a sentence.",
-        "domain": 1
+        "domain": 1,
+        "label": 0
     }
 ]
 ```
@@ -55,10 +57,11 @@ train_path: train.json # the path of training set file
 test_path: test.json # the path of testing set file
 ```
 
-### run specific models
+#### run specific models
 
-You can also run specific models using `run_model` and `run_model_from_yaml` methods by passing paramter, where `model`
-is the short name of the integrated model you want to use. The usages are the same as `run` and `run_from_yaml`.
+You can also run specific models using `run_$model$` and `run_$model$_from_yaml` methods by passing parameter,
+where `$model$` should be the lowercase name of the integrated model you want to use.
+The usages are the same as `run` and `run_from_yaml`.
 Following is an example to run *mdfend*.
 
 ```python
@@ -73,23 +76,23 @@ config_path = 'mdfend.yaml'  # config file path
 run_mdfend_from_yaml(config_path)
 ```
 
-## Run From Scratch
+### Run From Scratch
 
 Following is an example to run *mdfend* from scratch.
 
 ```python
 from faknow.data.dataset.text import TextDataset
+from faknow.data.process.text_process import TokenizerFromPreTrained
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.mdfend import MDFEND
 from faknow.train.trainer import BaseTrainer
-from faknow.run.content_based import TokenizerMDFEND
 
 import torch
 from torch.utils.data import DataLoader
 
 # tokenizer for MDFEND
 max_len, bert = 170, 'bert-base-uncased'
-tokenizer = TokenizerMDFEND(max_len, bert)
+tokenizer = TokenizerFromPreTrained(max_len, bert)
 
 # dataset
 batch_size = 64
@@ -102,7 +105,7 @@ validate_set = TextDataset(validate_path, ['text'], tokenizer)
 val_loader = DataLoader(validate_set, batch_size, shuffle=False)
 
 test_set = TextDataset(test_path, ['text'], tokenizer)
-tset_loader = DataLoader(test_set, batch_size, shuffle=False)
+test_loader = DataLoader(test_set, batch_size, shuffle=False)
 
 # prepare model
 domain_num = 9
@@ -126,3 +129,4 @@ trainer.fit(train_loader, num_epochs, validate_loader=val_loader)
 # show test result
 print(trainer.evaluate(test_loader))
 ```
+

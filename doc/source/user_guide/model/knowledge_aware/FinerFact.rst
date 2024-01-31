@@ -19,41 +19,7 @@ show that our model outperforms the state-of-the-art methods and demonstrate the
 .. image:: ../../../media/FinerFact.png
     :align: center
 
-Running with Faknow
----------------------
-**Model Hyper-Parameters:**
-
-- ``bert (str)`` : bert model, default = ``'bert-base-uncased'``
-
-- ``lr (float)`` : learning rate, default = ``5e-5``
-
-- ``batch_size (int)`` : batch size, default = ``8``
-
-- ``num_epochs (int)`` : number of epochs, default = ``20``
-
-- ``gradient_accumulation_steps (int)`` : gradient accumulation steps, default = ``8``
-
-- ``warmup_ratio (float)`` : warmup ratio, default = ``0.6``
-
-- ``metrics (List)`` : metrics for evaluation, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default = ``None``
-
-- ``device (str)`` : device, default = ``cpu'``
-
-**A Running Example:**
-
-Write the following code to a python file, such as run.py
-
-.. code:: python
-
-    from faknow.run.knowledge_aware import run_finerfact
-
-    run_finerfact(train_data=)
-
-And then:
-
-.. code:: bash
-
-   python run.py
+For source code, please refer to
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 

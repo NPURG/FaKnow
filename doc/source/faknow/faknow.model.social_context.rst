@@ -1,9 +1,7 @@
 faknow.model.social\_context
 ====================================
 
-
-
-faknow.model.social\_context.base\_gnn
+faknow.model.social_context.base_gnn
 ---------------------------------------------
 
 .. automodule:: faknow.model.social_context.base_gnn
@@ -11,7 +9,7 @@ faknow.model.social\_context.base\_gnn
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.bigcn
+faknow.model.social_context.bigcn
 -----------------------------------------
 
 .. automodule:: faknow.model.social_context.bigcn
@@ -19,7 +17,23 @@ faknow.model.social\_context.bigcn
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.eddfn
+faknow.model.social_context.dudef
+-----------------------------------------
+
+.. automodule:: faknow.model.social_context.dudef
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+faknow.model.social_context.ebgcn
+-----------------------------------------
+
+.. automodule:: faknow.model.social_context.ebgcn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+faknow.model.social_context.eddfn
 -----------------------------------------
 
 .. automodule:: faknow.model.social_context.eddfn
@@ -27,7 +41,15 @@ faknow.model.social\_context.eddfn
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.gcnfn
+faknow.model.social_context.fang
+----------------------------------------
+
+.. automodule:: faknow.model.social_context.fang
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+faknow.model.social_context.gcnfn
 -----------------------------------------
 
 .. automodule:: faknow.model.social_context.gcnfn
@@ -35,7 +57,7 @@ faknow.model.social\_context.gcnfn
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.gnncl
+faknow.model.social_context.gnncl
 -----------------------------------------
 
 .. automodule:: faknow.model.social_context.gnncl
@@ -43,25 +65,18 @@ faknow.model.social\_context.gnncl
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.nep
----------------------------------------
+faknow.model.social_context.trustrd
+-------------------------------------------
 
-.. automodule:: faknow.model.social_context.nep
+.. automodule:: faknow.model.social_context.trustrd
    :members:
    :undoc-members:
    :show-inheritance:
 
-faknow.model.social\_context.upfd
+faknow.model.social_context.upfd
 ----------------------------------------
 
 .. automodule:: faknow.model.social_context.upfd
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-
-.. automodule:: faknow.model.social_context
    :members:
    :undoc-members:
    :show-inheritance:

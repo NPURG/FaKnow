@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.abspath('../../faknow/run/content_based/'))
 project = 'FaKnow'
 copyright = '2023, NPURG'
 author = 'NPURG'
-release = '0.0.1'
+release = '0.0.3'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -41,6 +41,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'sphinx.ext.autosectionlabel',
 ]
 
 templates_path = ['_templates']

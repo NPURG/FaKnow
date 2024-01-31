@@ -1,9 +1,7 @@
 Save model and training visualization
 =====================================
 Currently, Faknow presents three aspects of result visualization:
-:doc:`../visualization/bar_visual`,
-:doc:`../visualization/log_visual`,,
-:doc:`../visualization/tensorboard_visual`,.
+progress bar visualization, log visualization, and TensorBoard visualization.
 Among them, progress bar visualization refers to calling the tqdm library in Python to
 present the training progress of the model in real-time; Log visualization refers to saving various information during
 the training process in corresponding LOG log files, making it easy for users to view and understand after the training

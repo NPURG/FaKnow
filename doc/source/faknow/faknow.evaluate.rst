@@ -1,8 +1,6 @@
 faknow.evaluate
 =======================
 
-
-
 faknow.evaluate.evaluator
 --------------------------------
 
@@ -15,13 +13,6 @@ faknow.evaluate.metrics
 ------------------------------
 
 .. automodule:: faknow.evaluate.metrics
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-
-.. automodule:: faknow.evaluate
    :members:
    :undoc-members:
    :show-inheritance:

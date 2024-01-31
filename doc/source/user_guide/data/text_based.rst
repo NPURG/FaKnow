@@ -1,6 +1,6 @@
-Text based false news detection
+Text based fake news detection
 --------------------------------
-Faknow adopts a unique processing method for text datasets, implemented through the ``TextDataset``. This class
+Faknow adopts a unique processing method for text datasets, implemented through the :ref:`TextDataset <faknow.data.dataset.text>` . This class
 inherits from PyTorch's Dataset class and can therefore be used together with PyTorch's DataLoader.
 TextDataset implements a text dataset class for loading and processing datasets containing text features.
 It supports preprocessing operations on text features, such as word segmentation, encoding, etc.,
@@ -19,3 +19,23 @@ Specifically, the TextDataset class includes the following main functions:
 During sampling, this class will extract corresponding features in order according to the required feature names and
 return them as a dictionary. In the case of supporting text feature preprocessing, this class can greatly simplify the
 data preprocessing process of neural network models, thereby improving the training efficiency and accuracy of the model.
+
+Since most fake news datasets are posts crawled from social platforms, and to fit the way of referencing data through feature
+names mentioned above, FaKnow adopts JSON as the format of the raw data file. All sample entities are recorded as an array
+in the JSON file, and each sample is a JSON object comprising key-value pairs， The Json file contains text and image data,
+as shown below.  JSON data files include fields such as text, image file path, and labels.
+
+.. code:: json
+
+    [
+        {
+            "text": "this is a sentence.",
+            "domain": 9,
+            "labe7": 0
+        },
+        {
+            "text": "this is a sentence.",
+            "domain": 1,
+            "label": 1
+        }
+    ]

@@ -1,31 +1,69 @@
 Customize Models
 =================
-Here, we present how to develop a new model, and apply it to the Faknow.
+We have formulated a comprehensive interface for all models integrated within FaKnow. The new model developed by users
+should inherit from AbstractModel and override the corresponding methods as outlined in the ensuing steps.
+This code snippet illustrates an example of developing a simple model with a word embedding layer and a fully connected layer,
+which only uses the text in the post for detection.
 
-Faknow supports content based, social context, knowledge aware fake news detection algorithms.
+.. code-block:: python
 
-In order to implement a new false information recognition algorithm, we can use the API provided by Faknow to implement
-the algorithm. In this process, we will use three functions to construct a new model.
+    # inherit from AbstractModel
+    class NewModel(AbstractModel):
 
-Implement __init__()
-------------------------
-We need to implement the ``init()`` function for parameter initialization and global variable definition. This function is a
-subclass of the abstract model class ``AbstractModel`` provided in our library, which is used to instantiate our new model.
+        # 1.1 consists of an Embedding layer and a fully-connected layer
+        def __init__(self, word_vector):
+            self.embedding = nn.Embedding.from_pretrained(word_vector)
+            self.fc = nn.Linear(word_vector.shape[-1], 2)
 
-Implement calculate_loss()
-------------------------
-We need to implement ``calculate_loss()`` function that calculates the loss of the new model to optimize the training effectiveness of the
-model. Based on the return value of this function, the library will call the optimization method and train the model
-according to the preset configuration. When implementing this function, we need to consider selecting appropriate loss
-functions and optimizers to improve the accuracy and efficiency of the model.
+        # 1.2 input texts for forward propogation
+        def forward(self, token):
+            return self.fc(self.embedding(token))
 
-Implement predict()
-------------------------
-We need to implement the ``predict()`` function, which is used to predict the category and probability of false information.
-This function will return a binary containing the predicted probabilities of real and false categories. When implementing
-this function, we need to consider selecting appropriate classifiers and prediction methods to improve the accuracy and
-efficiency of the model.
+        # 2. calulate cross entropy loss
+        def calculate_loss(self, data):
+            loss_fn = nn.CrossEntropyLoss()
+            out = self.forward(data['token'])
+            return loss_fn(out, data['label'])
 
-Specifically, we implement the ``init()``, ``calculate_loss()``, ``predict()`` function can create an
-accurate and efficient false information recognition model. In short, using the API provided by Faknow to implement a
-new false information recognition algorithm model can make our code more concise, unified, and efficient.
+        # 3. softmax probability prediction
+        def predict(self, data):
+            out = self.forward(data['token'])
+            return torch.softmax(out, dim=-1)
+
+
+Implement *__init__* and *forward*
+---------------------------
+Since all models indirectly inherit from the nn.Module within PyTorch(shown in Figure 1), the way of
+overriding the init and forward replicates the standard methodology employed while utilizing PyTorch directly. Within the init method,
+various parameters are initialized and member variables relevant to the model are defined. Conversely, forward necessitates
+the completion of forward propagation, encompassing the reception of an input batch comprising sample data, culminating in the generation of the output from the model’s
+final layer. In this example, an embedding layer from pre-trained word vectors and a fully connected layer for text classification are defined in the init
+method. Then the input text tokens are passed through these two layers in turn to get the final output of the model in the forward method.
+
+.. image:: ../media/uml_diagram.png
+    :align: center
+    :width: 50%
+
+.. centered::
+    Figure 1: UML class diagram
+
+Implement *calculate_loss*
+-------------------------
+As shown in Figure 2, users are expected to compose the logic code that facilitates the calculation of loss within this
+method. It entails invoking forward to acquire the output from the model’s final layer and performing the loss computation
+based on the ground truth associated with the samples. In scenarios where the final loss entails multiple losses, the user can also
+construct a python.Dict to collectively return them. Refer to the code snippet above, the text tokens and labels are obtained from the dict
+batch data according to the corresponding key respectively, and the cross-entropy is employed as the loss function to return the final loss.
+
+.. image:: ../media/loss&predict.png
+    :align: center
+    :width: 70%
+
+.. centered::
+    Figure 2: calculate loss and predict methods
+
+Implement *predict*
+------------------
+Derived from the output of the forward method, users are required to return
+the probability of given batch samples being classified as either true or fake news. In this code, the tokens are also
+retrieved from the dictionary batch data, and the sotfmax prediction is returned based on the model’s output.

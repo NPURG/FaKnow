@@ -3,7 +3,7 @@ Load Pre-trained Embedding
 Using pre trained models is a very effective approach. Here, we use SpotFake as an example to introduce how to use pre
 trained models.
 
-The following is the running code for :doc:`../model/content_based/SpotFake`:
+The following is the running code for SpotFake:
 
 .. code:: python
 
@@ -23,13 +23,13 @@ The following is the running code for :doc:`../model/content_based/SpotFake`:
         Returns:
             str: The preprocessed text.
         """
-        # 去除 '@name'
+        # Remove '@name'
         text = re.sub(r'(@.*?)[\s]', ' ', text)
 
-        #  替换'&amp;'成'&'
+        #  Replace '&amp;' with '&'
         text = re.sub(r'&amp;', '&', text)
 
-        # 删除尾随空格
+        # Delete trailing space
         text = re.sub(r'\s+', ' ', text).strip()
 
         return text
@@ -57,28 +57,28 @@ The following is the running code for :doc:`../model/content_based/SpotFake`:
             Returns:
                 Dict[str, torch.Tensor]: A dictionary containing the tokenized inputs.
             """
-            # 定义列表存储文本处理后的结果
+            # Define lists to store the results of text processing
             input_ids_ls = []
             attention_mask_ls = []
 
             for text in texts:
                 encoded_sent = self.pre_trained_bert_name.encode_plus(
-                    text=text_preprocessing(text),  # 预处理
+                    text=text_preprocessing(text),  # preprocessing
                     add_special_tokens=True,  # `[CLS]`&`[SEP]`
-                    max_length=self.max_len,  # 截断/填充的最大长度
-                    padding='max_length',  # 句子填充最大长度
-                    # return_tensors='pt',          # 返回tensor
-                    return_attention_mask=True,  # 返回attention mask
+                    max_length=self.max_len,  # Maximum length of truncation/filling
+                    padding='max_length',  # Maximum length of sentence padding
+                    # return_tensors='pt',          # Returns the tensor
+                    return_attention_mask=True,  # Return attention mask
                     truncation=True
                 )
                 input_ids = encoded_sent.get('input_ids')
                 attention_mask = encoded_sent.get('attention_mask')
 
-                # 转换tensor
+                # Convert tensor
                 input_ids = torch.tensor(input_ids)
                 attention_mask = torch.tensor(attention_mask)
 
-                # 添加到列表中去
+                # Add to list
                 input_ids_ls.append(input_ids)
                 attention_mask_ls.append(attention_mask)
 

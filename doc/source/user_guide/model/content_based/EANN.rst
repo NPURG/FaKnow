@@ -25,52 +25,7 @@ the state-of-the-art methods, and learn transferable feature representations.
 .. image:: ../../../media/EANN.png
     :align: center
 
-Running with Faknow
----------------------
-**Model Hyper-Parameters:**
-
-- ``vocab (Dict[str, int])`` : vocabulary of the corpus
-
-- ``stop_words (List[str])`` : stop words
-
-- ``word_vectors (torch.Tensor)`` : word vectors
-
-- ``language (str)`` : language of the corpus, 'zh' or 'en', default = ``'zh'``
-
-- ``max_len (int)`` : max length of the text, default = ``255``
-
-- ``batch_size (int)`` : batch size, default = ``100``
-
-- ``event_num (int)`` : number of events, default = ``None``
-
-- ``lr (float)`` : learning rate, default = ``0.001``
-
-- ``num_epochs (int)`` : number of epochs, default = ``100``
-
-- ``metrics (List)`` : metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default = ``None``
-
-- ``device (str)`` : device, default = ``'cpu'``
-
-**A Running Example:**
-
-Write the following code to a python file, such as run.py
-
-.. code:: python
-
-    from faknow.run.content_based.multimodal import run_eann
-
-    run_eann(train_path=,
-        test_path=,
-        validate_path=,
-        vocab=,
-        word_vectors=,
-        stop_words=)
-
-And then:
-
-.. code:: bash
-
-   python run.py
+For source code, please refer to :ref:`EANN <faknow.model.content_based.multi_modal.eann>`
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 
