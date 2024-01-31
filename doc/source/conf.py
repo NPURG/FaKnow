@@ -32,7 +32,6 @@ autodoc_default_options = {
 }
 
 extensions = [
-    'recommonmark',
     'sphinx_markdown_tables',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
@@ -43,6 +42,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.autosectionlabel',
+    'recommonmark',
 ]
 
 templates_path = ['_templates']
