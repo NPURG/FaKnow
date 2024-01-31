@@ -8,6 +8,7 @@
 
 import os
 import sys
+import recommonmark
 sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../faknow/model/content_based/'))
 sys.path.insert(0, os.path.abspath('../../faknow/run/content_based/'))
