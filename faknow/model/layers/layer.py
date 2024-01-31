@@ -3,7 +3,10 @@ from typing import Optional, Callable, List
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
+from torch import Tensor
 from torch.autograd import Function
+from transformers import BertModel
 
 
 class TextCNNLayer(nn.Module):
@@ -12,6 +15,7 @@ class TextCNNLayer(nn.Module):
     included here but without an embedding layer or fully connected layer.
     Thus, it should be a part of your own TextCNN model.
     """
+
     def __init__(self,
                  embedding_dim: int,
                  filter_num: int,
@@ -71,12 +75,68 @@ class TextCNNLayer(nn.Module):
         return concat_features
 
 
+class BertEncoder(nn.Module):
+    """
+    Text encoder based on BERT to encode text into vectors.
+    """
+    def __init__(self, bert: str, fine_tune=False):
+        """
+        Args:
+            bert (str): the name of pretrained BERT model
+            fine_tune (bool): whether to fine tune BERT or not, default=False
+        """
+        super().__init__()
+        self.bert = BertModel.from_pretrained(bert).requires_grad_(fine_tune)
+        self.fine_tune = fine_tune
+        self.dim = self.bert.config.hidden_size
+
+    def forward(self, token_id: Tensor, mask: Tensor) -> Tensor:
+        """
+        Args:
+            token_id (torch.Tensor): shape=(batch_size, max_len)
+            mask (torch.Tensor): shape=(batch_size, max_len)
+
+        Returns:
+            torch.Tensor: last hidden state from bert, shape=(batch_size, max_len, dim)
+        """
+        return self.bert(token_id, attention_mask=mask).last_hidden_state
+
+
+class ResNetEncoder(nn.Module):
+    """
+    Image encoder based on ResNet50 with pretrained weights on ImageNet1k
+    to encode images pixels into vectors.
+    """
+    def __init__(self, out_size: int) -> None:
+        """
+        Args:
+            out_size (int): the size of output features of the fc layer in ResNet
+        """
+        super().__init__()
+        self.resnet = torchvision.models.resnet50(
+            weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
+        for param in self.resnet.parameters():
+            param.requires_grad = False
+        self.resnet.fc = nn.Linear(2048, out_size)
+
+    def forward(self, image: Tensor) -> Tensor:
+        """
+        Args:
+            image (torch.Tensor): image pixels, shape=(batch_size, 3, 224, 224)
+
+        Returns:
+            torch.Tensor: output from pretrained resnet model, shape=(batch_size, out_size)
+        """
+        return self.resnet(image)
+
+
 class GradientReverseLayer(Function):
     """
     gradient reverse layer,
     which is used to reverse the gradient in backward propagation,
     see https://pytorch.org/docs/stable/autograd.html#torch.autograd.Function
     """
+
     @staticmethod
     def forward(ctx, x, lambd):
         """
@@ -111,6 +171,7 @@ class SignedAttention(nn.Module):
     """
     signed attention layer for signed graph
     """
+
     def __init__(self,
                  in_features: int,
                  out_features: int,
@@ -159,7 +220,7 @@ class SignedAttention(nn.Module):
         Wh1 = torch.mm(h, self.a[:self.out_features, :])
         Wh2 = torch.mm(h, self.a[self.out_features:, :])
         e = self.leaky_relu(Wh1 + Wh2.T)
-        zero_vec = -1e12 * torch.ones_like(e)
+        zero_vec = -1e12 * torch.ones_like(e, device=x.device)
 
         attention = torch.where(adj > 0, e, zero_vec)  # [N, N]
         attention = F.softmax(attention, dim=1)
@@ -188,6 +249,7 @@ class SignedGAT(nn.Module):
     """
     signed graph attention network
     """
+
     def __init__(self,
                  node_vectors: torch.Tensor,
                  cos_sim_matrix: torch.Tensor,
@@ -196,7 +258,7 @@ class SignedGAT(nn.Module):
                  adj_matrix: torch.Tensor,
                  head_num=4,
                  out_features=300,
-                 dropout=0,
+                 dropout=0.,
                  alpha=0.3):
         """
         Args:
@@ -251,7 +313,7 @@ class SignedGAT(nn.Module):
         """
 
         embedding = self.node_embedding(torch.arange(
-            0, self.node_num).long()).to(torch.float32)
+            0, self.node_num, device=post_id.device).long()).to(torch.float32)
         x = F.dropout(embedding, self.dropout, training=self.training)
         adj = self.adj.to(torch.float32)
         x = torch.cat([att(x, adj) for att in self.attentions], dim=1)

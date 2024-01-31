@@ -12,7 +12,8 @@ from faknow.data.dataset.text import TextDataset
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.textcnn import TextCNN
 from faknow.train.trainer import BaseTrainer
-from faknow.utils.util import dict2str, read_stop_words
+from faknow.utils.util import dict2str
+from faknow.data.process.text_process import read_stop_words
 
 __all__ = ['TokenizerTextCNN', 'run_textcnn', 'run_textcnn_from_yaml']
 
@@ -144,7 +145,7 @@ def run_textcnn(train_path: str,
         test_set = TextDataset(test_path, ['text'], tokenizer, ['image'])
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f"test result: {dict2str(test_result)}")
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def _parse_kargs(config: Dict[str, Any]) -> Dict[str, Any]:

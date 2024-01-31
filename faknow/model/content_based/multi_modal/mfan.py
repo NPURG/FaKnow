@@ -9,7 +9,7 @@ from faknow.model.layers.layer import SignedGAT, TextCNNLayer
 from faknow.model.layers.transformer import (FFN, ScaledDotProductAttention,
                                              transpose_qkv, transpose_output)
 from faknow.model.model import AbstractModel
-from faknow.utils.util import calculate_cos_matrix
+from faknow.data.process.process import calculate_cos_matrix
 
 
 class _TransformerBlock(nn.Module):
@@ -120,8 +120,10 @@ class MFAN(AbstractModel):
 
         # text cnn
         kernel_sizes = [3, 4, 5]
-        self.text_cnn_layer = TextCNNLayer(self.embedding_size, 100,
+        kernel_num = 100
+        self.text_cnn_layer = TextCNNLayer(self.embedding_size, kernel_num,
                                            kernel_sizes, nn.ReLU())
+        input_size = kernel_num * len(kernel_sizes)
 
         # graph
         self.node_num = node_num
@@ -136,7 +138,7 @@ class MFAN(AbstractModel):
 
         # image
         self.resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-        self.resnet.fc = nn.Linear(2048, self.embedding_size)
+        self.resnet.fc = nn.Linear(2048, input_size)
         nn.init.eye_(self.resnet.fc.weight)
 
         # feature fusion

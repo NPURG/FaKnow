@@ -19,17 +19,16 @@ class HMCAN(AbstractModel):
     """
 
     def __init__(self,
-                 word_max_length=20,
                  left_num_layers=2,
                  left_num_heads=12,
                  dropout=0.1,
                  right_num_layers=2,
                  right_num_heads=12,
-                 alpha=0.7):
+                 alpha=0.7,
+                 pre_trained_bert_name='bert-base-uncased'):
         """
 
         Args:
-            word_max_length(int): the max length of input, Default=20.
             left_num_layers(int): the numbers of  the left Attention&FFN layer
                 in Contextual Transformer, Default=2.
             left_num_heads(int): the numbers of head in
@@ -43,18 +42,17 @@ class HMCAN(AbstractModel):
                 Default=12.
             alpha(float): the weight of the first Attention&FFN layer's output,
                 Default=0.7.
+            pre_trained_bert_name(str): the bert name str. default='bert-base-uncased'
         """
 
         super(HMCAN, self).__init__()
-        self.word_length = word_max_length
         self.alpha = alpha
         self.output_dims = 768
         self.loss_func = nn.CrossEntropyLoss()
         # text
         self.bert = BertModel.from_pretrained(
-            'bert-base-uncased',
-            output_hidden_states=True,
-            output_attentions=True).requires_grad_(False)
+            pre_trained_bert_name,
+            output_hidden_states=True).requires_grad_(False)
 
         # image
         resnet50 = torchvision.models.resnet50(

@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from faknow.data.dataset.multi_modal import MultiModalDataset
-from faknow.data.process.text_process import TokenizerForBert
+from faknow.data.process.text_process import TokenizerFromPreTrained
 from faknow.evaluate.evaluator import Evaluator
 from faknow.model.content_based.multi_modal.hmcan import HMCAN
 from faknow.train.trainer import BaseTrainer
@@ -84,7 +84,7 @@ def run_hmcan(train_path: str,
         device (str): device, default='cpu'
     """
 
-    tokenizer = TokenizerForBert(max_len, bert)
+    tokenizer = TokenizerFromPreTrained(max_len, bert)
     train_set = MultiModalDataset(train_path, ['text'], tokenizer, ['image'],
                                   transform_hmcan)
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
@@ -96,8 +96,8 @@ def run_hmcan(train_path: str,
     else:
         val_loader = None
 
-    model = HMCAN(max_len, left_num_layers, left_num_heads, dropout,
-                  right_num_layers, right_num_heads, alpha)
+    model = HMCAN(left_num_layers, left_num_heads, dropout,
+                  right_num_layers, right_num_heads, alpha, bert)
     optimizer = torch.optim.Adam(model.parameters(), lr)
     evaluator = Evaluator(metrics)
     trainer = BaseTrainer(model, evaluator, optimizer, device=device)
@@ -108,7 +108,7 @@ def run_hmcan(train_path: str,
                                      transform_hmcan)
         test_loader = DataLoader(test_set, batch_size, shuffle=False)
         test_result = trainer.evaluate(test_loader)
-        print(f"test result: {dict2str(test_result)}")
+        trainer.logger.info(f"test result: {dict2str(test_result)}")
 
 
 def run_hmcan_from_yaml(path: str):

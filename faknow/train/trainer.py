@@ -141,7 +141,7 @@ class AbstractTrainer:
                 else:
                     # todo 递归字典的情况
                     batch_data[k] = self._move_data_to_device(v)
-        elif type(batch_data) is tuple:
+        elif type(batch_data) is tuple or type(batch_data) is list:
             batch_data = tuple(value.to(self.device) for value in batch_data)
         else:
             batch_data = batch_data.to(self.device)
@@ -269,18 +269,10 @@ class BaseTrainer(AbstractTrainer):
                 result (Dict[str, float]): evaluation metrics
         """
 
-        # evaluate
         result = self.evaluate(loader)
-
-        # get the first metric as the validation score
-        # if accuracy is not in result
-        if 'accuracy' in result:
-            score = result['accuracy']
-        else:
-            if epoch == 0:
-                warnings.warn('no accuracy in result, use the first metric \
-                        as the validation score')
-            score = list(result.values())[0]
+        warnings.warn('no accuracy in result, use the first metric \
+                as the validation score')
+        score = list(result.values())[0]
         return score, result
 
     @torch.no_grad()
@@ -389,6 +381,9 @@ class BaseTrainer(AbstractTrainer):
         # do not use bool condition like `if not save_best`
         if save_best is False:
             self.save(save_path)
+        elif save_best is True:
+            self.logger.info(f"load best model in epoch {self.best_epoch}")
+            self.model.load_state_dict(torch.load(save_path))
 
     def save(self, save_path: Optional[str] = None):
         """
@@ -423,12 +418,12 @@ class BaseTrainer(AbstractTrainer):
         Args:
             epoch (int): current epoch
             validation_score (float): current validation score
-            save_best (bool): whether to save model with best validation score.
+            save_best (bool): whether to save model with the best validation score.
                 If False, save the last epoch model.
             save_path (str): path to save model, if save_best is not None.
 
         Returns:
-            bool: whether to save model with best validation score.
+            bool: whether to save model with the best validation score.
         """
 
         improvement = False
@@ -489,14 +484,14 @@ class BaseTrainer(AbstractTrainer):
                                 save_best: Optional[bool] = None):
         """
         Show validation results in logging and tensorboard.
-        If save_best=True or self.early stopping is not None,
-        show best validation score and epoch.
+        If save_best=True or self.early_stopping is not None,
+        show the best validation score and epoch.
 
         Args:
             validation_result (Dict[str, float]): evaluate metrics
             validation_score (float): validation score
             epoch (int): current epoch
-            save_best (bool): whether to save model with best validation score.
+            save_best (bool): whether to save model with the best validation score.
                 Defaults=None.
         """
 
@@ -504,7 +499,7 @@ class BaseTrainer(AbstractTrainer):
             self.writer.add_scalar("Validation/" + metric, value, epoch)
         self.logger.info("validation result : " + dict2str(validation_result))
 
-        score_info = f"current score : {validation_score:.6f}\n"
+        score_info = f"current score : {validation_score:.6f}"
         if save_best:
             score_info = score_info + f", best score : {self.best_score:.6f},\
                 best epoch : {str(self.best_epoch)}"

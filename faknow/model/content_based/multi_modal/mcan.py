@@ -300,7 +300,6 @@ class MCAN(AbstractModel):
 
         # classifier
         self.linear1 = nn.Linear(model_dim, 35)
-        self.fc_bn = nn.BatchNorm1d(35)
         self.linear2 = nn.Linear(35, 2)
         self.dropout = nn.Dropout(dropout)
 
@@ -365,9 +364,9 @@ class MCAN(AbstractModel):
         dct_output = F.relu(self.linear_dct(dct_output))
         dct_output = self.drop_bn_layer(dct_output, part='dct')
 
-        output = None
+        output = vgg_output
         for fusion_layer in self.fusion_layers:
-            output = fusion_layer(vgg_output, dct_output)
+            output = fusion_layer(output, dct_output)
 
         for fusion_layer in self.fusion_layers:
             output = fusion_layer(output, text_output)
@@ -395,7 +394,9 @@ class MCAN(AbstractModel):
         dct_feature = data['image']['dct']
         label = data['label']
         output = self.forward(token_id, mask, vgg_feature, dct_feature)
-        return F.cross_entropy(output, label)
+
+        loss_fn = nn.CrossEntropyLoss()
+        return loss_fn(output, label)
 
     def predict(self, data) -> Tensor:
         """
