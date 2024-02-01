@@ -1,4 +1,4 @@
-BASE_GNN
+GLCN
 ========
 Introduction
 -------------
@@ -20,6 +20,8 @@ significantly outperforms the state-of-the-art traditional fixed structure based
 
 .. image:: ../../../media/GLCN.png
     :align: center
+
+For source code, please refer to :ref:`BASE_GNN <faknow.model.social_context.base_gnn>`
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 

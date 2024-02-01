@@ -1,7 +1,13 @@
 faknow.data.process
 ===========================
 
+faknow.data.process.process
+----------------------------------
 
+.. automodule:: faknow.data.process.process
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 faknow.data.process.text\_process
 ----------------------------------------
@@ -11,9 +17,3 @@ faknow.data.process.text\_process
    :undoc-members:
    :show-inheritance:
 
-
-
-.. automodule:: faknow.data.process
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -30,14 +30,16 @@ Welcome to FaKnow's documentation!
    :maxdepth: 2
    :caption: Developer Guide:
 
-   run/multimodal
+   developer_guide/customize_models
+   developer_guide/customize_trainers
+   developer_guide/customize_datasets
+   developer_guide/customize_evaluator
 
 
 .. toctree::
    :maxdepth: 1
    :caption: API REFERENCE:
 
-   faknow/faknow.config
    faknow/faknow.data
    faknow/faknow.evaluate
    faknow/faknow.model

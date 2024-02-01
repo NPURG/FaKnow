@@ -23,47 +23,7 @@ of multi-domain fake news detection. Our dataset and code are available at https
 .. image:: ../../../media/MDFEND.png
     :align: center
 
-Running with Faknow
----------------------
-**Model Hyper-Parameters:**
-
-- ``bert (str)`` : bert model name, default = ``"hfl/chinese-roberta-wwm-ext"``
-
-- ``max_len (int)`` : max length of input text, default = ``170``
-
-- ``domain_num (int)`` : number of domains, default = ``9``
-
-- ``batch_size (int)`` : batch size, default = ``64``
-
-- ``num_epochs (int)`` : number of epochs, default = ``50``
-
-- ``lr (float)``: learning rate, default = ``0.0005``
-
-- ``weight_decay (float)`` : weight decay, default = ``5e-5``
-
-- ``step_size (int)`` : step size of learning rate scheduler, default = ``100``
-
-- ``gamma (float)`` : gamma of learning rate scheduler, default = ``0.98``
-
-- ``metrics (List)`` : evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default = ``None``
-
-- ``device (str)`` : device to run model, default = ``'cpu'``
-
-**A Running Example:**
-
-Write the following code to a python file, such as run.py
-
-.. code:: python
-
-    from faknow.run.content_based import run_mdfend
-
-    run_mdfend(train_path=, validate_path=, test_path=)
-
-And then:
-
-.. code:: bash
-
-   python run.py
+For source code, please refer to :ref:`MDFEND <faknow.model.content_based.mdfend>`
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 

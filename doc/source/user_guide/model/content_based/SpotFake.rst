@@ -23,57 +23,7 @@ current state-of-the-art on Twitter and Weibo datasets by 3.27% and 6.83%, respe
 .. image:: ../../../media/SpotFake.png
     :align: center
 
-Running with Faknow
----------------------
-**Model Hyper-Parameters:**
-
-- ``text_fc2_out (int, optional) ``: Output size for the text FC2 layer. Defaults to ``32``.
-
-- ``text_fc1_out (int, optional) ``: Output size for the text FC1 layer. Defaults to ``2742``.
-
-- ``dropout_p (float, optional)`` : Dropout probability. Defaults to ``0.4``.
-
-- ``fine_t  une_text_module (bool, optional)`` : Fine-tune text module. Defaults to ``False``.
-
-- ``img_fc1_out (int, optional)`` : Output size for the image FC1 layer. Defaults to ``2742``.
-
-- ``img_fc2_out (int, optional)`` : Output size for the image FC2 layer. Defaults to ``32``.
-
-- ``fine_tune_vis_module (bool, optional)`` : Fine-tune visual module. Defaults to ``False``.
-
-- ``fusion_output_size (int, optional)`` : Output size for the fusion layer. Defaults to ``35``.
-
-- ``loss_func (nn.Module, optional)`` : Loss function. Defaults to ``nn.BCELoss()``.
-
-- ``pre_trained_bert_name (str, optional)` : Name of the pre-trained BERT model. Defaults to ``"bert-base-uncased"``.
-
-- ``batch_size (int, optional)`` : Batch size. Defaults to ``8``.
-
-- ``epochs (int, optional)`` : Number of training epochs. Defaults to ``50``.
-
-- ``max_len (int, optional)`` : Maximum length for tokenization. Defaults to ``500``.
-
-- ``lr (float, optional)`` : Learning rate. Defaults to ``3e-5``.
-
-- ``metrics (List, optional)`` : List of evaluation metrics. Defaults to ``None``.
-
-- ``device (str, optional)`` : Device to run the training on ('cpu' or 'cuda'). Defaults to ``'cuda:0'``.
-
-**A Running Example:**
-
-Write the following code to a python file, such as run.py
-
-.. code:: python
-
-    from faknow.run.content_based.multimodal import run_spotfake
-
-    run_spotfake(train_path=, validate_path=, test_path=)
-
-And then:
-
-.. code:: bash
-
-   python run.py
+For source code, please refer to :ref:`SpotFake <faknow.model.content_based.multi_modal.spotfake>`
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 

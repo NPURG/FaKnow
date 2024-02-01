@@ -26,45 +26,7 @@ while yielding notable improvements for rarely-appearing domains in news dataset
 .. image:: ../../../media/EDDFN.png
     :align: center
 
-Running with Faknow
----------------------
-**Model Hyper-Parameters:**
-
-- ``train_pool_input (Tensor)`` : train pool input, shape=(train_pool_size, input_size)
-
-- ``train_pool_label (Tensor)`` : train pool label, shape=(train_pool_size, )
-
-- ``domain_embedding (Tensor)`` : domain embedding, shape=(train_pool_size, domain_size)
-
-- ``budget_size (float)`` : budget size, default = ``0.8``
-
-- ``num_h (int)`` : number of hash functions, default = ``10``
-
-- ``batch_size (int)`` : batch size, default = ``32``
-
-- ``num_epochs (int)`` : number of epochs, default = ``100``
-
-- ``lr (float)`` : learning rate, default = ``0.02``
-
-- ``metrics (List)``  : evaluation metrics, if None, use default metrics, default = ``None``
-
-- ``device (str)`` : device, default = ``'cpu'``
-
-**A Running Example:**
-
-Write the following code to a python file, such as run.py
-
-.. code:: python
-
-    from faknow.run.social_context import run_eddfn
-
-    run_eddfn(train_pool_input=, train_pool_label=, domain_embedding=)
-
-And then:
-
-.. code:: bash
-
-   python run.py
+For source code, please refer to :ref:`EDDFN <faknow.model.social_context.eddfn>`
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 

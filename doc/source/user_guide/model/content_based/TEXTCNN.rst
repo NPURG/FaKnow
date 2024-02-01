@@ -18,55 +18,7 @@ which include sentiment analysis and question classification.
 .. image:: ../../../media/TEXTCNN.png
     :align: center
 
-Running with Faknow
----------------------
-**Model Hyper-Parameters:**
-
-- ``vocab (Dict[str, int])`` : vocabulary of the corpus
-
-- ``stop_words (List[str])`` : stop words
-
-- ``word_vectors (torch.Tensor)`` : word vectors
-
-- ``language (str)`` : language of the corpus, 'zh' or 'en', default = ``'zh'``
-
-- ``max_len (int)`` : max length of the text, default = ``255``
-
-- ``filter_num (int)`` : number of filters, default = ``100``
-
-- ``kernel_sizes (List[int])`` : list of different kernel_num sizes for TextCNNLayer, if None, [3, 4, 5] is taken as default, default = ``None``
-
-- ``activate_func (Callable)`` : activate function for TextCNNLayer, default = ``relu``
-
-- ``dropout (float)`` : drop out rate of fully connected layer, default = ``0.5``
-
-- ``freeze (bool)`` : whether to freeze weights in word embedding layer while training,default = ``False``
-
-- ``batch_size (int)`` : batch size, default = ``100``
-
-- ``lr (float)`` : learning rate, default = ``0.001``
-
-- ``num_epochs (int)`` : number of epochs, default = ``100``
-
-- ``metrics (List)`` : metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default = ``None``
-
-- ``device (str)`` : device, default = ``'cpu'``
-
-**A Running Example:**
-
-Write the following code to a python file, such as run.py
-
-.. code:: python
-
-    from faknow.run.content_based.multimodal import run_textcnn
-
-    run_textcnn(train_path=, validate_path=, test_path=)
-
-And then:
-
-.. code:: bash
-
-   python run.py
+For source code, please refer to :ref:`TEXTCNN <faknow.model.content_based.textcnn>`
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 
