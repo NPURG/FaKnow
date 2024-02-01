@@ -8,7 +8,7 @@ Welcome to FaKnow's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: get started:
+   :caption: Get Started:
 
    get_started/introduction
    get_started/installation
