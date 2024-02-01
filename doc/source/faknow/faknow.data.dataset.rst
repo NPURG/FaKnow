@@ -1,13 +1,6 @@
 faknow.data.dataset
 ===========================
 
-faknow.data.dataset.algm\_dataset
-----------------------------------------
-
-.. automodule:: faknow.data.dataset.algm_dataset
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 faknow.data.dataset.bigcn\_dataset
 -----------------------------------------
