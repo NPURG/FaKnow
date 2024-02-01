@@ -4,7 +4,7 @@
     <a href="https://faknow.readthedocs.io">
         <img alt="doc" src="https://img.shields.io/badge/doc-read_the_docs-blue.svg">
     </a>
-    <a href="https://github.com//NPURG/FaKnow/LICENSE">
+    <a href="https://github.com/NPURG/FaKnow/blob/master/LICENSE">
         <img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg">
     </a>
     <a href="https://github.com/NPURG/FaKnow/releases">
