@@ -24,9 +24,9 @@ pillow>=9.3.0
 nltk>=3.7
 pyyaml>=5.1.0
 torch==1.12.1
-torchvision==0.13.1
-torch-cluster==1.6.0+pt112cpu           
+torchvision==0.13.1          
 torch-geometric==2.2.0
-torch-scatter==2.1.0+pt112cpu
-torch-sparse==0.6.15+pt112cpu
-torch-spline-conv==1.2.1+pt112cpu
+torch-cluster==1.6.0
+torch-scatter==2.1.0
+torch-sparse==0.6.15
+torch-spline-conv==1.2.1
