@@ -1,2 +1,14 @@
 sphinx-markdown-tables==0.0.17
 recommonmark==0.7.1
+Sphinx==7.1.2
+sphinx-autobuild==2021.3.14
+sphinx-markdown-tables==0.0.17
+sphinx-rtd-theme==2.0.0
+sphinxcontrib-applehelp==1.0.4
+sphinxcontrib-devhelp==1.0.2
+sphinxcontrib-htmlhelp==2.0.1
+sphinxcontrib-jquery==4.1
+sphinxcontrib-jsmath==1.0.1
+sphinxcontrib-qthelp==1.0.3
+sphinxcontrib-serializinghtml==1.1.5
+commonmark==0.9.1
