@@ -1,8 +1,8 @@
 # FaKnow
 
 <p align="center">
-    <a href="https://faknow.readthedocs.io">
-        <img alt="doc" src="https://img.shields.io/badge/doc-read_the_docs-blue.svg">
+    <a href="https://npurg.github.io/FaKnowDoc/">
+        <img alt="doc" src="https://img.shields.io/badge/doc-sphinx-blue.svg">
     </a>
     <a href="https://github.com/NPURG/FaKnow/blob/master/LICENSE">
         <img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg">
