@@ -1,8 +1,6 @@
 faknow.run.social\_context
 ==================================
 
-
-
 faknow.run.social\_context.run\_bigcn
 --------------------------------------------
 
@@ -11,10 +9,34 @@ faknow.run.social\_context.run\_bigcn
    :undoc-members:
    :show-inheritance:
 
+faknow.run.social\_context.run\_dudef
+--------------------------------------------
+
+.. automodule:: faknow.run.social_context.run_dudef
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+faknow.run.social\_context.run\_ebgcn
+--------------------------------------------
+
+.. automodule:: faknow.run.social_context.run_ebgcn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 faknow.run.social\_context.run\_eddfn
 --------------------------------------------
 
 .. automodule:: faknow.run.social_context.run_eddfn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+faknow.run.social\_context.run\_fang
+-------------------------------------------
+
+.. automodule:: faknow.run.social_context.run_fang
    :members:
    :undoc-members:
    :show-inheritance:
@@ -35,10 +57,10 @@ faknow.run.social\_context.run\_gnncl
    :undoc-members:
    :show-inheritance:
 
-faknow.run.social\_context.run\_nep
-------------------------------------------
+faknow.run.social\_context.run\_trustrd
+----------------------------------------------
 
-.. automodule:: faknow.run.social_context.run_nep
+.. automodule:: faknow.run.social_context.run_trustrd
    :members:
    :undoc-members:
    :show-inheritance:
@@ -47,13 +69,6 @@ faknow.run.social\_context.run\_upfd
 -------------------------------------------
 
 .. automodule:: faknow.run.social_context.run_upfd
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-
-.. automodule:: faknow.run.social_context
    :members:
    :undoc-members:
    :show-inheritance:

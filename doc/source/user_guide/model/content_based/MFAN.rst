@@ -22,47 +22,7 @@ and outperform state-of-the-art methods.
 .. image:: ../../../media/MFAN.png
     :align: center
 
-Running with Faknow
----------------------
-**Model Hyper-Parameters:**
-
-- ``node_embedding (torch.Tensor)`` : node embedding, shape = (node_num, node_embedding_dim)
-
-- ``node_num (int)`` : number of nodes
-
-- ``adj_matrix (torch.Tensor)`` : adjacence matrix, shape = (node_num, node_num)
-
-- ``vocab (Dict[str, int])`` : vocabulary dict
-
-- ``word_vectors (torch.Tensor)`` : word vectors, shape = (vocab_size, word_vector_dim)
-
-- ``max_len (int)`` : max length of text, default = ``50``
-
-- ``batch_size (int)`` : batch size, default = ``64``
-
-- ``num_epochs (int)`` : number of epochs, default = ``20``
-
-- ``lr (float)`` : learning rate, default = ``2e-3``
-
-- ``metrics (List)`` : metrics to evaluate, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default = ``None``
-
-- ``device (str)`` : device to run, default = ``'cpu'``
-
-**A Running Example:**
-
-Write the following code to a python file, such as run.py
-
-.. code:: python
-
-    from faknow.run.content_based.multimodal import run_mfan
-
-    run_mfan(train_path=, validate_path=, test_path=)
-
-And then:
-
-.. code:: bash
-
-   python run.py
+For source code, please refer to :ref:`MFAN <faknow.model.content_based.multi_modal.mfan>`
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 

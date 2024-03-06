@@ -1,9 +1,15 @@
 faknow.model.content\_based.multi\_modal
 ================================================
 
+faknow.model.content_based.multi_modal.cafe
+----------------------------------------------------
 
+.. automodule:: faknow.model.content_based.multi_modal.cafe
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-faknow.model.content\_based.multi\_modal.eann
+faknow.model.content_based.multi_modal.eann
 ----------------------------------------------------
 
 .. automodule:: faknow.model.content_based.multi_modal.eann
@@ -11,7 +17,15 @@ faknow.model.content\_based.multi\_modal.eann
    :undoc-members:
    :show-inheritance:
 
-faknow.model.content\_based.multi\_modal.mcan
+faknow.model.content_based.multi_modal.hmcan
+-----------------------------------------------------
+
+.. automodule:: faknow.model.content_based.multi_modal.hmcan
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+faknow.model.content_based.multi_modal.mcan
 ----------------------------------------------------
 
 .. automodule:: faknow.model.content_based.multi_modal.mcan
@@ -19,7 +33,7 @@ faknow.model.content\_based.multi\_modal.mcan
    :undoc-members:
    :show-inheritance:
 
-faknow.model.content\_based.multi\_modal.mfan
+faknow.model.content_based.multi_modal.mfan
 ----------------------------------------------------
 
 .. automodule:: faknow.model.content_based.multi_modal.mfan
@@ -27,7 +41,7 @@ faknow.model.content\_based.multi\_modal.mfan
    :undoc-members:
    :show-inheritance:
 
-faknow.model.content\_based.multi\_modal.safe
+faknow.model.content_based.multi_modal.safe
 ----------------------------------------------------
 
 .. automodule:: faknow.model.content_based.multi_modal.safe
@@ -35,17 +49,10 @@ faknow.model.content\_based.multi\_modal.safe
    :undoc-members:
    :show-inheritance:
 
-faknow.model.content\_based.multi\_modal.spotfake
+faknow.model.content_based.multi_modal.spotfake
 --------------------------------------------------------
 
 .. automodule:: faknow.model.content_based.multi_modal.spotfake
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-
-.. automodule:: faknow.model.content_based.multi_modal
    :members:
    :undoc-members:
    :show-inheritance:

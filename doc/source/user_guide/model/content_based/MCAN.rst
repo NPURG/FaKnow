@@ -21,39 +21,7 @@ features and outperforms state-of-the-art methods.
 .. image:: ../../../media/MCAN.png
     :align: center
 
-Running with Faknow
----------------------
-**Model Hyper-Parameters:**
-
-- ``bert (str)`` : bert model, default = ``'bert-base-chinese'``
-
-- ``max_len (int)`` : max length of text, default = ``255``
-
-- ``batch_size (int)`` : batch size, default = ``16``
-
-- ``num_epochs (int)`` : number of epochs, default = ``100``
-
-- ``metrics (List)`` : metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] will be used, default = ``None``
-
-- ``device (str)`` : device, default = ``'cpu'``
-
-- ``**optimizer_kargs`` : optimizer kargs
-
-**A Running Example:**
-
-Write the following code to a python file, such as run.py
-
-.. code:: python
-
-    from faknow.run.content_based.multimodal import run_mcan
-
-    run_mcan(train_path=, validate_path=, test_path=)
-
-And then:
-
-.. code:: bash
-
-   python run.py
+For source code, please refer to :ref:`MCAN <faknow.model.content\_based.multi\_modal.mcan>`
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 

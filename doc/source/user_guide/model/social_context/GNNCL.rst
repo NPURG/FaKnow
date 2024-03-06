@@ -29,49 +29,7 @@ incrementally.
 .. image:: ../../../media/GNNCL.png
     :align: center
 
-Running with Faknow
----------------------
-**Model Hyper-Parameters:**
-
-- ``root (str)`` : Root directory where the dataset should be saved
-- ``name (str)`` : The name of the graph set (:obj:`"politifact"`, :obj:`"gossipcop"`)
-- ``feature (str)`` : The node feature type (:obj:`"profile"`, :obj:`"spacy"`, :obj:`"bert"`, :obj:`"content"`)
-        If set to :obj:`"profile"`, the 10-dimensional node feature
-        is composed of ten Twitter user profile attributes.
-        If set to :obj:`"spacy"`, the 300-dimensional node feature is
-        composed of Twitter user historical tweets encoded by
-        the `spaCy word2vec encoder
-        <https://spacy.io/models/en#en_core_web_lg>`_.
-        If set to :obj:`"bert"`, the 768-dimensional node feature is
-        composed of Twitter user historical tweets encoded by the
-        `bert-as-service <https://github.com/hanxiao/bert-as-service>`_.
-        If set to :obj:`"content"`, the 310-dimensional node feature is
-        composed of a 300-dimensional "spacy" vector plus a
-        10-dimensional "profile" vector.
-- ``splits (List[str])`` : dataset split, including 'train', 'val' and 'test'.
-        If None, ['train', 'val', 'test'] will be used. Default = ``None``
-- ``batch_size (int)`` : batch size, default = ``128``
-- ``max_nodes (int)`` : max number of nodes, default = ``500``
-- ``lr (float)`` : learning rate, default = ``0.1``
-- ``epochs (int)`` : number of epochs, default = ``70``
-- ``metrics (List)`` : evaluation metrics, if None, ['accuracy', 'precision', 'recall', 'f1'] is used, default = ``None``
-- ``device (str)`` : device, default = ``'cpu'``
-
-**A Running Example:**
-
-Write the following code to a python file, such as run.py
-
-.. code:: python
-
-    from faknow.run.social_context import run_gnncl
-
-    run_gnncl(root=, name=, feature=)
-
-And then:
-
-.. code:: bash
-
-   python run.py
+For source code, please refer to :ref:`GNNCL <faknow.model.social_context.gnncl>`
 
 If you want to change parameters, dataset or evaluation settings, take a look at
 

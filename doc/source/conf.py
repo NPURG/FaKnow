@@ -8,6 +8,7 @@
 
 import os
 import sys
+import recommonmark
 sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../faknow/model/content_based/'))
 sys.path.insert(0, os.path.abspath('../../faknow/run/content_based/'))
@@ -15,7 +16,7 @@ sys.path.insert(0, os.path.abspath('../../faknow/run/content_based/'))
 project = 'FaKnow'
 copyright = '2023, NPURG'
 author = 'NPURG'
-release = '0.0.1'
+release = '0.0.3'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -31,7 +32,6 @@ autodoc_default_options = {
 }
 
 extensions = [
-    'recommonmark',
     'sphinx_markdown_tables',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
@@ -41,6 +41,8 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'sphinx.ext.autosectionlabel',
+    'recommonmark',
 ]
 
 templates_path = ['_templates']

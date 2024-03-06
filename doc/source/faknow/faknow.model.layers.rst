@@ -1,8 +1,6 @@
 faknow.model.layers
 ===========================
 
-
-
 faknow.model.layers.dct
 ------------------------------
 
@@ -19,17 +17,18 @@ faknow.model.layers.layer
    :undoc-members:
    :show-inheritance:
 
-faknow.model.layers.transformer
---------------------------------------
+faknow.model.layers.layers\_m3fend
+-----------------------------------------
 
-.. automodule:: faknow.model.layers.transformer
+.. automodule:: faknow.model.layers.layers_m3fend
    :members:
    :undoc-members:
    :show-inheritance:
 
+faknow.model.layers.transformer
+--------------------------------------
 
-
-.. automodule:: faknow.model.layers
+.. automodule:: faknow.model.layers.transformer
    :members:
    :undoc-members:
    :show-inheritance:

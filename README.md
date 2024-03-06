@@ -1,17 +1,17 @@
 # FaKnow
 
 <p align="center">
-    <a href="https://jialiangwww.github.io/faknow.io">
-        <img alt="doc" src="https://img.shields.io/badge/api_doc-read_the_docs-blue.svg">
+    <a href="https://npurg.github.io/FaKnowDoc/">
+        <img alt="doc" src="https://img.shields.io/badge/doc-sphinx-blue.svg">
     </a>
-    <a href="https://github.com//NPURG/FaKnow/LICENSE">
+    <a href="https://github.com/NPURG/FaKnow/blob/master/LICENSE">
         <img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg">
     </a>
     <a href="https://github.com/NPURG/FaKnow/releases">
-        <img alt="release" src="https://img.shields.io/badge/relase-v0.1.0-yellow.svg">
+        <img alt="release" src="https://img.shields.io/badge/relase-v0.0.3-yellow.svg">
     </a>
-    <a href="https://github.com/huggingface/transformers/releases">
-        <img alt="doi" src="https://img.shields.io/badge/doi-xxx-orange.svg">
+    <!-- <a href="https://github.com/huggingface/transformers/releases">
+        <img alt="doi" src="https://img.shields.io/badge/doi-xxx-orange.svg"> -->
     </a>
 </p>
 
@@ -220,7 +220,19 @@ print(trainer.evaluate(test_loader))
 ## Citation
 
 ```tex
-
+@misc{faknow,
+  title = {{{FaKnow}}: {{A Unified Library}} for {{Fake News Detection}}},
+  shorttitle = {{{FaKnow}}},
+  author = {Zhu, Yiyuan and Li, Yongjun and Wang, Jialiang and Gao, Ming and Wei, Jiali},
+  year = {2024},
+  month = jan,
+  number = {arXiv:2401.16441},
+  eprint = {2401.16441},
+  primaryclass = {cs},
+  publisher = {{arXiv}},
+  archiveprefix = {arxiv},
+  keywords = {Computer Science - Artificial Intelligence,Computer Science - Computation and Language,Computer Science - Machine Learning}
+}
 ```
 
 

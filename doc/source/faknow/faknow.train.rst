@@ -1,12 +1,18 @@
 faknow.train
 ====================
 
-
-
 faknow.train.base\_gnn\_trainer
 --------------------------------------
 
 .. automodule:: faknow.train.base_gnn_trainer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+faknow.train.cafe\_trainer
+---------------------------------
+
+.. automodule:: faknow.train.cafe_trainer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -39,13 +45,6 @@ faknow.train.trainer\_gpu
 --------------------------------
 
 .. automodule:: faknow.train.trainer_gpu
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-
-.. automodule:: faknow.train
    :members:
    :undoc-members:
    :show-inheritance:
