@@ -59,10 +59,9 @@ class CAFE(AbstractModel):
 
     def calculate_loss(self, data: Dict[str, Tensor]) -> Tensor:
         """
-        process raw data using similarity_module
         calculate loss via CrossEntropyLoss
         Args:
-            data (Tuple[Tensor]): batch data tuple,including text, image and label
+            data (Dict[str, Tensor]): batch data with text, image, label
         Returns:
             torch.Tensor: loss
         """
@@ -167,7 +166,7 @@ class _TextImageEncoder(nn.Module):
 
 class _SimilarityModule(AbstractModel):
     """
-    Cross modal aligment and calculate cosine embedding loss
+    Cross modal aligment via contrastive learning
     """
     def __init__(self, shared_dim=128, sim_dim=64):
         """
@@ -211,16 +210,16 @@ class _SimilarityModule(AbstractModel):
         pred_similarity = self.sim_classifier(sim_feature)
         return text_aligned, image_aligned, pred_similarity
 
-    def calculate_loss(self, data: Tuple[Tensor]) -> Tensor:
+    def calculate_loss(self, data: Dict[str, Tensor]) -> Tensor:
         """
         calculate loss via CosineEmbeddingLoss
         Args:
-            data Tuple[Tensor]: batch data, including text, image, label
+            data (Dict[str, Tensor]): batch data with text, image, label
         Returns:
             torch.Tensor: CosineEmbeddingLoss
         """
         fixed_text, matched_image, unmatched_image = self.sample_data_pairs(
-            data)
+            **data)
 
         text_aligned_match, image_aligned_match, similarity_match = self.forward(
             fixed_text, matched_image)
@@ -243,23 +242,27 @@ class _SimilarityModule(AbstractModel):
                                                     similarity_label)
         return loss_similarity
 
-    def sample_data_pairs(self, data: Dict[str, Tensor]) -> Tuple[Tensor]:
+    def sample_data_pairs(self,
+                          text,
+                          image,
+                          label,
+                          true_label=1) -> Tuple[Tensor]:
         """
         randomly sample positive text-image pairs and negative text-image pairs
 
         Args:
-            data (Tuple[Tensor, any]): batch data, including text, image, label
+            text (Tensor): raw text data, shape=(batch_size, 30, 200)
+            image (Tensor): raw image data, shape=(batch_size, 512)
+            label (Tensor): raw label data, shape=(batch_size,)
+            true_label (int): label of positive data, default=1
         Returns:
             fixed_text (Tensor): processed text data, shape=(sample_num, 30, 200)
             matched_image (Tensor): processed match image data, shape=(sample_num ,512)
             unmatched_image (Tensor): processed unmatch image data, shape=(sample_num, 512)
         """
-        text = data['text']
-        image = data['image']
-        label = data['label']
 
         # index of batch news data whose label=1
-        index = [i for i, l in enumerate(label) if l == 1]
+        index = [i for i, l in enumerate(label) if l == true_label]
         sample_text = text[index]
         sample_image = image[index]
         fixed_text = copy.deepcopy(sample_text)
@@ -310,7 +313,7 @@ class _GaussianSample(nn.Module):
 
 class _AmbiguityModule(nn.Module):
     """
-    Cross modal ambiguity learning moddule,
+    Cross modal ambiguity learning module,
     capture the ambiguity between text and image via KL divergence
     """
     def __init__(self):
@@ -384,9 +387,8 @@ class _CrossModalModule(nn.Module):
         self.softmax = nn.Softmax(-1)
         self.corre_dim = 64
         self.pooling = nn.AdaptiveMaxPool1d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(self.corre_dim, corre_out_dim),
-            nn.BatchNorm1d(corre_out_dim), nn.ReLU())
+        self.fc = nn.Sequential(nn.Linear(self.corre_dim, corre_out_dim),
+                                nn.BatchNorm1d(corre_out_dim), nn.ReLU())
 
     def forward(self, text: Tensor, image: Tensor):
         """
