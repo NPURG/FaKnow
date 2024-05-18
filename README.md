@@ -8,11 +8,11 @@
         <img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg">
     </a>
     <a href="https://github.com/NPURG/FaKnow/releases">
-        <img alt="release" src="https://img.shields.io/badge/relase-v0.0.3-yellow.svg">
+        <img alt="release" src="https://img.shields.io/badge/release-v0.0.3-yellow.svg">
     </a>
     <!-- <a href="https://github.com/huggingface/transformers/releases">
-        <img alt="doi" src="https://img.shields.io/badge/doi-xxx-orange.svg"> -->
-    </a>
+        <img alt="doi" src="https://img.shields.io/badge/doi-xxx-orange.svg">
+    </a> -->
 </p>
 
 
