@@ -34,7 +34,7 @@ filepath = os.path.join(os.path.dirname(__file__), "README.md")
 
 setup(
     name="faknow",
-    version="0.0.3",  # edit faknow/__init__.py in response
+    version="0.0.4",  # edit faknow/__init__.py in response
     description="A unified library for fake news detection.",
     long_description=open(filepath, encoding='utf-8').read(),
     long_description_content_type='text/markdown',
