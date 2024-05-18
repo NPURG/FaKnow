@@ -1,6 +1,5 @@
 from faknow.run.content_based import *
 from faknow.run.social_context import *
-from faknow.run.knowledge_aware import *
 
 __all__ = ['run', 'run_from_yaml']
 
