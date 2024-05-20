@@ -218,6 +218,7 @@ print(trainer.evaluate(test_loader))
 
 
 ## Citation
+If you use the library above, please cite our work.
 
 ```tex
 @misc{faknow,
