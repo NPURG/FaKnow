@@ -72,7 +72,8 @@ class TextCNN(AbstractModel):
             torch.Tensor: loss
         """
 
-        text, label = data
+        text = data['text']
+        label = data['label']
         out = self.forward(text)
         loss = self.loss_func(out, label)
         return loss
@@ -88,9 +89,6 @@ class TextCNN(AbstractModel):
             Tensor: softmax probability, shape=(batch_size, 2)
         """
 
-        if type(data_without_label) is tuple:
-            text = data_without_label[0]
-        else:
-            text = data_without_label
+        text = data_without_label['text']
         out = self.forward(text)
         return F.softmax(out, dim=-1)
