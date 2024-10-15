@@ -270,9 +270,14 @@ class BaseTrainer(AbstractTrainer):
         """
 
         result = self.evaluate(loader)
-        warnings.warn('no accuracy in result, use the first metric \
-                as the validation score')
-        score = list(result.values())[0]
+
+        if 'accuracy' not in result:
+            warnings.warn(
+                'no accuracy in result, use the first metric as the validation score'
+            )
+            score = list(result.values())[0]
+        else:
+            score = result['accuracy']
         return score, result
 
     @torch.no_grad()
@@ -295,8 +300,6 @@ class BaseTrainer(AbstractTrainer):
         for batch_data in loader:
             batch_data = self._move_data_to_device(batch_data)
             outputs.append(self.model.predict(batch_data))
-
-            # todo 统一使用dict还是tuple 是否要区分dict trainer和tuple trainer
             labels.append(batch_data['label'])
         return self.evaluator.evaluate(torch.concat(outputs),
                                        torch.concat(labels))
@@ -366,8 +369,7 @@ class BaseTrainer(AbstractTrainer):
                                              validation_score, epoch,
                                              save_best)
 
-                if self.early_stopping is not None and \
-                   self.early_stopping.early_stop:
+                if self.early_stopping is not None and self.early_stopping.early_stop:
                     break
 
             # learning rate scheduler
@@ -474,8 +476,7 @@ class BaseTrainer(AbstractTrainer):
         else:
             raise TypeError(
                 f"train_result type error: must be float or Dict[str, float],\
-                    but got {type(train_result)}"
-            )
+                    but got {type(train_result)}")
 
     def _show_validation_result(self,
                                 validation_result: Dict[str, float],
@@ -503,6 +504,7 @@ class BaseTrainer(AbstractTrainer):
         if save_best:
             score_info = score_info + f", best score : {self.best_score:.6f},\
                 best epoch : {str(self.best_epoch)}"
+
         if self.early_stopping is not None and self.early_stopping.early_stop:
             score_info = score_info + f"\nearly stopping at epoch {epoch}!"
 
