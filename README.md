@@ -8,7 +8,7 @@
         <img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg">
     </a>
     <a href="https://github.com/NPURG/FaKnow/releases">
-        <img alt="release" src="https://img.shields.io/badge/release-v0.0.3-yellow.svg">
+        <img alt="release" src="https://img.shields.io/badge/release-v0.0.4-yellow.svg">
     </a>
     <!-- <a href="https://github.com/huggingface/transformers/releases">
         <img alt="doi" src="https://img.shields.io/badge/doi-xxx-orange.svg">
@@ -221,13 +221,13 @@ print(trainer.evaluate(test_loader))
 If you use the library above, please cite our work.
 
 ```tex
-@article{:/publisher/Beijing Zhongke Journal Publising Co. Ltd./journal/Data Intelligence///10.3724/2096-7004.di.2024.0026,
-  author = "Yiyuan Zhu,Yongjun Li,Jialiang Wang,Ming Gao,Jiali Wei",
-  title = "FaKnow: A Unified Library for Fake News Detection",
-  journal = "Data Intelligence",
- pages = "-",
-  url = "http://www.sciengine.com/publisher/Beijing Zhongke Journal Publising Co. Ltd./journal/Data Intelligence///10.3724/2096-7004.di.2024.0026,
-  doi = "https://doi.org/10.3724/2096-7004.di.2024.0026"
+@article{faknow,
+  author = {Yiyuan Zhu,Yongjun Li,Jialiang Wang,Ming Gao,Jiali Wei},
+  title = {FaKnow: A Unified Library for Fake News Detection},
+  journal = {Data Intelligence},
+  pages = {-},
+  url = {http://www.sciengine.com/publisher/Beijing Zhongke Journal Publising Co. Ltd./journal/Data Intelligence///10.3724/2096-7004.di.2024.0026},
+  doi = {https://doi.org/10.3724/2096-7004.di.2024.0026}
 }
 ```
 
