@@ -221,18 +221,13 @@ print(trainer.evaluate(test_loader))
 If you use the library above, please cite our work.
 
 ```tex
-@misc{faknow,
-  title = {{{FaKnow}}: {{A Unified Library}} for {{Fake News Detection}}},
-  shorttitle = {{{FaKnow}}},
-  author = {Zhu, Yiyuan and Li, Yongjun and Wang, Jialiang and Gao, Ming and Wei, Jiali},
-  year = {2024},
-  month = jan,
-  number = {arXiv:2401.16441},
-  eprint = {2401.16441},
-  primaryclass = {cs},
-  publisher = {{arXiv}},
-  archiveprefix = {arxiv},
-  keywords = {Computer Science - Artificial Intelligence,Computer Science - Computation and Language,Computer Science - Machine Learning}
+@article{:/publisher/Beijing Zhongke Journal Publising Co. Ltd./journal/Data Intelligence///10.3724/2096-7004.di.2024.0026,
+  author = "Yiyuan Zhu,Yongjun Li,Jialiang Wang,Ming Gao,Jiali Wei",
+  title = "FaKnow: A Unified Library for Fake News Detection",
+  journal = "Data Intelligence",
+ pages = "-",
+  url = "http://www.sciengine.com/publisher/Beijing Zhongke Journal Publising Co. Ltd./journal/Data Intelligence///10.3724/2096-7004.di.2024.0026,
+  doi = "https://doi.org/10.3724/2096-7004.di.2024.0026"
 }
 ```
 
