@@ -152,7 +152,7 @@ max_len, bert = 170, 'bert-base-uncased'
 tokenizer = TokenizerFromPreTrained(max_len, bert)
 
 # dataset
-batch_size = 64
+batch_size = 32
 train_path, test_path, validate_path = 'train.json', 'test.json', 'val.json'
 
 train_set = TextDataset(train_path, ['text'], tokenizer)
